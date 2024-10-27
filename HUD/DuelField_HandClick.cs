@@ -250,9 +250,8 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
                                     usedCard = DataConverter.CreateCardDataFromCard(this.GetComponent<Card>()),
                                     playedFrom = parentt,
                                     local = "Stage",
-                                    actionType = "ReSetCardAtStage"
                                 };
-                                _DuelField.GenericActionCallBack(duelActionn);
+                                _DuelField.GenericActionCallBack(duelActionn, "ReSetCardAtStage");
                                 actionDone = true;
                                 break;
                         }

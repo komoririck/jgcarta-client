@@ -48,8 +48,36 @@ namespace Assets.Scripts.Lib
             List<Card> holoPowerList;
             EffectInformation.Clear();
 
+            List<string> serverReturn;
+            string cheerNumber;
+
             switch (_DuelActionR.usedCard.cardNumber)
             {
+                case "hSD01-015":
+                    //we recieve a list, first pos is the number of the dice, second pos is the card from top of cheer
+                    serverReturn = JsonConvert.DeserializeObject<List<string>>(_DuelActionR.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+
+                    cheerNumber = "";
+                    if (serverReturn.Count > 0)
+                        cheerNumber = serverReturn[0];
+
+                    ShowCardEffect(cheerNumber);
+                    //target the card
+                    menuActions.Add(() =>
+                    {
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionR, TargetPlayer.Player, new string[] { _DuelActionR.usedCard.cardPosition });
+                    });
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[0];
+                        duelActionOutput.actionType = "AskAttachTopCheerEnergyToBack";
+
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnCollabEffect");
+
+                        return WaitForServerResponse();
+                    });
+                    break;
                 case "hSD01-012":
                     string WillActivate = "";
                     //select if active
@@ -134,10 +162,10 @@ namespace Assets.Scripts.Lib
                     break;
                 case "hSD01-009":
                     //we recieve a list, first pos is the number of the dice, second pos is the card from top of cheer
-                    List<string> serverReturn = JsonConvert.DeserializeObject<List<string>>(_DuelActionR.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                    serverReturn = JsonConvert.DeserializeObject<List<string>>(_DuelActionR.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                     string diceRoll = serverReturn[0];
 
-                    string cheerNumber = "";
+                    cheerNumber = "";
                     if (serverReturn.Count > 1)
                         cheerNumber = serverReturn[1];
 

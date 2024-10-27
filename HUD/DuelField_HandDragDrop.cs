@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using Unity.VisualScripting;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.PlayerLoop;
+using UnityEngine.U2D.IK;
 using UnityEngine.UI;
 using static DuelField;
 
@@ -207,10 +209,28 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                         case "BackStage4":
                         case "BackStage5":
                         case "Stage":
-                                // se a posição que jogamos a carta está vázia, e a carta jogada e holomem ou buzz, nos tentamso abaixar, senão tentamos bloomar
+                                // se a posição que jogamos a carta está vázia, e a carta jogada e holomem ou buzz, nos tentamos abaixar, senão tentamos bloomar
                                 if (dropZone.GetComponentInChildren<Card>() == null && (thisCard.cardType.Equals("ホロメン") || thisCard.cardType.Equals("Buzzホロメン")))
                                 {
                                     if (_DuelField.GetZone(dropZone.zoneType, TargetPlayer.Player).GetComponentInChildren<Card>() != null)
+                                        break;
+
+                                    thisCard.GetCardInfo();
+                                    bool canContinue = false;
+                                    if (thisCard.bloomLevel.Equals("Debut") || thisCard.bloomLevel.Equals("Spot"))
+                                        canContinue = true;
+
+                                    if (dropZone.zoneType.Equals("BackStage1") || dropZone.zoneType.Equals("BackStage2") || dropZone.zoneType.Equals("BackStage3") ||
+                                        dropZone.zoneType.Equals("BackStage4") || dropZone.zoneType.Equals("BackStage5"))
+                                    {
+                                        canContinue = false;
+
+                                        int count = _DuelField.CountBackStageTotal();
+                                        if (count < 5)
+                                            canContinue = true;
+                                    }
+                                
+                                    if (!canContinue)
                                         break;
 
                                     PerformActionBasedOnDropZone(dropZone.zoneType);

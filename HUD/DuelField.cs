@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using Unity.VisualScripting;
+using UnityEditor.PackageManager;
 using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.AdaptivePerformance;
@@ -552,10 +553,8 @@ public class DuelField : MonoBehaviour
                             LockGameFlow = true;
 
                         //habiliting card that can be played this turn -- energy
-                        cardlist.Clear();
-                        cardlist = FileReader.QueryRecordsByType(new List<string>() { "エール" });
+                        GetUsableCards();
 
-                        GetUsableCards(cardlist);
                         _MatchConnection._DuelFieldData.currentGamePhase = GAMEPHASE.HolomemDefeatedEnergyChoose;
                         currentGameHigh++;
 
@@ -593,7 +592,7 @@ public class DuelField : MonoBehaviour
 
                         // if player still have cheer, we attach, else, we skip
                         if (!playerCannotDrawFromCheer)
-                            AttachEnergyToTarget(duelAction, false);
+                            AttachEnergyToTarget(duelAction, TargetPlayer.Oponnent);
 
 
                         if (cheersAssignedThisChainAmount > cheersAssignedThisChainTotal - 1)
@@ -627,10 +626,7 @@ public class DuelField : MonoBehaviour
                             LockGameFlow = true;
 
                         //habiliting card that can be played this turn -- energy
-                        cardlist.Clear();
-                        cardlist = FileReader.QueryRecordsByType(new List<string>() { "エール" });
-
-                        GetUsableCards(cardlist);
+                        GetUsableCards();
                         _MatchConnection._DuelFieldData.currentGamePhase = GAMEPHASE.CheerStepChoose;
                         currentGameHigh++;
                         GamePhaseMsg.StartMessage("Cheer Step");
@@ -641,14 +637,11 @@ public class DuelField : MonoBehaviour
                             throw new Exception("not in the right gamephase, we're at " + _MatchConnection.DuelActionListIndex[SrvMessageCounter] + " and tried to enter at" + _MatchConnection._DuelFieldData.currentGamePhase.GetType());
                         }
 
-                        if (_MatchConnection._DuelFieldData.currentPlayerTurn != PlayerInfo.PlayerID)
-                            duelAction = JsonConvert.DeserializeObject<DuelAction>(_MatchConnection.DuelActionList.GetByIndex(SrvMessageCounter), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        else
-                            duelAction = new();
+                        duelAction = JsonConvert.DeserializeObject<DuelAction>(_MatchConnection.DuelActionList.GetByIndex(SrvMessageCounter), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         // if player still have cheer, we attach, else, we skip
-                        if (!playerCannotDrawFromCheer)
-                            AttachEnergyToTarget(duelAction);
+                        if (!playerCannotDrawFromCheer && _MatchConnection._DuelFieldData.currentPlayerTurn != PlayerInfo.PlayerID)
+                            AttachEnergyToTarget(duelAction, TargetPlayer.Oponnent);
 
                         currentGameHigh++;
                         _MatchConnection._DuelFieldData.currentGamePhase = GAMEPHASE.MainStep;
@@ -665,7 +658,6 @@ public class DuelField : MonoBehaviour
 
                         startofmain = false;
 
-                        GetUsableCards(FileReader.result);
 
                         if (_MatchConnection._DuelFieldData.currentGamePhase != GAMEPHASE.MainStep)
                         {
@@ -675,8 +667,7 @@ public class DuelField : MonoBehaviour
                         if (_MatchConnection._DuelFieldData.currentPlayerTurn == PlayerInfo.PlayerID)
                         {
                             EndTurnButton.SetActive(true);
-                            cardlist.Clear();
-                            cardlist = FileReader.QueryRecordsByType(new List<string>() { "ホロメン", "Buzzホロメン" });
+                            GetUsableCards();
                         }
                         _MatchConnection._DuelFieldData.currentGamePhase = GAMEPHASE.MainStep;
                         currentGameHigh++;
@@ -702,6 +693,8 @@ public class DuelField : MonoBehaviour
                         currentGameHigh++;
                         break;
                     case "Draw":
+                    case "DrawCollabEffect":
+                    case "DrawArtEffect":
                         if (_MatchConnection._DuelFieldData.currentGamePhase != GAMEPHASE.MainStep)
                         {
                             throw new Exception("not in the right gamephase, we're at " + _MatchConnection.DuelActionListIndex[SrvMessageCounter] + " and tried to enter at" + _MatchConnection._DuelFieldData.currentGamePhase.GetType());
@@ -924,7 +917,12 @@ public class DuelField : MonoBehaviour
                         }
 
                         duelAction = JsonConvert.DeserializeObject<DuelAction>(_MatchConnection.DuelActionList.GetByIndex(SrvMessageCounter), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        AttachEnergyToTarget(duelAction, false);
+
+                        if (duelAction.playerID == PlayerInfo.PlayerID)
+                            AttachEnergyToTarget(duelAction, TargetPlayer.Player);
+                        else
+                            AttachEnergyToTarget(duelAction, TargetPlayer.Oponnent);
+
                         _EffectController.isServerResponseArrive = true;
                         currentGameHigh++;
                         break;
@@ -1105,13 +1103,7 @@ public class DuelField : MonoBehaviour
             ReadyButtonShowed = true;
             _MatchConnection._DuelFieldData.currentGamePhase = GAMEPHASE.SettingUpBoard;
 
-            List<Record> cardlist = new();
-            if (_MatchConnection._DuelFieldData.firstPlayer == PlayerInfo.PlayerID)
-                cardlist = FileReader.QueryRecordsByNameAndBloom(CardListToStringList(_MatchConnection._DuelFieldData.playerAHand), "Debut");
-            if (_MatchConnection._DuelFieldData.firstPlayer != PlayerInfo.PlayerID)
-                cardlist = FileReader.QueryRecordsByNameAndBloom(CardListToStringList(_MatchConnection._DuelFieldData.playerBHand), "Debut");
-
-            GetUsableCards(cardlist);
+            GetUsableCards();
         }
     }
     ////////////////////////////////////////////////////////////////////////
@@ -1120,6 +1112,7 @@ public class DuelField : MonoBehaviour
         string jsonString;
         switch (type)
         {
+            case "ReSetCardAtStage":
             case "ResolveOnArtEffect":
             case "ResolveOnCollabEffect":
             case "PickFromListThenGiveBacKFromHand": //hSD01-007
@@ -1211,7 +1204,7 @@ public class DuelField : MonoBehaviour
         string jsonString = JsonConvert.SerializeObject(DataConverter.ConvertToSerializable(MapDuelFieldData(GameZones)));
         _ = _MatchConnection.SendCallToServer(PlayerInfo.PlayerID, PlayerInfo.Password, "DuelFieldReady", "0", jsonString, currentGameHigh);
         LockGameFlow = false;
-        GetUsableCards(new List<Record>() { });
+        GetUsableCards(true);
     }
 
     public void EndTurnHUDButton()
@@ -1241,8 +1234,34 @@ public class DuelField : MonoBehaviour
 
     //FUNCTIONS ASSIGNED IN THE INSPECTOR - END
 
-    public void GetUsableCards(List<Record> cList)
+    public void GetUsableCards(bool clearList = false)
     {
+        List<Record> cList = new();
+        if (!clearList) { 
+            switch (_MatchConnection._DuelFieldData.currentGamePhase) {
+                case GAMEPHASE.CheerStep:
+                case GAMEPHASE.HolomemDefeated:
+                    cList = FileReader.QueryRecordsByType(new List<string>() { "エール" });
+                    break;
+                case GAMEPHASE.MainStep:
+                    cList = FileReader.result;
+                    //cList = FileReader.QueryRecordsByType(new List<string>() { "ホロメン", "Buzzホロメン" });
+                    break;
+                case GAMEPHASE.SettingUpBoard:
+                    if (_MatchConnection._DuelFieldData.firstPlayer == PlayerInfo.PlayerID) 
+                    { 
+                        cList = FileReader.QueryRecordsByNameAndBloom(CardListToStringList(_MatchConnection._DuelFieldData.playerAHand), "Debut");
+                        cList.AddRange(FileReader.QueryRecordsByNameAndBloom(CardListToStringList(_MatchConnection._DuelFieldData.playerAHand), "Spot"));
+                    }
+                    if (_MatchConnection._DuelFieldData.firstPlayer != PlayerInfo.PlayerID) 
+                    { 
+                        cList = FileReader.QueryRecordsByNameAndBloom(CardListToStringList(_MatchConnection._DuelFieldData.playerBHand), "Debut");
+                        cList.AddRange(FileReader.QueryRecordsByNameAndBloom(CardListToStringList(_MatchConnection._DuelFieldData.playerBHand), "Spot"));
+                    }
+                    break;
+            }
+        }
+
         HashSet<string> cardNumbers = new HashSet<string>(cList.Select(record => record.CardNumber));
 
         if (cList.Count > 0)
@@ -1789,22 +1808,9 @@ public class DuelField : MonoBehaviour
         return _DuelFieldData;
     }
 
-    void AttachEnergyToTarget(DuelAction duelAction, bool isCheerStep = true, bool isTargetPlayer = true)
+    void AttachEnergyToTarget(DuelAction duelAction, TargetPlayer target)
     {
-
-        if (isCheerStep && _MatchConnection._DuelFieldData.currentPlayerTurn == PlayerInfo.PlayerID)
-            return;
-
-        GameObject cardZone;
-
-
-        if (isTargetPlayer && !isCheerStep)
-            cardZone = GetZone(duelAction.targetCard.cardPosition, duelAction.playerID == PlayerInfo.PlayerID ? TargetPlayer.Player : TargetPlayer.Oponnent);
-        else if (!isCheerStep)
-            cardZone = GetZone(duelAction.targetCard.cardPosition, duelAction.playerID != PlayerInfo.PlayerID ? TargetPlayer.Player : TargetPlayer.Oponnent);
-        else
-            cardZone = GetZone(duelAction.targetCard.cardPosition, duelAction.playerID == PlayerInfo.PlayerID ? TargetPlayer.Player : TargetPlayer.Oponnent);
-
+        GameObject cardZone = GetZone(duelAction.targetCard.cardPosition, target);
 
         GameObject usedCardGameObject = Instantiate(cardPrefab, Vector3.zero, Quaternion.identity);
         Card usedCardGameObjectCard = usedCardGameObject.GetComponent<Card>();
@@ -1825,7 +1831,8 @@ public class DuelField : MonoBehaviour
 
         cardZone.GetComponentInChildren<Card>().transform.SetAsLastSibling();
 
-        if (isCheerStep)
+       //need to make this comparisson better latter, comparing the last information send by the server may lead to errors 
+        if (_MatchConnection.DuelActionListIndex.Last().Equals("CheerStepEndDefeatedHolomem"))
         {
             RemoveCardsFromCardHolder(1, cardsOponnent, cardHolderOponnent);
             return;
@@ -1915,4 +1922,20 @@ public class DuelField : MonoBehaviour
         }
     }
 
+    public int CountBackStageTotal() {
+        int count = 0;
+        if (GetZone("BackStage1", TargetPlayer.Player).GetComponentInChildren<Card>() != null)
+            count++;
+        if (GetZone("BackStage2", TargetPlayer.Player).GetComponentInChildren<Card>() != null)
+            count++;
+        if (GetZone("BackStage3", TargetPlayer.Player).GetComponentInChildren<Card>() != null)
+            count++;
+        if (GetZone("BackStage4", TargetPlayer.Player).GetComponentInChildren<Card>() != null)
+            count++;
+        if (GetZone("BackStage5", TargetPlayer.Player).GetComponentInChildren<Card>() != null)
+            count++;
+        if (GetZone("Collaboration", TargetPlayer.Player).GetComponentInChildren<Card>() != null)
+            count++;
+        return count;
+    }
 }
