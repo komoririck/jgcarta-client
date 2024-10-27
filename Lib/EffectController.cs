@@ -244,8 +244,8 @@ namespace Assets.Scripts.Lib
 
                     isServerResponseArrive = false;
 
-//                    if (!_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentInChildren<Card>().name.Equals("ときのそら"))
-//                        return;
+                    if (!_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentInChildren<Card>().name.Equals("ときのそら"))
+                        return;
 
                     ShowCardEffect(cheerNumber);
                     //target the card
@@ -264,6 +264,37 @@ namespace Assets.Scripts.Lib
 
                         return WaitForServerResponse();
 
+                    });
+                    break;
+                case "hSD01-013":
+                    //we recieve a list, first pos is the number of the dice, second pos is the card from top of cheer
+                    serverReturn = JsonConvert.DeserializeObject<List<string>>(_DuelActionR.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                    string diceRoll = serverReturn[0];
+
+                     cheerNumber = "";
+                    if (serverReturn.Count > 1)
+                        cheerNumber = serverReturn[1];
+
+                    //if not oddnumber, we draw a card calling "Draw" at DuelField, so break
+                    if (int.Parse(diceRoll) == 2 || int.Parse(diceRoll) == 4 || int.Parse(diceRoll) == 6)
+                        break;
+
+                    ShowCardEffect(cheerNumber);
+                    //target the card
+                    menuActions.Add(() =>
+                    {
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionR, TargetPlayer.Player, new string[] { _DuelActionR.usedCard.cardPosition});
+                    });
+
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[0];
+                        duelActionOutput.actionType = "AskAttachTopCheerEnergyToBack";
+
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnArtEffect");
+
+                        return WaitForServerResponse();
                     });
                     break;
             }

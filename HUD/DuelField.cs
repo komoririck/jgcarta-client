@@ -707,15 +707,14 @@ public class DuelField : MonoBehaviour
                             throw new Exception("not in the right gamephase, we're at " + _MatchConnection.DuelActionListIndex[SrvMessageCounter] + " and tried to enter at" + _MatchConnection._DuelFieldData.currentGamePhase.GetType());
                         }
 
-                        DuelAction duelActionReponse = JsonConvert.DeserializeObject<DuelAction>(_MatchConnection.DuelActionList.GetByIndex(SrvMessageCounter), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        d = JsonConvert.DeserializeObject<DuelAction>(duelActionReponse.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        d = JsonConvert.DeserializeObject<DuelAction>(_MatchConnection.DuelActionList.GetByIndex(SrvMessageCounter), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
-                        if (duelActionReponse.actionType.Equals("SuffleAllThenDraw"))
-                        {
+                        if (d.suffleBackToDeck) 
+                        { 
                             //since this suffleAll, we destroy the player hand, then add the used card to the other player arquive
                             if (d.playerID == PlayerInfo.PlayerID)
                             {
-                                AddCardsToDeck(GetZone("Deck", TargetPlayer.Player), cardsPlayer.Count, true);
+                                AddCardsToDeck(GetZone("Deck", TargetPlayer.Player), cardsPlayer.Count, d.suffle);
                                 foreach (RectTransform gmd in cardsPlayer)
                                 {
                                     Destroy(gmd.gameObject);
@@ -724,13 +723,13 @@ public class DuelField : MonoBehaviour
                             }
                             else
                             {
-                                AddCardsToDeck(GetZone("Deck", TargetPlayer.Oponnent), cardsOponnent.Count, true);
+                                AddCardsToDeck(GetZone("Deck", TargetPlayer.Oponnent), cardsOponnent.Count, d.suffle);
                                 foreach (RectTransform gmd in cardsOponnent)
                                 {
                                     Destroy(gmd.gameObject);
                                 }
                                 cardsOponnent.Clear();
-                                AddCardToGameZone(GetZone("Arquive", TargetPlayer.Oponnent), new List<Card>() { new Card(duelActionReponse.usedCard.cardNumber) });
+                                AddCardToGameZone(GetZone("Arquive", TargetPlayer.Oponnent), new List<Card>() { new Card(d.usedCard.cardNumber) });
                             }
                         }
 
@@ -842,7 +841,7 @@ public class DuelField : MonoBehaviour
                             throw new Exception("not in the right gamephase, we're at " + _MatchConnection.DuelActionListIndex[SrvMessageCounter] + " and tried to enter at" + _MatchConnection._DuelFieldData.currentGamePhase.GetType());
                         }
 
-                        duelActionReponse = JsonConvert.DeserializeObject<DuelAction>(_MatchConnection.DuelActionList.GetByIndex(SrvMessageCounter), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelActionReponse = JsonConvert.DeserializeObject<DuelAction>(_MatchConnection.DuelActionList.GetByIndex(SrvMessageCounter), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         DuelAction drawResponse = JsonConvert.DeserializeObject<DuelAction>(duelActionReponse.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         if (duelActionReponse.playerID != PlayerInfo.PlayerID)

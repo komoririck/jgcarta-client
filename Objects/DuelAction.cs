@@ -18,6 +18,7 @@ public class DuelAction
     public List<string> SelectedCards { get; set; }
     public List<int> Order { get; set; }
     public bool suffle { get; set; }
+    public bool suffleBackToDeck { get; set; }
     public string zone { get; set; }
     public List<Card> cardList { get; set; } = new List<Card>();
 }

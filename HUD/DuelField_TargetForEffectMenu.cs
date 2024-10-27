@@ -82,6 +82,7 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
 
         yield return new WaitUntil(() => effectController.isSelectionCompleted);
         effectController.isSelectionCompleted = false;
+        zonesThatPlayerCanSelect = null;
     }
 
     void OnItemClick(GameObject itemObject, int itemName, bool canSelect)

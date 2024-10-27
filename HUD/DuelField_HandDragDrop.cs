@@ -228,45 +228,44 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                                     Transform lastChild = dropZone.transform.GetChild(dropZone.transform.childCount - 1);
                                     Card pointedCard = lastChild.GetComponent<Card>();
 
+                                    //cards cannot bloom the turn they are played 
                                     if (pointedCard.playedThisTurn == true)
                                         break;
 
+                                    bool canContinue = false;
                                     if (thisCard.cardType.Equals("ホロメン") || thisCard.cardType.Equals("Buzzホロメン"))
                                     {
-                                        List<Record> validCardToBloom = FileReader.QueryBloomablePreviousCard(thisCard.cardName, thisCard.bloomLevel);
-
-                                        if (validCardToBloom.Count < 1)
+                                        //get level to bloom
+                                        string bloomToLevel = targetCard.bloomLevel.Equals("Debut") ? "1st" : "2nd";
+                                        //especial card condition to bloom match
+                                        if (thisCard.cardNumber.Equals("hSD01-013") && targetCard.bloomLevel.Equals(bloomToLevel) && (thisCard.cardName.Equals("ときのそら") || thisCard.cardName.Equals("AZKi")))
+                                        {
+                                            canContinue = true;
+                                        }
+                                        //normal condition to bloom match
+                                        else if (thisCard.cardName.Equals(targetCard.cardName) && targetCard.bloomLevel.Equals(bloomToLevel)) 
+                                        {
+                                            canContinue = true;
+                                        }
+                                        
+                                        if (!canContinue)
                                             break;
 
-                                        int validCardPos = -1;
-                                        int n = 0;
-                                        foreach (Record record in validCardToBloom) {
-                                            if (record.CardNumber.Equals(pointedCard.cardNumber)) {
-                                                validCardPos = n;
-                                            }
-                                            n++;
-                                        }
+                                        //attaching energys
+                                        BloomCard(pointedCard.gameObject.transform.parent.gameObject, thisCard.gameObject);
+
+                                        //creating the informatio for the server
+                                        _DuelAction.playerID = _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn;
+                                        _DuelAction.usedCard = DataConverter.CreateCardDataFromCard(thisCard);
+                                        _DuelAction.playedFrom = "Hand";
+                                        _DuelAction.local = pointedCard.gameObject.transform.parent.gameObject.name;
+                                        _DuelAction.targetCard = DataConverter.CreateCardDataFromCard(pointedCard);
 
 
-                                        if (validCardPos > -1)
-                                        {
-
-                                            //attaching energys
-                                            BloomCard(pointedCard.gameObject.transform.parent.gameObject, thisCard.gameObject);
-
-                                            //creating the informatio for the server
-                                            _DuelAction.playerID = _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn;
-                                            _DuelAction.usedCard = DataConverter.CreateCardDataFromCard(thisCard);
-                                            _DuelAction.playedFrom = "Hand";
-                                            _DuelAction.local = pointedCard.gameObject.transform.parent.gameObject.name;
-                                            _DuelAction.targetCard = DataConverter.CreateCardDataFromCard(pointedCard);
-
-
-                                            _DuelAction.actionType = "BloomHolomem";
-                                            EffectQuestionDispalyMenuButton(_DuelAction);
-                                            validDropZoneFound = true;
-                                            _DuelField.ArrangeCards(_DuelField.cardsPlayer, _DuelField.cardHolderPlayer);
-                                        }
+                                        _DuelAction.actionType = "BloomHolomem";
+                                        EffectQuestionDispalyMenuButton(_DuelAction);
+                                        validDropZoneFound = true;
+                                        _DuelField.ArrangeCards(_DuelField.cardsPlayer, _DuelField.cardHolderPlayer);
                                     }
                                 }
                                 break;
