@@ -1,4 +1,5 @@
 using Assets.Scripts.Lib;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using TMPro;
@@ -23,8 +24,13 @@ public class DuelField_DetachEnergyMenu : MonoBehaviour
     DuelField_TargetForEffectMenu _DuelField_TargetForEffectMenu;
     List<GameObject> instantiatedItem = new();
 
-    public void SetupSelectableItems(DuelAction _DuelAction)
+    private EffectController effectController;
+
+
+    public IEnumerator SetupSelectableItems(DuelAction _DuelAction)
     {
+        effectController.isSelectionCompleted = false;
+
         duelAction = _DuelAction;
         this.usedCard.cardNumber = _DuelAction.usedCard.cardNumber;
         usedCard.GetCardInfo();
@@ -69,6 +75,8 @@ public class DuelField_DetachEnergyMenu : MonoBehaviour
         }
 
         CardListContent.transform.parent.parent.parent.gameObject.SetActive(true);
+        yield return new WaitUntil(() => effectController.isSelectionCompleted);
+        effectController.isSelectionCompleted = false;
     }
 
     void OnItemClick(GameObject itemObject, int itemName, bool canSelect)
@@ -85,6 +93,7 @@ public class DuelField_DetachEnergyMenu : MonoBehaviour
 
     public void Start()
     {
+        effectController = FindAnyObjectByType<EffectController>();
         _DuelField_TargetForEffectMenu = FindAnyObjectByType<DuelField_TargetForEffectMenu>();
         _DuelField = GameObject.FindAnyObjectByType<DuelField>();
         confirmButton.onClick.AddListener(FinishSelection);
@@ -118,16 +127,14 @@ public class DuelField_DetachEnergyMenu : MonoBehaviour
 
         _DuelField.SendCardToZone(FatherCard.attachedCards[j], "Arquive", DuelField.TargetPlayer.Player);
         FatherCard.attachedCards[j].SetActive(true);
-
-        duelAction.actionType = "UseSuportStaffMember";
-
         FatherCard.attachedCards.RemoveAt(j);
 
-        FindAnyObjectByType<EffectController>().duelActionOutput = duelAction;
+
+        effectController.EffectInformation.Add(duelAction);
 
         CardListContent.transform.parent.parent.parent.gameObject.SetActive(false);
 
-        FindAnyObjectByType<EffectController>();
+        effectController.isSelectionCompleted = true;
     }
 
     // Helper method to get the last card in the zone, if any

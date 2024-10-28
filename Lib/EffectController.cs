@@ -241,19 +241,156 @@ namespace Assets.Scripts.Lib
             StartCoroutine(StartMenuSequenceCoroutine());
             isSelectionCompleted = false;
         }
-       public void ResolveSuportEffect()
+       public void ResolveSuportEffect(DuelAction _DuelActionR)
         {
+            menuActions = new List<Func<IEnumerator>>();
+            List<Card> holoPowerList;
+            EffectInformation.Clear();
+
+            List<string> serverReturn;
+            string cheerNumber;
+
+            switch (_DuelActionR.usedCard.cardNumber)
+            {
+                case "hSD01-016":
+                case "hSD01-017":
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnSupportEffect");
+                        return dummy();
+                    });
+                    break;
+                case "hSD01-018":
+                    isServerResponseArrive = false;
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        _DuelActionR = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        List<Card> filteresList = new();
+                        foreach (Card card in _DuelActionR.cardList) 
+                        {
+                            card.GetCardInfo();
+                            if (card.cardType.Equals("サポート・アイテム・LIMITED") || card.cardType.Equals("サポート・スタッフ・LIMITED")) 
+                            {
+                                filteresList.Add(card);
+                            }
+                        
+                        }
+                        return _DuelField_SelectableCardMenu.SetupSelectableItems(_DuelActionR, _DuelActionR.cardList, filteresList, true);
+                    });
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[0];
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hSD01-019":
+                    isServerResponseArrive = false;
+                    menuActions.Add(() =>
+                    {
+                        return _DuelField_DetachEnergyMenu.SetupSelectableItems(_DuelActionR);
+                    });
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[0];
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    //we recieve the list then callback again to finish the effect
+                    menuActions.Add(() =>
+                    {
+                        _DuelActionR = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        /*List<Card> filteresList = new();
+                        foreach (Card card in _DuelActionR.cardList)
+                        {
+                            card.GetCardInfo();
+                            if (card.bloomLevel.Equals("1st") || card.bloomLevel.Equals("2nd"))
+                            {
+                                filteresList.Add(card);
+                            }
+
+                        }*/
+                        return _DuelField_SelectableCardMenu.SetupSelectableItems(_DuelActionR, _DuelActionR.cardList, _DuelActionR.cardList, true);
+                    });
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[1];
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hSD01-020":
+                    isServerResponseArrive = false;
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+
+                    menuActions.Add(() =>
+                    {
+                        //we recieve a list, first pos is the number of the dice, second pos is the card from top of cheer
+                        serverReturn = JsonConvert.DeserializeObject<List<string>>(_DuelActionR.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        string diceRoll = serverReturn[0];
+
+                        //if not oddnumber, we draw a card calling "Draw" at DuelField, so break
+                        if (int.Parse(diceRoll) < 3)
+                            return null;
+
+                        return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionR, _DuelActionR.cardList, _DuelActionR.cardList);
+                    });
+                    
+                    ShowCardEffect(_DuelActionR.usedCard.cardNumber);
+
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        List<string> cardnumber = (List<string>)EffectInformation[0];
+                        _DuelActionR.usedCard = new CardData() { cardNumber = cardnumber[0] };
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hSD01-021":
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        _DuelActionR = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        List<Card> filteresList = new();
+
+                        foreach (Card card in _DuelActionR.cardList)
+                        {
+                            card.GetCardInfo();
+                            if (card.name.Equals("ときのそら") || card.name.Equals("AZKi"))
+                            {
+                                filteresList.Add(card);
+                            }
+                        }
+                        return _DuelField_SelectableCardMenu.SetupSelectableItems(_DuelActionR, _DuelActionR.cardList, filteresList, true);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        DuelAction duelaction = (DuelAction)EffectInformation[0];
+                        _DuelField.GenericActionCallBack(duelaction, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+            }
             StartCoroutine(StartMenuSequenceCoroutine());
+            isSelectionCompleted = false;
         }
-
-
-
-
-
-
-
-
-
         public void ResolveOnArtEffect(DuelAction _DuelActionR)
         {
             menuActions = new List<Func<IEnumerator>>();
@@ -286,10 +423,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[0];
-                        duelActionOutput.actionType = "AskAttachTopCheerEnergyToBack";
-
                         _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnArtEffect");
-
                         return WaitForServerResponse();
 
                     });
@@ -318,10 +452,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[0];
-                        duelActionOutput.actionType = "AskAttachTopCheerEnergyToBack";
-
                         _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnArtEffect");
-
                         return WaitForServerResponse();
                     });
                     break;

@@ -176,22 +176,18 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                         _DuelField._MatchConnection._DuelFieldData.playerLimiteCardPlayed.Add(thisCard);
 
                         string sendThisCardTo = "Arquive";
-                        _DuelAction = new DuelAction()
-                        {
-                            actionType = "UseSuportStaffMember",
-                            usedCard = DataConverter.CreateCardDataFromCard(thisCard),
-                            playerID = _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn,
-                            playedFrom = "Hand",
-                            local = (targetCard != null) ? targetCard.gameObject.transform.parent.gameObject.name : "",
-                            targetCard = DataConverter.CreateCardDataFromCard(targetCard)
-                        };
 
-                        //bool canActivateEfrect = FindAnyObjectByType<EffectController>().ConstructEffectActivationCall(_DuelAction);
-
-                        //if (!canActivateEfrect)
-                        //    break;
-                        //
-                        //
+                        //if (thisCard.cardType.Equals("サポート・スタッフ・LIMITED")) { 
+                            _DuelAction = new DuelAction()
+                            {
+                                usedCard = DataConverter.CreateCardDataFromCard(thisCard),
+                                playerID = _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn,
+                                playedFrom = "Hand",
+                                local = (targetCard != null) ? targetCard.gameObject.transform.parent.gameObject.name : "",
+                                targetCard = DataConverter.CreateCardDataFromCard(targetCard)
+                            };
+                        //}
+                        FindAnyObjectByType<EffectController>().ResolveSuportEffect(_DuelAction);
 
                         _DuelField.cardsPlayer.Remove(this.transform.GetComponent<RectTransform>());
                         _DuelField.ArrangeCards(_DuelField.cardsPlayer, _DuelField.cardHolderPlayer);
