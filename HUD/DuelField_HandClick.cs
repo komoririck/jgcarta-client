@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using static DuelField;
 using System.Threading.Tasks;
 using System.Collections;
+using System.Linq;
 
 public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
 {
@@ -107,10 +108,25 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
 
                 newItem.transform.Find("ArtButton").Find("Cost").GetComponent<TMP_Text>().text = costString;
 
-                DuelAction duelaction = new() { usedCard = DataConverter.CreateCardDataFromCard(GetComponent<Card>()) };
+                Card thisCard = GetComponent<Card>();
+                DuelAction duelaction = new() { usedCard = DataConverter.CreateCardDataFromCard(thisCard) };
                 Button itemButton = newItem.GetComponent<Button>();
-                duelaction.usedCard.cardPosition = GetComponent<Card>().cardPosition;
-                itemButton.onClick.AddListener(() => OnItemClick(duelaction, itemButton));
+                duelaction.usedCard.cardPosition = thisCard.cardPosition;
+
+                //get count of cards, 
+                Dictionary<string, List<GameObject>> energyAmount = CountCardAvaliableEnergy(thisCard);
+
+                if (IsCostCovered(currentArt.Cost, energyAmount))
+                {
+                    itemButton.onClick.AddListener(() => OnItemClick(duelaction, itemButton));
+                }
+                else
+                {
+                    CanvasGroup canvasGroup = itemButton.GetComponent<CanvasGroup>();
+                    itemButton.interactable = false;
+                    canvasGroup.alpha = 0.5f; // Makes the button look semi-transparent
+                    canvasGroup.blocksRaycasts = false; // Prevents interactions
+                }
             }
         }
         else
@@ -133,6 +149,44 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
         }
     }
 
+    private Dictionary<string, List<GameObject>> CountCardAvaliableEnergy(Card card)
+    {
+        Dictionary<string, List<GameObject>> energyAmount = new();
+        foreach (GameObject energy in card.attachedCards)
+        {
+            Card cardEnergy = energy.GetComponent<Card>();
+            if (cardEnergy.cardType.Equals("エール"))
+            {
+                if (!energyAmount.ContainsKey(cardEnergy.color))
+                {
+                    energyAmount[cardEnergy.color] = new List<GameObject>();
+                }
+                energyAmount[cardEnergy.color].Add(energy);
+            }
+        }
+        return energyAmount;
+    }
+    public bool IsCostCovered(List<(string Color, int Amount)> cost, Dictionary<string, List<GameObject>> energyAmount)
+    {
+        foreach (var (color, amount) in cost)
+        {
+            if (color == "無色")
+            {
+                // Total count of all energies to satisfy "◇" cost
+                int totalEnergyCount = energyAmount.Values.Sum(list => list.Count);
+                if (totalEnergyCount < amount)
+                    return false; // Not enough total energy to satisfy the "◇" cost
+            }
+            else
+            {
+                // Check if there's enough energy of the specific color
+                int availableCount = energyAmount.ContainsKey(color) ? energyAmount[color].Count : 0;
+                if (availableCount < amount)
+                    return false; // Not enough energy of the specified color
+            }
+        }
+        return true;
+    }
 
     private void OnItemClick(DuelAction duelaction, Button thisButton)
     {

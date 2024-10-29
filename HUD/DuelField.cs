@@ -5,14 +5,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
-using Unity.VisualScripting;
-using UnityEditor.PackageManager;
-using UnityEditor.Rendering;
 using UnityEngine;
-using UnityEngine.AdaptivePerformance;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using static DuelField;
 using static DuelFieldData;
 
 public class DuelField : MonoBehaviour
@@ -94,6 +89,8 @@ public class DuelField : MonoBehaviour
     }
 
     EffectController _EffectController;
+
+    public bool LimitedThisturn { get; internal set; }
 
     void Start()
     {
@@ -704,34 +701,34 @@ public class DuelField : MonoBehaviour
                         d = JsonConvert.DeserializeObject<DuelAction>(_MatchConnection.DuelActionList.GetByIndex(SrvMessageCounter), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
 
-                            //since this suffleAll, we destroy the player hand, then add the used card to the other player arquive
-                            if (d.playerID == PlayerInfo.PlayerID)
+                        //since this suffleAll, we destroy the player hand, then add the used card to the other player arquive
+                        if (d.playerID == PlayerInfo.PlayerID)
+                        {
+                            AddCardsToDeck(GetZone("Deck", TargetPlayer.Player), cardsPlayer.Count, d.suffle);
+                            if (d.suffleBackToDeck)
                             {
-                                AddCardsToDeck(GetZone("Deck", TargetPlayer.Player), cardsPlayer.Count, d.suffle);
-                                if (d.suffleBackToDeck)
+                                foreach (RectTransform gmd in cardsPlayer)
                                 {
-                                    foreach (RectTransform gmd in cardsPlayer)
-                                    {
-                                        Destroy(gmd.gameObject);
-                                    }
-                                    cardsPlayer.Clear();
-                                    ArrangeCards(cardsPlayer, cardHolderPlayer);
+                                    Destroy(gmd.gameObject);
                                 }
+                                cardsPlayer.Clear();
+                                ArrangeCards(cardsPlayer, cardHolderPlayer);
                             }
-                            else
+                        }
+                        else
+                        {
+                            AddCardsToDeck(GetZone("Deck", TargetPlayer.Oponnent), cardsOponnent.Count, d.suffle);
+                            if (d.suffleBackToDeck)
                             {
-                                AddCardsToDeck(GetZone("Deck", TargetPlayer.Oponnent), cardsOponnent.Count, d.suffle);
-                                if (d.suffleBackToDeck)
+                                foreach (RectTransform gmd in cardsOponnent)
                                 {
-                                    foreach (RectTransform gmd in cardsOponnent)
-                                    {
-                                        Destroy(gmd.gameObject);
-                                    }
-                                    cardsOponnent.Clear();
-                                    ArrangeCards(cardsOponnent, cardHolderOponnent);
+                                    Destroy(gmd.gameObject);
                                 }
-                                AddCardToGameZone(GetZone("Arquive", TargetPlayer.Oponnent), new List<Card>() { new Card(d.usedCard.cardNumber) });
+                                cardsOponnent.Clear();
+                                ArrangeCards(cardsOponnent, cardHolderOponnent);
                             }
+                            AddCardToGameZone(GetZone("Arquive", TargetPlayer.Oponnent), new List<Card>() { new Card(d.usedCard.cardNumber) });
+                        }
 
                         DrawCard(d);
                         currentGameHigh++;
@@ -830,7 +827,7 @@ public class DuelField : MonoBehaviour
                         currentGameHigh++;
                         break;
 
-                    case "UseCardEffectDrawXAmountAddAnyIfConditionMatchThenReorderToBottom":
+                    case "SuporteEffectDrawXAddIf":
                         if (_MatchConnection._DuelFieldData.currentGamePhase != GAMEPHASE.MainStep)
                         {
                             throw new Exception("not in the right gamephase, we're at " + _MatchConnection.DuelActionListIndex[SrvMessageCounter] + " and tried to enter at" + _MatchConnection._DuelFieldData.currentGamePhase.GetType());
@@ -1218,46 +1215,167 @@ public class DuelField : MonoBehaviour
 
     public void GetUsableCards(bool clearList = false)
     {
+        foreach (RectTransform r in cardsPlayer)
+        {
+            Card cardComponent = r.GetComponent<Card>();
+            DuelField_HandDragDrop handDragDrop = r.GetComponent<DuelField_HandDragDrop>() ?? r.gameObject.AddComponent<DuelField_HandDragDrop>();
+            handDragDrop.enabled = false;
+        }
+
         List<Record> cList = new();
-        if (!clearList) { 
-            switch (_MatchConnection._DuelFieldData.currentGamePhase) {
+        if (!clearList)
+        {
+            switch (_MatchConnection._DuelFieldData.currentGamePhase)
+            {
                 case GAMEPHASE.CheerStep:
                 case GAMEPHASE.HolomemDefeated:
-                    cList = FileReader.QueryRecordsByType(new List<string>() { "エール" });
+                    foreach (RectTransform r in cardsPlayer)
+                    {
+                        Card cardComponent = r.GetComponent<Card>();
+                        if (cardComponent.cardType.Equals("エール"))
+                        {
+                            DuelField_HandDragDrop handDragDrop = r.GetComponent<DuelField_HandDragDrop>() ?? r.gameObject.AddComponent<DuelField_HandDragDrop>();
+                            handDragDrop.enabled = true;
+                        }
+                    }
                     break;
                 case GAMEPHASE.MainStep:
-                    cList = FileReader.result;
-                    //cList = FileReader.QueryRecordsByType(new List<string>() { "ホロメン", "Buzzホロメン" });
+                    foreach (RectTransform r in cardsPlayer)
+                    {
+                        Card cardComponent = r.GetComponent<Card>();
+                        cardComponent.GetCardInfo();
+                        if (cardComponent.cardType.Equals("サポート・スタッフ・LIMITED") || cardComponent.cardType.Equals("サポート・イベント・LIMITED") || cardComponent.cardType.Equals("サポート・アイテム・LIMITED"))
+                        {
+                            DuelField_HandDragDrop handDragDrop = r.GetComponent<DuelField_HandDragDrop>() ?? r.gameObject.AddComponent<DuelField_HandDragDrop>();
+                            handDragDrop.enabled = true;
+                        }
+                        else if (cardComponent.cardType.Equals("ホロメン") || cardComponent.cardType.Equals("Buzzホロメン"))
+                        {
+                            if (cardComponent.bloomLevel.Equals("Debut") || cardComponent.bloomLevel.Equals("Spot"))
+                            {
+                                DuelField_HandDragDrop handDragDrop = r.GetComponent<DuelField_HandDragDrop>() ?? r.gameObject.AddComponent<DuelField_HandDragDrop>();
+                                handDragDrop.enabled = true;
+                            }
+                            if (cardComponent.bloomLevel.Equals("1st"))
+                            {
+                                List<string> bloomableNames;
+                                bloomableNames = NamesThatCanBloom("Debut");
+                                foreach (string name in bloomableNames)
+                                {
+                                    if (name.Equals(cardComponent.cardName))
+                                    {
+                                        DuelField_HandDragDrop handDragDrop = r.GetComponent<DuelField_HandDragDrop>() ?? r.gameObject.AddComponent<DuelField_HandDragDrop>();
+                                        handDragDrop.enabled = true;
+                                    }
+                                }
+                            }
+                            if (cardComponent.bloomLevel.Equals("2nd"))
+                            {
+                                List<string> bloomableNames;
+                                bloomableNames = NamesThatCanBloom("1st");
+                                foreach (string name in bloomableNames)
+                                {
+                                    if (name.Equals(cardComponent.cardName))
+                                    {
+                                        DuelField_HandDragDrop handDragDrop = r.GetComponent<DuelField_HandDragDrop>() ?? r.gameObject.AddComponent<DuelField_HandDragDrop>();
+                                        handDragDrop.enabled = true;
+                                    }
+                                }
+                            }
+                        }
+                        else if (cardComponent.cardType.Equals("サポート・スタッフ") || cardComponent.cardType.Equals("サポート・イベント") || cardComponent.cardType.Equals("サポート・アイテム"))
+                        {
+                            DuelField_HandDragDrop handDragDrop = r.GetComponent<DuelField_HandDragDrop>() ?? r.gameObject.AddComponent<DuelField_HandDragDrop>();
+                            handDragDrop.enabled = true;
+                        }
+
+                    }
                     break;
                 case GAMEPHASE.SettingUpBoard:
-                    if (_MatchConnection._DuelFieldData.firstPlayer == PlayerInfo.PlayerID) 
-                    { 
-                        cList = FileReader.QueryRecordsByNameAndBloom(CardListToStringList(_MatchConnection._DuelFieldData.playerAHand), "Debut");
-                        cList.AddRange(FileReader.QueryRecordsByNameAndBloom(CardListToStringList(_MatchConnection._DuelFieldData.playerAHand), "Spot"));
-                    }
-                    if (_MatchConnection._DuelFieldData.firstPlayer != PlayerInfo.PlayerID) 
-                    { 
-                        cList = FileReader.QueryRecordsByNameAndBloom(CardListToStringList(_MatchConnection._DuelFieldData.playerBHand), "Debut");
-                        cList.AddRange(FileReader.QueryRecordsByNameAndBloom(CardListToStringList(_MatchConnection._DuelFieldData.playerBHand), "Spot"));
+                    foreach (RectTransform r in cardsPlayer)
+                    {
+                        Card cardComponent = r.GetComponent<Card>();
+                        if (cardComponent.bloomLevel.Equals("Debut") || cardComponent.bloomLevel.Equals("Spot"))
+                        {
+                            DuelField_HandDragDrop handDragDrop = r.GetComponent<DuelField_HandDragDrop>() ?? r.gameObject.AddComponent<DuelField_HandDragDrop>();
+                            handDragDrop.enabled = true;
+                        }
                     }
                     break;
             }
         }
+    }
 
-        HashSet<string> cardNumbers = new HashSet<string>(cList.Select(record => record.CardNumber));
+    public List<string> NamesThatCanBloom(string level)
+    {
+        List<string> validNames = new();
 
-        if (cList.Count > 0)
-        {
-            foreach (RectTransform r in cardsPlayer)
+        Card BackStage1Card = GetZone("BackStage1", TargetPlayer.Player).transform.GetComponentInChildren<Card>();
+        Card BackStage2Card = GetZone("BackStage2", TargetPlayer.Player).transform.GetComponentInChildren<Card>();
+        Card BackStage3Card = GetZone("BackStage3", TargetPlayer.Player).transform.GetComponentInChildren<Card>();
+        Card BackStage4Card = GetZone("BackStage4", TargetPlayer.Player).transform.GetComponentInChildren<Card>();
+        Card BackStage5Card = GetZone("BackStage5", TargetPlayer.Player).transform.GetComponentInChildren<Card>();
+        Card CollaborationCard = GetZone("Collaboration", TargetPlayer.Player).transform.GetComponentInChildren<Card>();
+        Card StageCard = GetZone("Stage", TargetPlayer.Player).transform.GetComponentInChildren<Card>();
+
+        if (BackStage1Card != null)
+            if (BackStage1Card.bloomLevel.Equals(level) && BackStage1Card.playedThisTurn == false)
             {
-                Card cardComponent = r.GetComponent<Card>();
-                bool matchFound = cardNumbers.Contains(cardComponent.cardNumber);
-
-                DuelField_HandDragDrop handDragDrop = r.GetComponent<DuelField_HandDragDrop>() ?? r.gameObject.AddComponent<DuelField_HandDragDrop>();
-
-                handDragDrop.enabled = matchFound;
+                validNames.Add(BackStage1Card.cardName);
+                //EXTRA CONDITIONS
+                if (BackStage1Card.bloomLevel.Equals("Debut") && BackStage1Card.cardName.Equals("ときのそら") || BackStage1Card.cardName.Equals("AZKi"))
+                    validNames.Add("SorAZ");
             }
-        }
+        if (BackStage2Card != null)
+            if (BackStage2Card.bloomLevel.Equals(level) && BackStage2Card.playedThisTurn == false)
+            {
+                validNames.Add(BackStage2Card.cardName);
+                //EXTRA CONDITIONS
+                if (BackStage2Card.bloomLevel.Equals("Debut") && BackStage2Card.cardName.Equals("ときのそら") || BackStage2Card.cardName.Equals("AZKi"))
+                    validNames.Add("SorAZ");
+
+            }
+        if (BackStage3Card != null)
+            if (BackStage3Card.bloomLevel.Equals(level) && BackStage3Card.playedThisTurn == false)
+            {
+                validNames.Add(BackStage3Card.cardName);
+                //EXTRA CONDITIONS
+                if (BackStage3Card.bloomLevel.Equals("Debut") && BackStage3Card.cardName.Equals("ときのそら") || BackStage3Card.cardName.Equals("AZKi"))
+                    validNames.Add("SorAZ");
+            }
+        if (BackStage4Card != null)
+            if (BackStage4Card.bloomLevel.Equals(level) && BackStage4Card.playedThisTurn == false)
+            {
+                validNames.Add(BackStage4Card.cardName);
+                //EXTRA CONDITIONS
+                if (BackStage4Card.bloomLevel.Equals("Debut") && BackStage4Card.cardName.Equals("ときのそら") || BackStage4Card.cardName.Equals("AZKi"))
+                    validNames.Add("SorAZ");
+            }
+        if (BackStage5Card != null)
+            if (BackStage5Card.bloomLevel.Equals(level) && BackStage5Card.playedThisTurn == false)
+            {
+                validNames.Add(BackStage5Card.cardName);
+                //EXTRA CONDITIONS
+                if (BackStage5Card.bloomLevel.Equals("Debut") && BackStage5Card.cardName.Equals("ときのそら") || BackStage5Card.cardName.Equals("AZKi"))
+                    validNames.Add("SorAZ");
+            }
+        if (CollaborationCard != null)
+            if (CollaborationCard.bloomLevel.Equals(level) && CollaborationCard.playedThisTurn == false)
+            {
+                validNames.Add(CollaborationCard.cardName);
+                //EXTRA CONDITIONS
+                if (CollaborationCard.bloomLevel.Equals("Debut") && CollaborationCard.cardName.Equals("ときのそら") || CollaborationCard.cardName.Equals("AZKi"))
+                    validNames.Add("SorAZ");
+            }
+        if (StageCard != null)
+            if (StageCard.bloomLevel.Equals(level) && StageCard.playedThisTurn == false)
+            {
+                validNames.Add(StageCard.cardName);
+                //EXTRA CONDITIONS
+                if (StageCard.bloomLevel.Equals("Debut") && StageCard.cardName.Equals("ときのそら") || StageCard.cardName.Equals("AZKi"))
+                    validNames.Add("SorAZ");
+            }
+        return validNames;
     }
 
     public void RemoveCardsFromCardHolder(int amountToRemove, List<RectTransform> cardsList, RectTransform holder)
@@ -1362,29 +1480,6 @@ public class DuelField : MonoBehaviour
         }
     }
 
-
-    public void AddCart(GameObject card, string zone, TargetPlayer player)
-    {
-        int maxZones = GameZones.Count;
-        int nZones = 0;
-
-        if (TargetPlayer.Oponnent == player)
-            nZones = 9;
-
-        if (TargetPlayer.Player == player)
-            maxZones = 9;
-
-        for (; nZones < maxZones; nZones++)
-        {
-            if (GameZones[nZones].name.Equals(zone))
-            {
-                card.transform.SetParent(GameZones[nZones].transform, false);
-                card.transform.localPosition = Vector3.zero;
-                card.transform.localScale = new Vector3(0.9f, 0.9f);
-            }
-        }
-    }
-
     public void DrawCard(DuelAction draw)
     {
         if (draw.playerID == PlayerInfo.PlayerID)
@@ -1430,20 +1525,6 @@ public class DuelField : MonoBehaviour
             }
         }
         ArrangeCards(cardsList, holder);
-    }
-    public void RemoveCardFromZone(string zone, int amount)
-    {
-        GameObject game = GameObject.Find(zone);
-        List<GameObject> cards = new();
-        foreach (Transform child in game.transform)
-            if (child.name == "Card(Clone)")
-                cards.Add(child.gameObject);
-
-        for (int i = 0; i < Mathf.Min(amount, cards.Count); i++)
-        {
-            GameObject card = cards[i];
-            Destroy(card);
-        }
     }
     public void RemoveCardFromZone(GameObject game, int amount)
     {
@@ -1813,7 +1894,7 @@ public class DuelField : MonoBehaviour
 
         cardZone.GetComponentInChildren<Card>().transform.SetAsLastSibling();
 
-       //need to make this comparisson better latter, comparing the last information send by the server may lead to errors 
+        //need to make this comparisson better latter, comparing the last information send by the server may lead to errors 
         if (_MatchConnection.DuelActionListIndex.Last().Equals("CheerStepEndDefeatedHolomem"))
         {
             RemoveCardsFromCardHolder(1, cardsOponnent, cardHolderOponnent);
@@ -1904,7 +1985,8 @@ public class DuelField : MonoBehaviour
         }
     }
 
-    public int CountBackStageTotal() {
+    public int CountBackStageTotal()
+    {
         int count = 0;
         if (GetZone("BackStage1", TargetPlayer.Player).GetComponentInChildren<Card>() != null)
             count++;

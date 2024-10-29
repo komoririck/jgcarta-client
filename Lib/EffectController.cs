@@ -498,5 +498,9 @@ namespace Assets.Scripts.Lib
             Debug.Log("No Avalible cards found to deatch");
             return false;
         }
+
+        internal void ResolveOnBloomEffect(DuelAction duelAction)
+        {
+        }
     }
 }

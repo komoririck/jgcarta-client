@@ -164,16 +164,19 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                     
                     if (thisCard.cardType.Equals("サポート・イベント") || thisCard.cardType.Equals("サポート・アイテム") || thisCard.cardType.Equals("サポート・スタッフ・LIMITED") || thisCard.cardType.Equals("サポート・イベント・LIMITED") || thisCard.cardType.Equals("サポート・アイテム・LIMITED"))
                     {
-                        bool LimitedThisturn = false;
-                        if (thisCard.cardType.Equals("サポート・スタッフ・LIMITED") || thisCard.cardType.Equals("サポート・イベント・LIMITED") || thisCard.cardType.Equals("サポート・アイテム・LIMITED"))
-                            foreach (Card cardPlayed in _DuelField._MatchConnection._DuelFieldData.playerLimiteCardPlayed)
-                                if (cardPlayed.cardNumber.Equals(thisCard.cardNumber))
-                                    LimitedThisturn = true;
+                        if (thisCard.cardType.Equals("サポート・スタッフ・LIMITED") || thisCard.cardType.Equals("サポート・イベント・LIMITED") || thisCard.cardType.Equals("サポート・アイテム・LIMITED")) {
 
-                        if (LimitedThisturn)
-                            break;
+                            if (_DuelField._MatchConnection._DuelFieldData.playerLimiteCardPlayed.Count > 0)
+                                break;
 
-                        _DuelField._MatchConnection._DuelFieldData.playerLimiteCardPlayed.Add(thisCard);
+                            _DuelField._MatchConnection._DuelFieldData.playerLimiteCardPlayed.Add(thisCard);
+                            foreach (RectTransform r in _DuelField.cardsPlayer)
+                            {
+                                Card cardComponent = r.GetComponent<Card>();
+                                if (cardComponent.cardType.Equals("サポート・スタッフ・LIMITED") || cardComponent.cardType.Equals("サポート・イベント・LIMITED") || cardComponent.cardType.Equals("サポート・アイテム・LIMITED"))
+                                    cardComponent.GetComponent<DuelField_HandDragDrop>().enabled = false;
+                            }
+                        }
 
                         string sendThisCardTo = "Arquive";
 
@@ -216,12 +219,14 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                                     if (thisCard.bloomLevel.Equals("Debut") || thisCard.bloomLevel.Equals("Spot"))
                                         canContinue = true;
 
+                                    //get holomem count
+                                    int count = _DuelField.CountBackStageTotal();
+
                                     if (dropZone.zoneType.Equals("BackStage1") || dropZone.zoneType.Equals("BackStage2") || dropZone.zoneType.Equals("BackStage3") ||
                                         dropZone.zoneType.Equals("BackStage4") || dropZone.zoneType.Equals("BackStage5"))
                                     {
                                         canContinue = false;
 
-                                        int count = _DuelField.CountBackStageTotal();
                                         if (count < 5)
                                             canContinue = true;
                                     }
@@ -238,6 +243,16 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
 
                                     _DuelField.GenericActionCallBack(_DuelAction);
                                     validDropZoneFound = true;
+
+                                    //if we played the 5º holomem, we need to disable drag and drop for others
+                                    if (count == 5) {
+                                        foreach (RectTransform r in _DuelField.cardsPlayer)
+                                        {
+                                            Card cardComponent = r.GetComponent<Card>();
+                                            if (cardComponent.cardType.Equals("Debut"))
+                                                cardComponent.GetComponent<DuelField_HandDragDrop>().enabled = false;
+                                        }
+                                    }
                                 }
                                 else // BLOOM
                                 {
@@ -248,18 +263,23 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                                     if (pointedCard.playedThisTurn == true)
                                         break;
 
+                                    pointedCard.GetCardInfo();
+                                    thisCard.GetCardInfo();
+
                                     bool canContinue = false;
                                     if (thisCard.cardType.Equals("ホロメン") || thisCard.cardType.Equals("Buzzホロメン"))
                                     {
                                         //get level to bloom
-                                        string bloomToLevel = targetCard.bloomLevel.Equals("Debut") ? "1st" : "2nd";
+                                        string bloomToLevel = pointedCard.bloomLevel.Equals("Debut") ? "1st" : "2nd";
                                         //especial card condition to bloom match
-                                        if (thisCard.cardNumber.Equals("hSD01-013") && targetCard.bloomLevel.Equals(bloomToLevel) && (thisCard.cardName.Equals("ときのそら") || thisCard.cardName.Equals("AZKi")))
+                                        if (thisCard.cardNumber.Equals("hSD01-013") && thisCard.bloomLevel.Equals(bloomToLevel) && (pointedCard.cardName.Equals("ときのそら") || pointedCard.cardName.Equals("AZKi")))
                                         {
+                                            canContinue = true;
+                                        } else if (pointedCard.cardNumber.Equals("hSD01-013") && (thisCard.cardName.Equals("ときのそら") || thisCard.cardName.Equals("AZKi")) && bloomToLevel.Equals("2nd")) {
                                             canContinue = true;
                                         }
                                         //normal condition to bloom match
-                                        else if (thisCard.cardName.Equals(targetCard.cardName) && targetCard.bloomLevel.Equals(bloomToLevel)) 
+                                        else if (thisCard.cardName.Equals(pointedCard.cardName) && pointedCard.bloomLevel.Equals(bloomToLevel))
                                         {
                                             canContinue = true;
                                         }
@@ -276,10 +296,9 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                                         _DuelAction.playedFrom = "Hand";
                                         _DuelAction.local = pointedCard.gameObject.transform.parent.gameObject.name;
                                         _DuelAction.targetCard = DataConverter.CreateCardDataFromCard(pointedCard);
-
-
                                         _DuelAction.actionType = "BloomHolomem";
-                                        EffectQuestionDispalyMenuButton(_DuelAction);
+
+                                        _DuelField.GenericActionCallBack(_DuelAction);
                                         validDropZoneFound = true;
                                         _DuelField.ArrangeCards(_DuelField.cardsPlayer, _DuelField.cardHolderPlayer);
                                     }
