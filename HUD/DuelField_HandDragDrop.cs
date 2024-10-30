@@ -1,14 +1,7 @@
 ﻿using Assets.Scripts.Lib;
-using Newtonsoft.Json;
-using System.Collections.Generic;
-using System.Linq;
-using TMPro;
 using Unity.VisualScripting;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.PlayerLoop;
-using UnityEngine.U2D.IK;
 using UnityEngine.UI;
 using static DuelField;
 
@@ -216,8 +209,12 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
 
                                     thisCard.GetCardInfo();
                                     bool canContinue = false;
+
                                     if (thisCard.bloomLevel.Equals("Debut") || thisCard.bloomLevel.Equals("Spot"))
                                         canContinue = true;
+
+                                    if (!canContinue)
+                                        break;
 
                                     //get holomem count
                                     int count = _DuelField.CountBackStageTotal();
@@ -279,7 +276,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                                             canContinue = true;
                                         }
                                         //normal condition to bloom match
-                                        else if (thisCard.cardName.Equals(pointedCard.cardName) && pointedCard.bloomLevel.Equals(bloomToLevel))
+                                        else if (thisCard.cardName.Equals(pointedCard.cardName) && thisCard.bloomLevel.Equals(bloomToLevel))
                                         {
                                             canContinue = true;
                                         }

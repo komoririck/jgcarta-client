@@ -29,7 +29,6 @@ public class DuelField_DetachEnergyMenu : MonoBehaviour
 
     public IEnumerator SetupSelectableItems(DuelAction _DuelAction)
     {
-        effectController.isSelectionCompleted = false;
 
         duelAction = _DuelAction;
         this.usedCard.cardNumber = _DuelAction.usedCard.cardNumber;
@@ -73,10 +72,9 @@ public class DuelField_DetachEnergyMenu : MonoBehaviour
             clickObjects++;
             x++;
         }
-
         CardListContent.transform.parent.parent.parent.gameObject.SetActive(true);
-        yield return new WaitUntil(() => effectController.isSelectionCompleted);
         effectController.isSelectionCompleted = false;
+        yield return new WaitUntil(() => effectController.isSelectionCompleted);
     }
 
     void OnItemClick(GameObject itemObject, int itemName, bool canSelect)
@@ -102,7 +100,6 @@ public class DuelField_DetachEnergyMenu : MonoBehaviour
     {
         if (selectedItem == null)
             return;
-
 
         Card returnCard = selectedItem.GetComponent<Card>();
 
@@ -135,17 +132,5 @@ public class DuelField_DetachEnergyMenu : MonoBehaviour
         CardListContent.transform.parent.parent.parent.gameObject.SetActive(false);
 
         effectController.isSelectionCompleted = true;
-    }
-
-    // Helper method to get the last card in the zone, if any
-    private Card GetLastCardInZone(string zoneName, DuelField.TargetPlayer targetPlayer)
-    {
-        var zone = _DuelField.GetZone(zoneName, targetPlayer);
-        if (zone.transform.childCount > 0)
-        {
-            var card = zone.transform.GetChild(zone.transform.childCount - 1).GetComponent<Card>();
-            return card != null ? card : null;
-        }
-        return null;
     }
 }

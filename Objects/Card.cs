@@ -113,7 +113,7 @@ public class Card : MonoBehaviour
                 illustrator = record.Illustrator;
                 life = record.Life;
 
-                try { gameObject.transform.Find("CardImage").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/" + record.CardNumber + "_" + record.Rarity); } catch (Exception e) { Debug.Log(e); }
+                try { gameObject.transform.Find("CardImage").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/" + record.CardNumber + "_" + record.Rarity); } catch (Exception e) { Debug.Log($"Sprite Problem: {record.CardNumber}"); }
 
                 List<string> words = arts.Split('-').ToList();
                 Arts = new();

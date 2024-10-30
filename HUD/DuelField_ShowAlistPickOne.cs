@@ -23,6 +23,8 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
 
     public IEnumerator SetupSelectableItems(DuelAction da, List<Card> SelectableCards, List<Card> avaliableForSelect)
     {
+        confirmButton.onClick.RemoveAllListeners();
+        confirmButton.onClick.AddListener(FinishSelection);
         selectedItems.Clear();
         effectController.isSelectionCompleted = false;
 
@@ -63,7 +65,6 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
 
             Button itemButton = newItem.GetComponent<Button>();
             itemButton.onClick.AddListener(() => OnItemClick(newItem, canSelect));
-
             InstantiatedObjIndex++;
         }
 
@@ -94,7 +95,6 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
     public void Start()
     {
         effectController = FindAnyObjectByType<EffectController>();
-        confirmButton.onClick.AddListener(FinishSelection);
     }
 
     void FinishSelection()
