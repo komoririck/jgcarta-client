@@ -2,11 +2,7 @@ using UnityEngine;
 using System.Collections;
 using System;
 using Newtonsoft.Json;
-using System.Linq.Expressions;
 using System.Collections.Generic;
-using System.Reflection;
-using UnityEngine.SceneManagement;
-using Unity.VisualScripting;
 
 public class HTTPSMaker : MonoBehaviour
 {
@@ -17,465 +13,356 @@ public class HTTPSMaker : MonoBehaviour
     public string authenticationToken = null;
     public string clientToken = null;
 
-    public ReturnMessage returnMessage;
+    public string returnMessage;
+    public List<object> returnedObjects = new();
+
 
     string ConnectionUrl = "https://localhost:7047";
-    string CreateAccountEndpoint = "/CreateAccount";
-    string GetPlayerInfoEndpoint = "/GetPlayerInfo";
-    string LoginAccountEndpoint = "/Login";
-    string UpdatePlayerInfoEndpoint = "/UpdatePlayerInfo";
-    string JoinMatchQueueEndpoint = "/ControlMatchQueue";
-    string JoinRoomEndpoint = "/ControlMatchRoom";
-
-    [Flags]
-    public enum ConnectionState : byte
-    {
-        None = 0,
-        OpenWebSocket = 1,
-        CallForToken = 2,
-        WaitForToken = 3,
-        CallForAuth = 4,
-        WaitForAuth = 5,
-        ReadyToWork = 6
-    }
-
-    public ConnectionState connectionState;
+    JsonSerializerSettings jsonSettings;
 
     void Start()
     {
         Application.runInBackground = true;
+        jsonSettings = new JsonSerializerSettings
+        {
+            NullValueHandling = NullValueHandling.Ignore,
+            DefaultValueHandling = DefaultValueHandling.Ignore
+        };
     }
-
-
-
     public IEnumerator CreateAccount()
     {
+        PlayerRequest _PlayerRequest = new() { 
+            playerID = "",
+            password =  "",
+        };
 
-
-        string jsonData = @"{
-                              ""playerID"": 0,
-                              ""playerHash"": """"
-                            }";
-
-        yield return httpManager.PostRequest(
-            (ConnectionUrl + CreateAccountEndpoint),
-            jsonData,
+        yield return httpManager.MakeRequest(
+            (ConnectionUrl + "/Account/CreateAccount"),
+            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
             onSuccess: (response) =>
             {
-                try
-                {
-                    Debug.Log("Raw JSON Response: " + response);
-
-                    GenericAuthData responseData = JsonUtility.FromJson<GenericAuthData>(response);
-
-                    if (responseData != null)
-                    {
-                        PlayerPrefs.SetString("Password", responseData.password);
-                        PlayerPrefs.SetInt("PlayerID", responseData.playerID);
-                        PlayerPrefs.Save();
-                        Debug.Log("Player Account Created!");
-                    }
-                    else
-                    {
-                        Debug.LogError("Deserialization returned null.");
-                    }
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError("Error parsing JSON response: " + e.Message);
-                }
+                PlayerRequest responseData = JsonUtility.FromJson<PlayerRequest>(response);
+                PlayerPrefs.SetString("Password", responseData.password);
+                PlayerPrefs.SetString("PlayerID", responseData.playerID);
+                PlayerPrefs.Save();
             },
             onError: (error) =>
             {
                 Debug.LogError("Request Error: " + error);
-            }
-
+            },
+            "Post"
         );
     }
-
-    public IEnumerator GetPlayerInfo(int playerID, string password)
+    public IEnumerator GetPlayerInfo(string playerID, string password)
     {
 
-        PlayerRequest _PlayerRequest = new();
-        _PlayerRequest.playerID = playerID.ToString();
-        _PlayerRequest.password = password;
-        _PlayerRequest.requestData.type = "PlayerFullProfile";
-        Debug.Log(JsonUtility.ToJson(_PlayerRequest));
+        PlayerRequest _PlayerRequest = new() {
+            playerID = playerID.ToString(),
+            password = password,
+        };
 
-        yield return httpManager.PostRequest(
-            ConnectionUrl + GetPlayerInfoEndpoint,
-            JsonUtility.ToJson(_PlayerRequest),
+        yield return httpManager.MakeRequest(
+            ConnectionUrl + "/PlayerInfo/GetFullProfile",
+            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
             response =>
             {
-                try
-                {
-                    Debug.Log("Raw JSON Response: " + response);
-                    PlayerInfoData responseData = JsonUtility.FromJson<PlayerInfoData>(response);
+                PlayerInfoData responseData = JsonUtility.FromJson<PlayerInfoData>(response);
+                GameObject hudObject = GameObject.Find("PlayerInfo");
+                PlayerInfo p = hudObject.GetComponent<PlayerInfo>();
 
-                    if (responseData != null)
-                    {
-                        GameObject hudObject = GameObject.Find("PlayerInfo");
-                        if (hudObject != null)
-                        {
-                            PlayerInfo p = hudObject.GetComponent<PlayerInfo>();
-
-                            p.PlayerID = responseData.playerID;
-                            p.Password = responseData.password;
-                            p.PlayerName = responseData.playerName;
-                            p.PlayerIcon = responseData.playerIcon;
-                            p.HoloCoins = responseData.holoCoins;
-                            p.HoloGold = responseData.holoGold;
-                            p.NNMaterial = responseData.nnMaterial;
-                            p.RRMaterial = responseData.rrMaterial;
-                            p.SRMaterial = responseData.srMaterial;
-                            p.URMaterial = responseData.urMaterial;
-                            p.MatchVictory = responseData.matchVictory;
-                            p.MatchLoses = responseData.matchLoses;
-                            p.MatchesTotal = responseData.matchesTotal;
-                            foreach (PlayerBadgeData b in responseData.badges)
-                            {
-                                p.Badges.Add(new PlayerBadge
-                                {
-                                    playerID = b.playerID,
-                                    badgeID = b.badgeID,
-                                    rank = b.rank,
-                                    obtainedDate = b.obtainedDate
-                                });
-                            }
-                            foreach (PlayerItemBoxData b in responseData.playerItemBox)
-                            {
-                                p.PlayerItemBox.Add(new PlayerItemBox
-                                {
-                                    playerItemBoxID = b.playerID,
-                                    playerID = b.playerID,
-                                    itemID = b.itemID,
-                                    amount = b.amount,
-                                    obtainedDate = b.obtainedDate,
-                                    expirationDate = b.expirationDate
-                                });
-                            }
-                            foreach (PlayerMessageBoxData b in responseData.playerMessageBox)
-                            {
-                                p.PlayerMessageBox.Add(new PlayerMessageBox
-                                {
-                                    messageID = b.messageID,
-                                    playerID = b.playerID,
-                                    title = b.title,
-                                    description = b.description,
-                                    obtainedDate = b.obtainedDate
-                                });
-                            }
-                            foreach (PlayerMissionData b in responseData.playerMissionList)
-                            {
-                                p.PlayerMissionList.Add(new PlayerMission
-                                {
-                                    playerMissionListID = b.playerMissionListID,
-                                    playerID = b.playerID,
-                                    missionID = b.missionID,
-                                    obtainedDate = b.obtainedDate,
-                                    clearData = b.clearData
-                                });
-                            }
-                            foreach (PlayerTitleData b in responseData.playerTitles)
-                            {
-                                p.PlayerTitles.Add(new PlayerTitle
-                                {
-                                    titleID = b.titleID,
-                                    playerID = b.playerID,
-                                    titleName = b.titleName,
-                                    titleDescription = b.titleDescription,
-                                    obtainedDate = b.obtainedDate
-                                });
-                            }
-                            returnMessage.setRequestReturn("success");
-                        }
-                        else
-                        {
-                            Debug.LogError("HUD GameObject not found.");
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogError("Deserialization returned null.");
-                    }
-                }
-                catch (Exception e)
+                p.PlayerID = responseData.playerID;
+                p.Password = responseData.password;
+                p.PlayerName = responseData.playerName;
+                p.PlayerIcon = responseData.playerIcon;
+                p.HoloCoins = responseData.holoCoins;
+                p.HoloGold = responseData.holoGold;
+                p.NNMaterial = responseData.nnMaterial;
+                p.RRMaterial = responseData.rrMaterial;
+                p.SRMaterial = responseData.srMaterial;
+                p.URMaterial = responseData.urMaterial;
+                p.MatchVictory = responseData.matchVictory;
+                p.MatchLoses = responseData.matchLoses;
+                p.MatchesTotal = responseData.matchesTotal;
+                foreach (PlayerBadgeData b in responseData.badges)
                 {
-                    returnMessage.setRequestReturn("fail");
-                    Debug.LogError("Error parsing JSON response: " + e.Message);
+                    p.Badges.Add(new PlayerBadge
+                    {
+                        playerID = b.playerID,
+                        badgeID = b.badgeID,
+                        rank = b.rank,
+                        obtainedDate = b.obtainedDate
+                    });
                 }
+                foreach (PlayerItemBoxData b in responseData.playerItemBox)
+                {
+                    p.PlayerItemBox.Add(new PlayerItemBox
+                    {
+                        playerItemBoxID = b.playerID,
+                        playerID = b.playerID,
+                        itemID = b.itemID,
+                        amount = b.amount,
+                        obtainedDate = b.obtainedDate,
+                        expirationDate = b.expirationDate
+                    });
+                }
+                foreach (PlayerMessageBoxData b in responseData.playerMessageBox)
+                {
+                    p.PlayerMessageBox.Add(new PlayerMessageBox
+                    {
+                        messageID = b.messageID,
+                        playerID = b.playerID,
+                        title = b.title,
+                        description = b.description,
+                        obtainedDate = b.obtainedDate
+                    });
+                }
+                foreach (PlayerMissionData b in responseData.playerMissionList)
+                {
+                    p.PlayerMissionList.Add(new PlayerMission
+                    {
+                        playerMissionListID = b.playerMissionListID,
+                        playerID = b.playerID,
+                        missionID = b.missionID,
+                        obtainedDate = b.obtainedDate,
+                        clearData = b.clearData
+                    });
+                }
+                foreach (PlayerTitleData b in responseData.playerTitles)
+                {
+                    p.PlayerTitles.Add(new PlayerTitle
+                    {
+                        titleID = b.titleID,
+                        playerID = b.playerID,
+                        titleName = b.titleName,
+                        titleDescription = b.titleDescription,
+                        obtainedDate = b.obtainedDate
+                    });
+                }
+                returnMessage = ("success");
             },
             error =>
             {
-                returnMessage.setRequestReturn("connecition fail");
+                returnMessage = "connecition fail";
                 Debug.LogError("Request Error: " + error);
-            }
+            },
+            "Post"
         );
     }
-
     public IEnumerator LoginAccount(string email, string password)
     {
-        string jsonData = @"{
-            ""email"": """ + email + @""",
-            ""password"": """ + password + @"""
-                            }";
 
-        yield return httpManager.PostRequest(
-            (ConnectionUrl + LoginAccountEndpoint),
-            jsonData,
+        PlayerRequest playerRequest = new PlayerRequest()
+        {
+            password = password,
+            email = email
+        };
+
+        yield return httpManager.MakeRequest(
+            (ConnectionUrl + "/Account/Login"),
+            JsonConvert.SerializeObject(playerRequest, jsonSettings),
             onSuccess: (response) =>
             {
-                try
-                {
-                    Debug.Log("Raw JSON Response: " + response);
+                PlayerRequest responseData = JsonUtility.FromJson<PlayerRequest>(response);
 
-                    GenericAuthData responseData = JsonUtility.FromJson<GenericAuthData>(response);
-
-                    if (responseData != null)
-                    {
-                        PlayerPrefs.SetString("Password", responseData.password);
-                        PlayerPrefs.SetInt("PlayerID", responseData.playerID);
-                        PlayerPrefs.Save();
-                        Debug.Log("Player Account Logged!");
-                        returnMessage.setRequestReturn("success");
-                    }
-                    else
-                    {
-                        Debug.LogError("Deserialization returned null.");
-                        returnMessage.setRequestReturn("fail");
-                    }
-                }
-                catch (Exception e)
+                if (responseData != null)
                 {
-                    Debug.LogError("Error parsing JSON response: " + e.Message);
+                    PlayerPrefs.SetString("Password", responseData.password);
+                    PlayerPrefs.SetString("PlayerID", responseData.playerID);
+                    PlayerPrefs.Save();
+
+                    returnMessage = ("success");
                 }
             },
             onError: (error) =>
             {
                 Debug.LogError("Request Error: " + error);
-                returnMessage.setRequestReturn("connecition fail");
-            }
+                returnMessage = "connecition fail";
+            },
+            "Post"
         );
     }
-
     public IEnumerator UpdatePlayerInfo(PlayerInfoData playerinfo)
     {
-
-        string jsonData = JsonConvert.SerializeObject(playerinfo);
-        try { Debug.Log(jsonData); } catch (Exception e) { Debug.Log(e); }
-
-        yield return httpManager.PostRequest(
-            (ConnectionUrl + UpdatePlayerInfoEndpoint),
-            jsonData,
+        yield return httpManager.MakeRequest(
+            (ConnectionUrl + ""),
+            JsonConvert.SerializeObject(playerinfo, jsonSettings),
             onSuccess: (response) =>
             {
-                try
-                {
-                    Debug.Log("Raw JSON Response: " + response);
-
-                    ReturnMessageData responseData = JsonUtility.FromJson<ReturnMessageData>(response);
-
-                    if (responseData != null)
-                    {
-                        if (responseData.requestReturn.Equals("success"))
-                        {
-                            returnMessage.setRequestReturn(responseData.requestReturn);
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogError("Deserialization returned null.");
-                    }
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError("Error parsing JSON response: " + e.Message);
-                }
+                returnMessage = ("success");
             },
             onError: (error) =>
             {
                 Debug.LogError("Request Error: " + error);
-                returnMessage.setRequestReturn("connecition fail");
-            }
-
+                returnMessage = "connecition fail";
+            },
+            "Put"
         );
     }
-    public IEnumerator JoinMatchQueue(int playerID, string password, string type)
+    public IEnumerator JoinMatchQueue(string playerID, string password, string type)
     {
 
-        PlayerRequest _PlayerRequest = new();
-        _PlayerRequest.playerID = playerID.ToString();
-        _PlayerRequest.password = password;
-        _PlayerRequest.requestData.type = "JoinQueue";
-        _PlayerRequest.requestData.description = type;
+        PlayerRequest _PlayerRequest = new() {
+            playerID = playerID.ToString(),
+            password = password,
+            type = "JoinQueue",
+            description = type
+        };
 
-        yield return httpManager.PostRequest(
-            (ConnectionUrl + JoinMatchQueueEndpoint),
-            JsonUtility.ToJson(_PlayerRequest),
+        yield return httpManager.MakeRequest(
+            (ConnectionUrl + "/ControlMatchQueue/JoinQueue"),
+            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
             onSuccess: (response) =>
             {
-                try
-                {
-                    Debug.Log("Raw JSON Response: " + response);
-
-                    ReturnMessageData responseData = JsonUtility.FromJson<ReturnMessageData>(response);
-
-                    if (responseData != null)
-                    {
-                        if (responseData.requestReturn.Equals("success"))
-                        {
-                            returnMessage.setRequestReturn(responseData.requestReturn);
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogError("Deserialization returned null.");
-                    }
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError("Error parsing JSON response: " + e.Message);
-                }
-                finally
-                {
-                }
+                returnMessage = "success";
             },
             onError: (error) =>
             {
-                returnMessage.setRequestReturn("connecition fail");
+                returnMessage = "connecition fail";
                 Debug.LogError("Request Error: " + error);
-            }
-
+            },
+            "Post"
         );
     }
-    public IEnumerator CancelMatchQueue(int playerID, string password)
+    public IEnumerator CancelMatchQueue(string playerID, string password)
     {
+        PlayerRequest _PlayerRequest = new() {
+            playerID = playerID.ToString(),
+            password = password,
+            description = "Cancel"
+        };
 
-        PlayerRequest _PlayerRequest = new();
-        _PlayerRequest.playerID = playerID.ToString();
-        _PlayerRequest.password = password;
-        _PlayerRequest.requestData.description = "Cancel";
-
-        yield return httpManager.PostRequest(
-            (ConnectionUrl + JoinMatchQueueEndpoint),
-            JsonUtility.ToJson(_PlayerRequest),
+        yield return httpManager.MakeRequest(
+            (ConnectionUrl + "/ControlMatchQueue/JoinLeave"),
+            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
             onSuccess: (response) =>
             {
-                try
-                {
-                    Debug.Log("Raw JSON Response: " + response);
-
-                    ReturnMessageData responseData = JsonUtility.FromJson<ReturnMessageData>(response);
-
-                    if (responseData != null)
-                    {
-                        if (responseData.requestReturn.Equals("success"))
-                        {
-                            returnMessage.setRequestReturn(responseData.requestReturn);
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogError("Deserialization returned null.");
-                    }
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError("Error parsing JSON response: " + e.Message);
-                }
-                finally
-                {
-                }
+                returnMessage = ("success");
             },
             onError: (error) =>
             {
-                returnMessage.setRequestReturn("connecition fail");
+                returnMessage = "connecition fail";
                 Debug.LogError("Request Error: " + error);
-            }
-
+            },
+            "Put"
         );
     }
-    public IEnumerator JoinRoom(int playerID, string password, string type, string code)
+    public IEnumerator JoinRoom(string playerID, string password, string type, string code)
     {
+        PlayerRequest _PlayerRequest = new()
+        {
+            playerID = playerID.ToString(),
+            password = password,
+            description = code.ToString()
+        };
 
-        PlayerRequest _PlayerRequest = new();
-        _PlayerRequest.playerID = playerID.ToString();
-        _PlayerRequest.password = password;
-        _PlayerRequest.requestData.type = type;
-        _PlayerRequest.requestData.description = code.ToString();
+        yield return httpManager.MakeRequest(
+            (ConnectionUrl + $"/ControlMatchRoom/{type}"),
+            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
+            onSuccess: (response) =>
+            {
+               
+                PlayerMatchRoomData responseData = JsonUtility.FromJson<PlayerMatchRoomData>(response);
 
+                if (responseData.roomCode == 0)
+                {
+                    returnMessage = ("noroomfound");
+                    return;
+                }
 
-        yield return httpManager.PostRequest(
-            (ConnectionUrl + JoinRoomEndpoint),
-            JsonUtility.ToJson(_PlayerRequest),
+                PlayerMatchRoom RoomInfo = GameObject.Find("PlayerInfo").GetComponent<PlayerMatchRoom>();
+                if (RoomInfo != null)
+                {
+                    RoomInfo.RoomID = responseData.roomID;
+                    RoomInfo.RegDate = responseData.regDate;
+                    RoomInfo.RoomCode = responseData.roomCode;
+                    RoomInfo.MaxPlayer = responseData.maxPlayer;
+                    RoomInfo.OwnerID = responseData.ownerID;
+
+                    List<PlayerMatchRoomPool> p = new();
+                    foreach (PlayerMatchRoomPoolData b in responseData.playerMatchRoomPool)
+                    {
+                        p.Add(new PlayerMatchRoomPool
+                        {
+                            MRPID = b.mrpid,
+                            PlayerID = b.playerID,
+                            Board = b.board,
+                            Status = b.status,
+                            Chair = b.chair,
+                            MatchRoomID = b.matchPoolID, //MUDAR
+                            RegDate = b.regDate,
+                            LasActionDate = b.lasActionDate
+                        });
+                    }
+                }
+                
+            },
+            onError: (error) =>
+            {
+                returnMessage = "connecition fail";
+                Debug.LogError("Request Error: " + error);
+            },
+            "Post"
+        );
+    }
+    public IEnumerator GetDeckRequest()
+    {
+        PlayerInfo playerInfo = FindAnyObjectByType<PlayerInfo>();
+        PlayerRequest _PlayerRequest = new()
+        {
+            playerID = playerInfo.PlayerID.ToString(),
+            password = playerInfo.Password,
+        };
+
+        yield return httpManager.MakeRequest(
+            (ConnectionUrl + "/DeckInfo/GetDeck"),
+            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
             onSuccess: (response) =>
             {
                 try
                 {
-                    Debug.Log("Raw JSON Response: " + response);
-
-
-                    PlayerMatchRoomData responseData = JsonUtility.FromJson<PlayerMatchRoomData>(response);
-
-                    if (responseData.roomCode == 0) {
-                        returnMessage.setRequestReturn("noroomfound");
-                        return;
-                    }
-
-                    if (responseData != null)
-                    {
-                        PlayerMatchRoom RoomInfo = GameObject.Find("PlayerInfo").GetComponent<PlayerMatchRoom>();
-                        if (RoomInfo != null)
-                        {
-                            RoomInfo.RoomID = responseData.roomID;
-                            RoomInfo.RegDate = responseData.regDate;
-                            RoomInfo.RoomCode = responseData.roomCode;
-                            RoomInfo.MaxPlayer = responseData.maxPlayer;
-                            RoomInfo.OwnerID = responseData.ownerID;
-
-                            List<PlayerMatchRoomPool> p = new();
-                            foreach (PlayerMatchRoomPoolData b in responseData.playerMatchRoomPool)
-                            {
-                                p.Add(new PlayerMatchRoomPool
-                                {
-                                    MRPID = b.mrpid,
-                                    PlayerID = b.playerID,
-                                    Board = b.board,
-                                    Status = b.status,
-                                    Chair = b.chair,
-                                    MatchRoomID = b.matchPoolID, //MUDAR
-                                    RegDate = b.regDate,
-                                    LasActionDate = b.lasActionDate
-                                });
-                            }
-                            returnMessage.setRequestReturn("success");
-                        }
-                        else
-                        {
-                            Debug.LogError("Failed to fetch de room data.");
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogError("Deserialization returned null.");
-                    }
+                    DeckData _DeckData = JsonConvert.DeserializeObject<DeckData>(response);
+                    returnedObjects.Add(_DeckData);
                 }
                 catch (Exception e)
                 {
                     Debug.LogError("Error parsing JSON response: " + e.Message);
                 }
-                finally
-                {
-                }
             },
             onError: (error) =>
             {
-                returnMessage.setRequestReturn("connecition fail");
                 Debug.LogError("Request Error: " + error);
-            }
-
+                returnMessage = "connecition fail";
+            },
+            "Post"
         );
     }
+    public IEnumerator UpdateDeckRequest(DeckData deckData)
+    {
+        PlayerInfo playerInfo = FindAnyObjectByType<PlayerInfo>();
+        PlayerRequest _PlayerRequest = new()
+        {
+            playerID = playerInfo.PlayerID.ToString(),
+            password = playerInfo.Password,
+            jsonObject = deckData
+        };
+
+        yield return httpManager.MakeRequest(
+            (ConnectionUrl + "/DeckInfo/UpdateDeck"),
+            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
+            onSuccess: (response) =>
+            {
+                returnMessage = ("success");
+            },
+            onError: (error) =>
+            {
+                Debug.LogError("Request Error: " + error);
+                returnMessage = "connecition fail";
+            },
+            "Put"
+        );
+        
+    }
+
     [Serializable]
     public class PlayerMatchRoomPoolData
     {
@@ -500,15 +387,9 @@ public class HTTPSMaker : MonoBehaviour
         public List<PlayerMatchRoomPoolData> playerMatchRoomPool;
     }
     [Serializable]
-    public class GenericAuthData
-    {
-        public int playerID;
-        public string password;
-    }
-    [Serializable]
     public class PlayerInfoData
     {
-        public int playerID;
+        public string playerID;
         public string playerName;
         public int playerIcon;
 
@@ -530,7 +411,7 @@ public class HTTPSMaker : MonoBehaviour
         public List<PlayerMissionData> playerMissionList;
         public List<PlayerBadgeData> badges;
 
-        public RequestData requestData;
+        public PlayerRequest requestData;
     }
     [Serializable]
     public class PlayerBadgeData
@@ -581,35 +462,5 @@ public class HTTPSMaker : MonoBehaviour
     public class ReturnMessageData
     {
         public string requestReturn;
-    }
-
-
-    public static void PrintObjectDetails(object obj)
-    {
-        if (obj == null)
-        {
-            Debug.Log("Object is null.");
-            return;
-        }
-
-        Type type = obj.GetType();
-
-        // Print fields
-        Debug.Log("Fields:");
-        FieldInfo[] fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        foreach (FieldInfo field in fields)
-        {
-            object value = field.GetValue(obj);
-            Debug.Log($"{field.Name}: {value}");
-        }
-
-        // Print properties
-        Debug.Log("Properties:");
-        PropertyInfo[] properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        foreach (PropertyInfo property in properties)
-        {
-            object value = property.GetValue(obj);
-            Debug.Log($"{property.Name}: {value}");
-        }
     }
 }

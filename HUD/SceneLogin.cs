@@ -26,7 +26,7 @@ public class SceneLoginLoginButton : MonoBehaviour // refact this name later
     void Start()
     {
 
-        PlayerInfo.PlayerID = PlayerPrefs.GetInt("PlayerID");
+        PlayerInfo.PlayerID = PlayerPrefs.GetString("PlayerID");
         PlayerInfo.Password = PlayerPrefs.GetString("Password", null);
 
     }
@@ -41,7 +41,7 @@ public class SceneLoginLoginButton : MonoBehaviour // refact this name later
         yield return StartCoroutine(_HTTPSMaker.CreateAccount());
     }
 
-    public IEnumerator LoginAccount(int id, string password) 
+    public IEnumerator LoginAccount(string id, string password) 
     {
         yield return StartCoroutine(_HTTPSMaker.GetPlayerInfo(id, password));
     }
@@ -52,22 +52,20 @@ public class SceneLoginLoginButton : MonoBehaviour // refact this name later
     }
     private IEnumerator HandleStartButton()
     {
-        PlayerInfo.PlayerID = PlayerPrefs.GetInt("PlayerID");
+        PlayerInfo.PlayerID = PlayerPrefs.GetString("PlayerID");
         PlayerInfo.Password = PlayerPrefs.GetString("Password", null);
 
         if (string.IsNullOrEmpty(PlayerInfo.Password))
         {
             yield return StartCoroutine(CreateAccount());
-            PlayerInfo.PlayerID = PlayerPrefs.GetInt("PlayerID");
+            PlayerInfo.PlayerID = PlayerPrefs.GetString("PlayerID");
             PlayerInfo.Password = PlayerPrefs.GetString("Password", null);
         }
 
         yield return StartCoroutine(LoginAccount(PlayerInfo.PlayerID, PlayerInfo.Password));
-
-
-        if (_HTTPSMaker.returnMessage.getRequestReturn().Equals("success"))
+        if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage.resetMessage();
+            _HTTPSMaker.returnMessage = "";
             SceneManager.LoadScene("MainMenu");
         }
     }
@@ -75,7 +73,7 @@ public class SceneLoginLoginButton : MonoBehaviour // refact this name later
     {
         PlayerPrefs.DeleteAll();
 
-        PlayerInfo.PlayerID = 0;
+        PlayerInfo.PlayerID = "";
         PlayerInfo.Password = null;
     }
     public void OpenDataTransferPanel() {
@@ -96,15 +94,15 @@ public class SceneLoginLoginButton : MonoBehaviour // refact this name later
     public IEnumerator HandleLoginAccount()
     {
         yield return StartCoroutine(_HTTPSMaker.LoginAccount(DTEmail.text, DTPassword.text));
-        PlayerInfo.PlayerID = PlayerPrefs.GetInt("PlayerID");
+        PlayerInfo.PlayerID = PlayerPrefs.GetString("PlayerID");
         PlayerInfo.Password = PlayerPrefs.GetString("Password", null);
         CloseDataTransferPanel();
         StartCoroutine(LoginAccount(PlayerInfo.PlayerID, PlayerInfo.Password));
 
 
-        if (_HTTPSMaker.returnMessage.getRequestReturn().Equals("success"))
+        if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage.resetMessage();
+            _HTTPSMaker.returnMessage = "";
             SceneManager.LoadScene("MainMenu");
         }
     }

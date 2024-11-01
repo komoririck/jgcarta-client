@@ -7,7 +7,7 @@ using UnityEngine;
 public class PlayerInfo : MonoBehaviour
 {
 
-    [SerializeField] public int PlayerID { get; set; }
+    [SerializeField] public string PlayerID { get; set; }
     public string Password { get; set; }
     [SerializeField] public string PlayerName { get; set; }
     public int PlayerIcon { get; set; }

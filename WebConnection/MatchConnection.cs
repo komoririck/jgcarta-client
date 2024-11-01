@@ -21,7 +21,7 @@ public class MatchConnection : MonoBehaviour
 
     [SerializeField] private int _connectionState = 0;
 
-    [SerializeField] private RequestData _requestData;
+    [SerializeField] private PlayerRequest _requestData;
 
     [Flags]
     public enum ConnectionState : byte
@@ -41,7 +41,7 @@ public class MatchConnection : MonoBehaviour
         _DuelFieldData = new DuelFieldData();
         DuelActionList = new MultiMap<string, string>();
         DuelActionListIndex = new List<string>();
-        _requestData = new RequestData();
+        _requestData = new PlayerRequest();
         _requestData.type = "";
 
         _webSocket = new WebSocket(_uri.ToString());
@@ -55,7 +55,7 @@ public class MatchConnection : MonoBehaviour
             string jsonString = System.Text.Encoding.UTF8.GetString(bytes);
             try
             {
-                var responseData = JsonConvert.DeserializeObject<RequestData>(jsonString);
+                var responseData = JsonConvert.DeserializeObject<PlayerRequest>(jsonString);
 
                 if (responseData != null)
                 {
@@ -173,21 +173,17 @@ public class MatchConnection : MonoBehaviour
         //            SceneManager.LoadScene("Login");
     }
 
-    public async Task SendCallToServer(int playerID, string password, string type, string description = "", string aditionalinformation = "", int sync = 0, string extraRequestObject = "")
+    public async Task SendCallToServer(string playerID, string password, string type, string description = "", string aditionalinformation = "")
     {
         PlayerRequest _PlayerRequest = new();
 
         _PlayerRequest.playerID = playerID.ToString();
         _PlayerRequest.password = password;
-        _PlayerRequest.requestData.type = type;
-        _PlayerRequest.requestData.description = description;
-        _PlayerRequest.requestData.sync = sync;
-        _PlayerRequest.requestData.requestObject = aditionalinformation;
-        _PlayerRequest.requestData.requestObject.Replace("\\u0022", "\"");
-        _PlayerRequest.requestData.requestObject.Replace("\\", "");
-        _PlayerRequest.requestData.extraRequestObject = extraRequestObject;
-        _PlayerRequest.requestData.extraRequestObject.Replace("\\u0022", "\"");
-        _PlayerRequest.requestData.extraRequestObject.Replace("\\", "");
+        _PlayerRequest.type = type;
+        _PlayerRequest.description = description;
+        _PlayerRequest.requestObject = aditionalinformation;
+        _PlayerRequest.requestObject.Replace("\\u0022", "\"");
+        _PlayerRequest.requestObject.Replace("\\", "");
 
         if (_webSocket.State == NativeWebSocket.WebSocketState.Open)
         {
@@ -226,7 +222,7 @@ public class MatchConnection : MonoBehaviour
         public int playerID;
         public string password;
 
-        public RequestData requestData;
+        public PlayerRequest requestData;
 
     }
 

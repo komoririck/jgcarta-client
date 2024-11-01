@@ -94,15 +94,12 @@ public class PlayerProfile : MonoBehaviour
         PlayerNameConfirmButton.gameObject.SetActive(false);
 
         yield return StartCoroutine(UpdatePlayerName());
-
-
-
-        if (_HTTPSMaker.returnMessage.getRequestReturn().Equals("success"))
+        if (_HTTPSMaker.returnMessage.Equals("success"))
         {
+            _HTTPSMaker.returnMessage = "";
             PlayerNameText.text = PlayerNameInput.text;
             PlayerInfo.PlayerName = PlayerNameText.text;
             PlayerNameInput.text = "";
-            _HTTPSMaker.returnMessage.resetMessage();
         }
     }
     public void PPListButton()
@@ -129,16 +126,15 @@ public class PlayerProfile : MonoBehaviour
     public IEnumerator HandleConfirmPPButton()
     {
         yield return StartCoroutine(UpdatePlayerIcon(selectedProfilePicture));
-       
-            if (_HTTPSMaker.returnMessage.getRequestReturn().Equals("success"))
-            {
-                PlayerInfo.PlayerIcon = selectedProfilePicture;
+        if (_HTTPSMaker.returnMessage.Equals("success"))
+        {
+            _HTTPSMaker.returnMessage = "";
+            PlayerInfo.PlayerIcon = selectedProfilePicture;
                 Sprite newSprite = Resources.Load<Sprite>("AvatarIcons/AvatarIcon" + PlayerInfo.PlayerIcon);
                 if (imageToChange != null && newSprite != null)
                 {
                     imageToChange.sprite = newSprite;
                 }
-                _HTTPSMaker.returnMessage.resetMessage();
             }
             PPListOffButton();
     }
@@ -165,7 +161,7 @@ public class PlayerProfile : MonoBehaviour
             playerItemBox = new List<HTTPSMaker.PlayerItemBoxData>(),
             playerMessageBox = new List<HTTPSMaker.PlayerMessageBoxData>(),
             playerMissionList = new List<HTTPSMaker.PlayerMissionData>(),
-            requestData = new RequestData { type = "UpdateName", description = "", requestObject = "" }
+            requestData = new PlayerRequest { type = "UpdateName", description = "", requestObject = "" }
         };
 
         yield return StartCoroutine(_HTTPSMaker.UpdatePlayerInfo(playerinfoupdate));
@@ -193,7 +189,7 @@ public class PlayerProfile : MonoBehaviour
             playerItemBox = new List<HTTPSMaker.PlayerItemBoxData>(),
             playerMessageBox = new List<HTTPSMaker.PlayerMessageBoxData>(),
             playerMissionList = new List<HTTPSMaker.PlayerMissionData>(),
-            requestData = new RequestData { type = "UpdateProfilePicture", description = "", requestObject = "" }
+            requestData = new PlayerRequest { type = "UpdateProfilePicture", description = "", requestObject = "" }
         };
 
         yield return StartCoroutine(_HTTPSMaker.UpdatePlayerInfo(playerinfoupdate));

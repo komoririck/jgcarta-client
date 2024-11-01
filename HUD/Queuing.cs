@@ -31,15 +31,12 @@ public class Queuing : MonoBehaviour
     public IEnumerator HandleCancelMatchPoolButton()
     {
         yield return StartCoroutine(CancelMatchQueue());
-
-        if (_HTTPSMaker.returnMessage.getRequestReturn().Equals("success"))
+        if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage.resetMessage();
+            _HTTPSMaker.returnMessage = "";
             _ = _MatchConnection._webSocket.Close();
             Destroy(_MatchConnection);
             SceneManager.LoadScene("MainMenu");
-            
-
         }
     }
     public IEnumerator CancelMatchQueue()

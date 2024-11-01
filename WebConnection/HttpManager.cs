@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
+using static Google.Apis.Requests.BatchRequest;
 
 public class HttpManager : MonoBehaviour
 {
@@ -37,15 +38,16 @@ public class HttpManager : MonoBehaviour
         canvas = GameObject.Find("Canvas");
     }
 
-    public IEnumerator PostRequest(string url, string jsonData, System.Action<string> onSuccess, System.Action<string> onError)
+    public IEnumerator MakeRequest(string url, string jsonData, System.Action<string> onSuccess, System.Action<string> onError, string requestType = "POST")
     {
-        using (UnityWebRequest request = new(url, "POST"))
+        using (UnityWebRequest request = new(url, requestType))
         {
             byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
 
+            Debug.Log($"Raw JSON Response:\n{request.downloadHandler.text}");
 
             waitingForARequest = true;
 
@@ -56,7 +58,7 @@ public class HttpManager : MonoBehaviour
             {
                 onError?.Invoke(request.error);
             }
-            else
+            else if(request.responseCode >= 200 && request.responseCode < 300)
             {
                 onSuccess?.Invoke(request.downloadHandler.text);
             }

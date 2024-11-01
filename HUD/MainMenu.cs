@@ -18,7 +18,6 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private TMP_Text SRMaterial = null;
     [SerializeField] private TMP_Text URMaterial = null;
 
-
     [SerializeField] private Image imageToChange;
 
     public string spritePath;   
@@ -42,46 +41,5 @@ public class MainMenu : MonoBehaviour
         {
             imageToChange.sprite = newSprite;
         }
-    }
-
-
-    void Update()
-    {
-
-    }
-
-
-    public void CatalogueButton()
-    {
-        SceneManager.LoadScene("Catalogue");
-    }
-    public void DeckEditorButton()
-    {
-        SceneManager.LoadScene("Deck");
-    }
-    public void ProfileButton()
-    {
-        SceneManager.LoadScene("PlayerProfile");
-    }
-    public void StoreButton()
-    {
-        SceneManager.LoadScene("Store");
-    }
-    public void SettingsButton()
-    {
-        SceneManager.LoadScene("Settings");
-    }
-    public void MatchButton()
-    {
-        SceneManager.LoadScene("Match");
-    }
-    public void MissionBoxButton()
-    {
-    }
-    public void PresentBoxButton()
-    {
-    }
-    public void NewsBoxButton()
-    {
     }
 }

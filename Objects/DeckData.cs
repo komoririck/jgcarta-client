@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
-public class DeckData : MonoBehaviour
+public class DeckData
 {
     public string deckName { get; set; }
     public string main { get; set; }

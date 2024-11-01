@@ -1,10 +1,12 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class MatchRoom : MonoBehaviour
 {
+
     [SerializeField] private PlayerInfo PlayerInfo = null;
     [SerializeField] private GameSettings GameSettings = null;
     [SerializeField] public HTTPSMaker _HTTPSMaker = null;
@@ -36,17 +38,15 @@ public class MatchRoom : MonoBehaviour
     public IEnumerator HandleUpdateRoomData()
     {
         yield return StartCoroutine(UpdateRoomData());
-
-        // Check the return message after UpdateRoomData completes
-        if (_HTTPSMaker.returnMessage.getRequestReturn().Equals("success"))
+        if (_HTTPSMaker.returnMessage.Equals("success"))
         {
             UpdateRoom();
+            _HTTPSMaker.returnMessage = "";
         }
     }
 
     public IEnumerator UpdateRoomData()
     {
-        // Assuming JoinRoom is a coroutine and _HTTPSMaker is properly initialized
         yield return StartCoroutine(_HTTPSMaker.JoinRoom(PlayerInfo.PlayerID, PlayerInfo.Password, "UpdateRoom", "000000"));
     }
 
@@ -66,16 +66,16 @@ public class MatchRoom : MonoBehaviour
     {
         yield return StartCoroutine(DismissMatchRoom());
 
-        if (_HTTPSMaker.returnMessage.getRequestReturn().Equals("success"))
+        if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage.resetMessage();
+            _HTTPSMaker.returnMessage = "";
             SceneManager.LoadScene("MainMenu");
         }
     }
     public IEnumerator DismissMatchRoom()
     {
         int ownerid = playerMatchRoom.OwnerID;
-        if (PlayerInfo.PlayerID == ownerid)
+        if (PlayerInfo.PlayerID.Equals(ownerid))
         {
             yield return StartCoroutine(_HTTPSMaker.JoinRoom(PlayerInfo.PlayerID, PlayerInfo.Password, "CancelRoom", "000000"));
         }
@@ -99,10 +99,9 @@ public class MatchRoom : MonoBehaviour
     public IEnumerator HandleJoinTableButton(string boardNumber)
     {
         yield return StartCoroutine(JoinTable(boardNumber));
-
-        if (_HTTPSMaker.returnMessage.getRequestReturn().Equals("success"))
+        if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage.resetMessage();
+            _HTTPSMaker.returnMessage = "";
             //do the screen changes for the table joined
         }
     }
@@ -125,13 +124,14 @@ public class MatchRoom : MonoBehaviour
         yield return StartCoroutine(LeaveTable());
 
         int i = 0;
-        if (_HTTPSMaker.returnMessage.getRequestReturn().Equals("success"))
+
+        if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage.resetMessage();
+            _HTTPSMaker.returnMessage = "";
             foreach (PlayerMatchRoomPool p in playerMatchRoom.PlayerMatchRoomPool)
             {
 
-                if (p.PlayerID == PlayerInfo.PlayerID)
+                if (p.PlayerID.Equals(PlayerInfo.PlayerID))
                 {
                     playerMatchRoom.PlayerMatchRoomPool[i].Status = 'A';
                     playerMatchRoom.PlayerMatchRoomPool[i].Chair = 0;
@@ -167,12 +167,13 @@ public class MatchRoom : MonoBehaviour
         yield return StartCoroutine(LockTable());
 
         int i = 0;
-        if (_HTTPSMaker.returnMessage.getRequestReturn().Equals("success"))
+
+        if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage.resetMessage();
+            _HTTPSMaker.returnMessage = "";
             foreach (PlayerMatchRoomPool p in playerMatchRoom.PlayerMatchRoomPool)
             {
-                if (p.PlayerID == PlayerInfo.PlayerID)
+                if (p.PlayerID.Equals(PlayerInfo.PlayerID))
                 {
                     playerMatchRoom.PlayerMatchRoomPool[i].Status = 'D';
                 }
@@ -201,12 +202,13 @@ public class MatchRoom : MonoBehaviour
         yield return StartCoroutine(UnlockTable());
 
         int i = 0;
-        if (_HTTPSMaker.returnMessage.getRequestReturn().Equals("success"))
+
+        if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage.resetMessage();
+            _HTTPSMaker.returnMessage = "";
             foreach (PlayerMatchRoomPool p in playerMatchRoom.PlayerMatchRoomPool)
             {
-                if (p.PlayerID == PlayerInfo.PlayerID)
+                if (p.PlayerID.Equals(PlayerInfo.PlayerID))
                 {
                     playerMatchRoom.PlayerMatchRoomPool[i].Status = 'R';
                 }

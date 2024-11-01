@@ -117,10 +117,10 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                                 thisCard.gameObject.SetActive(false);
 
                                 _DuelAction.playerID = _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn;
-                                _DuelAction.usedCard =  DataConverter.CreateCardDataFromCard(thisCard);
+                                _DuelAction.usedCard =  CardData.CreateCardDataFromCard(thisCard);
                                 _DuelAction.playedFrom = "Hand";
                                 _DuelAction.local = targetCard.gameObject.transform.parent.gameObject.name;
-                                _DuelAction.targetCard = DataConverter.CreateCardDataFromCard(targetCard); 
+                                _DuelAction.targetCard = CardData.CreateCardDataFromCard(targetCard); 
 
                                 _DuelField.GenericActionCallBack(_DuelAction, "CheerChooseRequest");
                                 validDropZoneFound = true;
@@ -176,11 +176,11 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                         //if (thisCard.cardType.Equals("サポート・スタッフ・LIMITED")) { 
                             _DuelAction = new DuelAction()
                             {
-                                usedCard = DataConverter.CreateCardDataFromCard(thisCard),
+                                usedCard = CardData.CreateCardDataFromCard(thisCard),
                                 playerID = _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn,
                                 playedFrom = "Hand",
                                 local = (targetCard != null) ? targetCard.gameObject.transform.parent.gameObject.name : "",
-                                targetCard = DataConverter.CreateCardDataFromCard(targetCard)
+                                targetCard = CardData.CreateCardDataFromCard(targetCard)
                             };
                         //}
                         FindAnyObjectByType<EffectController>().ResolveSuportEffect(_DuelAction);
@@ -289,10 +289,10 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
 
                                         //creating the informatio for the server
                                         _DuelAction.playerID = _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn;
-                                        _DuelAction.usedCard = DataConverter.CreateCardDataFromCard(thisCard);
+                                        _DuelAction.usedCard = CardData.CreateCardDataFromCard(thisCard);
                                         _DuelAction.playedFrom = "Hand";
                                         _DuelAction.local = pointedCard.gameObject.transform.parent.gameObject.name;
-                                        _DuelAction.targetCard = DataConverter.CreateCardDataFromCard(pointedCard);
+                                        _DuelAction.targetCard = CardData.CreateCardDataFromCard(pointedCard);
                                         _DuelAction.actionType = "BloomHolomem";
 
                                         _DuelField.GenericActionCallBack(_DuelAction);

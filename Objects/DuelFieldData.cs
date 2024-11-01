@@ -1,43 +1,33 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
-[Serializable]
+
 public class DuelFieldData
 {
-    public List<Card> playerAHand { get; set; } = new List<Card>();
-    public List<Card> playerAArquive { get; set; } = new List<Card>();
-    public List<Card> playerADeck { get; set; } = new List<Card>();
-    public List<Card> playerAHoloPower { get; set; } = new List<Card>();
-    public List<Card> playerABackPosition { get; set; } = new List<Card>();
-    public Card playerAFavourite { get; set; } = new Card("");
-    public Card playerAStage { get; set; } = new Card("");
-    public Card playerACollaboration { get; set; } = new Card("");
-    public List<Card> playerACardCheer { get; set; } = new List<Card>();
-    public List<Card> playerALife { get; set; } = new List<Card>();
+    public List<Card> playerAArquive;
+    public List<Card> playerAHoloPower;
+    public List<Card> playerABackPosition;
+    public Card playerAFavourite;
+    public Card playerAStage;
+    public Card playerACollaboration;
+    public List<Card> playerALife;
+    public List<Card> playerBArquive;
+    public List<Card> playerBHoloPower;
+    public List<Card> playerBBackPosition;
+    public Card playerBFavourite;
+    public Card playerBStage;
+    public Card playerBCollaboration;
+    public List<Card> playerBLife;
 
-    public List<Card> playerBHand { get; set; } = new List<Card>();
-    public List<Card> playerBArquive { get; set; } = new List<Card>();
-    public List<Card> playerBDeck { get; set; } = new List<Card>();
-    public List<Card> playerBHoloPower { get; set; } = new List<Card>();
-    public List<Card> playerBBackPosition { get; set; } = new List<Card>();
-    public Card playerBFavourite { get; set; } = new Card("");
-    public Card playerBStage { get; set; } = new Card("");
-    public Card playerBCollaboration { get; set; } = new Card("");
-    public List<Card> playerBCardCheer { get; set; } = new List<Card>();
-    public List<Card> playerBLife { get; set; } = new List<Card>();
-
-    public int currentTurn { get; set; }
-    public int currentPlayerTurn { get; set; }
-    public int currentPlayerActing { get; set; }
+    public string currentPlayerTurn;
     [JsonIgnore]
-    public GAMEPHASE currentGamePhase { get; set; } = GAMEPHASE.StartDuel;
-    public int firstPlayer { get; set; }
-    public int secondPlayer { get; set; }
-    public int currentGameHigh { get; set; }
-
-    public List<Card> playerLimiteCardPlayed { get; set; } = new List<Card>();
-    public string currentCardResolving { get; set; }
+    public GAMEPHASE currentGamePhase = GAMEPHASE.StartDuel;
+    public string firstPlayer;
+    public string secondPlayer;
+    [JsonIgnore]
+    public List<Card> playerLimiteCardPlayed = new();
     [Flags]
     public enum GAMEPHASE : byte
     {
@@ -61,5 +51,41 @@ public class DuelFieldData
         ConditionedSummom = 102,
         HolomemDefeated = 103,
         HolomemDefeatedEnergyChoose = 104
+    }
+
+
+
+    [Serializable]
+    public class DuelFieldDataSerializable
+    {
+        public List<CardData> playerABackPosition { get; set; } = new List<CardData>();
+        public CardData playerAFavourite { get; set; } = new CardData();
+        public CardData playerAStage { get; set; } = new CardData();
+        public CardData playerACollaboration { get; set; } = new CardData();
+        public List<CardData> playerALife { get; set; } = new List<CardData>();
+        public List<CardData> playerBBackPosition { get; set; } = new List<CardData>();
+        public CardData playerBFavourite { get; set; } = new CardData();
+        public CardData playerBStage { get; set; } = new CardData();
+        public CardData playerBCollaboration { get; set; } = new CardData();
+        public List<CardData> playerBLife { get; set; } = new List<CardData>();
+    }
+
+    public static DuelFieldDataSerializable ConvertToSerializable(DuelFieldData data)
+    {
+        return new DuelFieldDataSerializable
+        {
+            playerABackPosition = data.playerABackPosition.Select(CardData.CreateCardDataFromCard).ToList(),
+            playerAFavourite = CardData.CreateCardDataFromCard(data.playerAFavourite),
+            playerAStage = CardData.CreateCardDataFromCard(data.playerAStage),
+            playerACollaboration = CardData.CreateCardDataFromCard(data.playerACollaboration),
+            playerALife = data.playerALife.Select(CardData.CreateCardDataFromCard).ToList(),
+
+            playerBBackPosition = data.playerBBackPosition.Select(CardData.CreateCardDataFromCard).ToList(),
+            playerBFavourite = CardData.CreateCardDataFromCard(data.playerBFavourite),
+            playerBStage = CardData.CreateCardDataFromCard(data.playerBStage),
+            playerBCollaboration = CardData.CreateCardDataFromCard(data.playerBCollaboration),
+            playerBLife = data.playerBLife.Select(CardData.CreateCardDataFromCard).ToList(),
+
+        };
     }
 }

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 [Serializable]
 public class DuelAction
 {
-    public int playerID;
+    public string playerID;
     public CardData usedCard = new();
     public string playedFrom;
     public string local;

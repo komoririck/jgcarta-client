@@ -67,10 +67,9 @@ public class MatchMenu : MonoBehaviour
             queueType = "Ranked";
 
         yield return StartCoroutine(JoinMatchQueue(queueType));
-
-        if (_HTTPSMaker.returnMessage.getRequestReturn().Equals("success"))
+        if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage.resetMessage();
+            _HTTPSMaker.returnMessage = "";
             SceneManager.LoadScene("Queuing");
         }
     }
@@ -92,20 +91,16 @@ public class MatchMenu : MonoBehaviour
             queueType = "CreateRoom";
 
         yield return StartCoroutine(JoinRoom(queueType, roomID));
-
-
-        Debug.Log(_HTTPSMaker.returnMessage.getRequestReturn());
-        switch (_HTTPSMaker.returnMessage.getRequestReturn()) {
-            case "success":
-                _HTTPSMaker.returnMessage.resetMessage();
-                SceneManager.LoadScene("MatchRoom");
-                break;
-            case "noroomfound":
-                _HTTPSMaker.returnMessage.resetMessage();
-                NoRoomFound();
-                break;
+            switch (_HTTPSMaker.returnMessage) {
+                case "success":
+                    SceneManager.LoadScene("MatchRoom");
+                    break;
+                case "noroomfound":
+                    NoRoomFound();
+                    break;
+            }
+            _HTTPSMaker.returnMessage = "";
         }
-    }
     public IEnumerator JoinRoom(string queueType, string roomId)
     {
         yield return StartCoroutine(_HTTPSMaker.JoinRoom(PlayerInfo.PlayerID, PlayerInfo.Password, queueType, roomId));

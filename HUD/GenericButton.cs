@@ -10,11 +10,10 @@ public class GenericButton : MonoBehaviour
         obj.SetActive(false);
     }
 
-    public void ReturnButton(string scene)
+    public void LoadSceneButton(string scene)
     {
         SceneManager.LoadScene(scene);
     }
-
     public static void DisplayPopUp(GameObject Panel, TMP_Text txtHolder, string text) {
         Panel.SetActive(true);
         txtHolder.text = text;

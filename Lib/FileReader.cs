@@ -31,8 +31,10 @@ public class FileReader : MonoBehaviour
 
     void Start()
     {
-        List<Record> records = ReadTextFile(fileName);
-
+        List<Record> records = null;
+        if (result.Count == 0) { 
+           records = ReadTextFile(fileName);
+        }
         if (records != null)
         {
             Debug.Log($"Successfully read {records.Count} records.");

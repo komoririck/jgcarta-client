@@ -103,7 +103,7 @@ public class DuelField_DetachEnergyMenu : MonoBehaviour
 
         Card returnCard = selectedItem.GetComponent<Card>();
 
-        duelAction.cheerCostCard = DataConverter.CreateCardDataFromCard(returnCard);
+        duelAction.cheerCostCard = CardData.CreateCardDataFromCard(returnCard);
         duelAction.usedCard.cardPosition = duelAction.cheerCostCard.cardPosition;
         duelAction.local = duelAction.cheerCostCard.cardPosition;
 

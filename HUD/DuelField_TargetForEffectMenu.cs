@@ -110,7 +110,7 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
 
         Card returnCard = selectedItem.GetComponent<Card>();
 
-        duelAction.targetCard = DataConverter.CreateCardDataFromCard(returnCard);
+        duelAction.targetCard = CardData.CreateCardDataFromCard(returnCard);
         duelAction.usedCard.cardPosition = duelAction.usedCard.cardPosition;
 
         effectController.EffectInformation.Add(duelAction);

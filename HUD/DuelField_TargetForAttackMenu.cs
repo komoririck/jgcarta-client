@@ -85,7 +85,7 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
         string pos = duelAction.usedCard.cardPosition;
         Card returnCard = selectedItem.GetComponent<Card>();
 
-        duelAction.targetCard = DataConverter.CreateCardDataFromCard(returnCard);
+        duelAction.targetCard = CardData.CreateCardDataFromCard(returnCard);
 
         Card card = new(duelAction.usedCard.cardNumber);
         card.GetCardInfo();

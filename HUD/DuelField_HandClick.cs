@@ -109,7 +109,7 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
                 newItem.transform.Find("ArtButton").Find("Cost").GetComponent<TMP_Text>().text = costString;
 
                 Card thisCard = GetComponent<Card>();
-                DuelAction duelaction = new() { usedCard = DataConverter.CreateCardDataFromCard(thisCard) };
+                DuelAction duelaction = new() { usedCard = CardData.CreateCardDataFromCard(thisCard) };
                 Button itemButton = newItem.GetComponent<Button>();
                 duelaction.usedCard.cardPosition = thisCard.cardPosition;
 
@@ -279,7 +279,7 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
                                     DuelAction duelAction = new()
                                     {
                                         playerID = _DuelField.PlayerInfo.PlayerID,
-                                        usedCard = DataConverter.CreateCardDataFromCard(this.GetComponent<Card>()),
+                                        usedCard = CardData.CreateCardDataFromCard(this.GetComponent<Card>()),
                                         playedFrom = parent,
                                         local = "Collaboration",
                                         actionType = "DoCollab"
@@ -301,7 +301,7 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
                                 DuelAction duelActionn = new()
                                 {
                                     playerID = _DuelField.PlayerInfo.PlayerID,
-                                    usedCard = DataConverter.CreateCardDataFromCard(this.GetComponent<Card>()),
+                                    usedCard = CardData.CreateCardDataFromCard(this.GetComponent<Card>()),
                                     playedFrom = parentt,
                                     local = "Stage",
                                 };

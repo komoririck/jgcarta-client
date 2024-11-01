@@ -1,9 +1,14 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using TMPro;
+using Unity.VisualScripting;
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static Card;
 
@@ -27,37 +32,63 @@ public class DeckEditor : MonoBehaviour
     [SerializeField] Card OshiCard;
     [SerializeField] string DeckName = "";
 
-    void Start()
-    {
-        cardPool = FindObjectOfType<CardPool>(); // Ensure you have a CardPool in the scene
-        textBox.onValueChanged.AddListener(OnSearchInputChanged);
-        ClearTextButton();
-    }
 
-    private void UpdateDisplay(string filter)
+    public Transform displayArea;  // Area where cards will be displayed
+    private int maxVisibleCards = 10;  // Example max visible count
+
+    private HTTPSMaker _HTTPSMaker;
+
+    public float doubleClickTime = 0.3f; // Max time between clicks to register a double-click
+    private float lastClickTime;
+    private bool isOneClick = false;
+
+    [SerializeField] public GameObject CardDetailPanel;
+    string clickedCardNumber = "";
+
+    private void Start()
     {
-        // Check if cardPool is null
+        Button btn = OshiCard.AddComponent<Button>();
+        btn.onClick.AddListener(() => HandleCardClick(OshiCard.gameObject));
+
+        _HTTPSMaker = FindAnyObjectByType<HTTPSMaker>();
+
+        // Initialize card pool if not assigned and ensure a CardPool exists in the scene
         if (cardPool == null)
         {
-            Debug.LogError("CardPool is not initialized. Make sure the CardPool script is attached to a GameObject in the scene.");
-            return; // Exit the method if cardPool is null
-        }
-
-        // Clear existing cards from the content area
-        foreach (Transform child in CardViewContent.transform)
-        {
-            if (child != null)
+            cardPool = FindObjectOfType<CardPool>();
+            if (cardPool == null)
             {
-                cardPool.ReturnCard(child.gameObject); // Return cards to pool instead of destroying
+                Debug.LogError("CardPool is not initialized. Make sure the CardPool script is attached to a GameObject in the scene.");
+                return;
             }
         }
 
-        List<Record> query;
-        if (string.IsNullOrEmpty(filter))
-            query = FileReader.result;
-        else
-            query = FileReader.result.Where(r => r.CardNumber.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
+        // Set up search box input and clear button functionality
+        textBox.onValueChanged.AddListener(OnSearchInputChanged);
 
+        StartCoroutine(GetDeckRequest());
+        ClearTextButton();
+    }
+    private void UpdateDisplay(string filter)
+    {
+        if (cardPool == null)
+        {
+            Debug.LogError("CardPool is not initialized.");
+            return;
+        }
+
+        // Clear existing cards by returning them to the card pool
+        foreach (Transform child in CardViewContent.transform)
+        {
+            cardPool.ReturnCard(child.gameObject);  // Recycle cards instead of destroying
+        }
+
+        // Filter records based on the search input
+        List<Record> query = string.IsNullOrEmpty(filter)
+            ? FileReader.result
+            : FileReader.result.Where(r => r.CardNumber.Contains(filter, System.StringComparison.OrdinalIgnoreCase)).ToList();
+
+        // Display each matching card
         foreach (Record record in query)
         {
             GameObject newCardGameObject = cardPool.GetCard();
@@ -68,44 +99,99 @@ public class DeckEditor : MonoBehaviour
             Card newCard = newCardGameObject.GetComponent<Card>();
             newCard.cardNumber = record.CardNumber;
             newCard.GetCardInfo();
-            Button button = newCardGameObject.GetComponent<Button>();
-            if (button == null)
-                button = newCardGameObject.AddComponent<Button>();
-            
+
+            // Set up button listener for each card to add it to the deck
+            Button button = newCardGameObject.GetComponent<Button>() ?? newCardGameObject.AddComponent<Button>();
             button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(() => AddCardToDeck(newCardGameObject));
+            button.onClick.AddListener(() => HandleCardClick(newCardGameObject));
         }
     }
-
-
+    private void EnsureCardPool(int count)
+    {
+        while (cardPool.PoolSize < count)  // Use PoolSize or similar property of CardPool to track pool size
+        {
+            GameObject newCard = Instantiate(cardPrefab);
+            newCard.SetActive(false);
+            //cardPool.AddCard(newCard);  // Assume AddCard is a method in CardPool to add new cards
+        }
+    }
+    public void ClearDisplay()
+    {
+        foreach (GameObject cardObj in cardPool.GetAllCards())  // Assuming GetAllCards returns all pooled cards
+        {
+            cardObj.SetActive(false);  // Hide all pooled cards when clearing the display
+        }
+    }
     private void OnSearchInputChanged(string value)
     {
         UpdateDisplay(value);
     }
-
     public void ClearTextButton()
     {
         textBox.text = "";
         UpdateDisplay("");
     }
+    void HandleCardClick(GameObject thisCard)
+    {
+        if (isOneClick && (Time.time - lastClickTime) < doubleClickTime)
+        {
+            // Double-click detected
+            isOneClick = false;
+            lastClickTime = 0;
+
+            if (thisCard.transform.parent.parent.parent.name.Equals("Deck Scroll View") || thisCard.transform.parent.parent.parent.name.Equals("Energy Scroll View"))
+            {
+                RemoveCardFromDeck(thisCard);
+            }
+            else
+            {
+                AddCardToDeck(thisCard);
+            }
+        }
+        else
+        {
+            clickedCardNumber = thisCard.GetComponentInChildren<Card>().cardNumber;
+
+            // First click detected
+            isOneClick = true;
+            lastClickTime = Time.time;
+            Invoke(nameof(SingleClickConfirmed), doubleClickTime);
+        }
+    }
+
+    void SingleClickConfirmed()
+    {
+        if (isOneClick)
+        {
+            isOneClick = false;
+            OpenCardDetailMenu(); // Show the card menu if single-clicked
+        }
+    }
 
     void AddCardToDeck(GameObject thisCard)
     {
+        //instantite the object to be add
         Card ClickedCard = thisCard.GetComponent<Card>();
         GameObject newCard = Instantiate(cardPrefab, DeckContent.transform);
         Card CardToAdd = newCard.GetComponent<Card>();
         Button button = newCard.AddComponent<Button>();
-        button.onClick.AddListener(() => RemoveCardFromDeck(newCard));
+        button.onClick.AddListener(() => HandleCardClick(newCard));
 
         CardToAdd.cardNumber = ClickedCard.cardNumber;
         CardToAdd.GetCardInfo();
+        //determine which list it belongs
         if (CardToAdd.cardType.Equals("エール"))
         {
             newCard.transform.SetParent(EnergyContent.transform);
             if (EnergyCardList.Count > 19)
+            {
                 Destroy(newCard);
+                EnergyCardList.Remove(CardToAdd);
+            }
             else
+            {
                 EnergyCardList.Add(CardToAdd);
+            }
         }
         else if (CardToAdd.cardType.Equals("推しホロメン"))
         {
@@ -116,17 +202,38 @@ public class DeckEditor : MonoBehaviour
         else
         {
             if (DeckCardList.Count > 49)
+            {
                 Destroy(newCard);
+                DeckCardList.Remove(CardToAdd);
+            }
             else
+            {
                 DeckCardList.Add(CardToAdd);
+            }
         }
     }
 
     void RemoveCardFromDeck(GameObject thisCard)
     {
+        //destroy the click object
         Card card = thisCard.GetComponent<Card>();
-        DeckCardList.Remove(card);
+        if (thisCard.transform.parent.parent.parent.name.Equals("Deck Scroll View"))
+        {
+            DeckCardList.Remove(card);
+        }
+        else
+        {
+            EnergyCardList.Remove(card);
+        }
         Destroy(thisCard);
+    }
+
+    void OpenCardDetailMenu()
+    {
+        CardDetailPanel.SetActive(true);
+        Card card = CardDetailPanel.GetComponentInChildren<Card>();
+        card.cardNumber = clickedCardNumber;
+        card.GetCardInfo();
     }
 
     public void ImportDeckFromClipBoard()
@@ -139,6 +246,15 @@ public class DeckEditor : MonoBehaviour
         // Define valid tags
         HashSet<string> validTags = new HashSet<string> { "#created by", "#main", "#energy", "#oshi" };
 
+        foreach (GameObject obj in DeckContent.transform) {
+            Destroy(obj); 
+            DeckCardList.Clear();
+        }
+        foreach (GameObject obj in EnergyContent.transform)
+        {
+            Destroy(obj);
+            EnergyCardList.Clear();
+        }
 
         foreach (string line in lines)
         {
@@ -164,7 +280,8 @@ public class DeckEditor : MonoBehaviour
                 newCardGameObject = Instantiate(cardPrefab, DeckContent.transform);
                 CardToAdd = newCardGameObject.GetComponent<Card>();
                 Button button = newCardGameObject.AddComponent<Button>();
-                button.onClick.AddListener(() => RemoveCardFromDeck(newCardGameObject));
+                button.onClick.AddListener(() => HandleCardClick(newCardGameObject));
+
             }
 
             switch (currentTag)
@@ -199,7 +316,6 @@ public class DeckEditor : MonoBehaviour
         }
         GenericButton.DisplayPopUp(MessageBox, MessageBoxText, "Deck imported from clipboard");
     }
-
     public void ExportDeckToClipboard()
     {
         StringBuilder exportText = new StringBuilder();
@@ -227,8 +343,7 @@ public class DeckEditor : MonoBehaviour
         GUIUtility.systemCopyBuffer = exportText.ToString();
         GenericButton.DisplayPopUp(MessageBox, MessageBoxText, "Deck Copied to clipboard");
     }
-
-    void SaveDeckInformation()
+    public void SaveDeckInformation()
     {
         string DeckText = "";
         string EnergyText = "";
@@ -254,13 +369,70 @@ public class DeckEditor : MonoBehaviour
         };
 
         WaitingResponsePainel.SetActive(true);
+        StartCoroutine(SaveDeckRequest(_DeckData));
+        WaitingResponsePainel.SetActive(false);
+    }
+    public IEnumerator SaveDeckRequest(DeckData _DeckData)
+    {
+        yield return StartCoroutine(HandleSaveDeckRequest(_DeckData));
+    }
+    public IEnumerator HandleSaveDeckRequest(DeckData _DeckData)
+    {
+        yield return StartCoroutine(_HTTPSMaker.UpdateDeckRequest(_DeckData));
+        string response = _HTTPSMaker.returnMessage.Equals("success") ? "Deck Updated" : "Error";
+        _HTTPSMaker.returnMessage = "";
+        GenericButton.DisplayPopUp(MessageBox, MessageBoxText, response);
+    }
+    public IEnumerator GetDeckRequest()
+    {
+        yield return StartCoroutine(HandleGetDeckRequest());
+        DeckData _DeckData = (DeckData)_HTTPSMaker.returnedObjects[_HTTPSMaker.returnedObjects.Count - 1];
+        _HTTPSMaker.returnedObjects.Clear();
+        DeckName = _DeckData.deckName;
+        var main = _DeckData.main.Split(",");
 
-        if (true) {
-            GenericButton.DisplayPopUp(MessageBox, MessageBoxText, "Deck Updated");
-        }
-        else
+        foreach (String card in main)
         {
-            GenericButton.DisplayPopUp(MessageBox, MessageBoxText, "Error");
+            Card CardToAdd = null;
+            GameObject newCardGameObject = null;
+            newCardGameObject = Instantiate(cardPrefab, DeckContent.transform);
+            CardToAdd = newCardGameObject.GetComponent<Card>();
+            Button button = newCardGameObject.AddComponent<Button>();
+            button.onClick.AddListener(() => HandleCardClick(newCardGameObject));
+
+            CardToAdd.cardNumber = card;
+            CardToAdd.GetCardInfo();
+            if (DeckCardList.Count > 49 && !string.IsNullOrEmpty(CardToAdd.name))
+                Destroy(newCardGameObject);
+            else
+                DeckCardList.Add(CardToAdd);
         }
+
+        var cheer = _DeckData.energy.Split(",");
+        foreach (String card in cheer)
+        {
+            Card CardToAdd = null;
+            GameObject newCardGameObject = null;
+            newCardGameObject = Instantiate(cardPrefab, EnergyContent.transform);
+            CardToAdd = newCardGameObject.GetComponent<Card>();
+            Button button = newCardGameObject.AddComponent<Button>();
+            button.onClick.AddListener(() => HandleCardClick(newCardGameObject));
+
+            CardToAdd.cardNumber = card;
+            CardToAdd.GetCardInfo();
+            if (EnergyCardList.Count > 19 && !string.IsNullOrEmpty(CardToAdd.name))
+                Destroy(newCardGameObject);
+            else
+                EnergyCardList.Add(CardToAdd);
+        }
+
+        OshiCard.cardNumber = _DeckData.oshi;
+        OshiCard.GetCardInfo();
+
+    }
+    public IEnumerator HandleGetDeckRequest()
+    {
+        yield return StartCoroutine(_HTTPSMaker.GetDeckRequest());
+        _HTTPSMaker.returnMessage = "";
     }
 }
