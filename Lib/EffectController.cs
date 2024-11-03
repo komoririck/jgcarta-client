@@ -240,6 +240,69 @@ namespace Assets.Scripts.Lib
 
             switch (_DuelActionFirstAction.usedCard.cardNumber)
             {
+                case "hBP01-103":
+                    menuActions.Add(() =>
+                    {
+                        isSelectionCompleted = false;
+                        return _DuelField_DetachEnergyMenu.SetupSelectableItems(_DuelActionFirstAction);
+                    });
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[0];
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    //we recieve the list then callback again to finish the effect
+                    menuActions.Add(() =>
+                    {
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        return _DuelField_ShowAlistPickOne.SetupSelectableItems(duelActionInput, duelActionInput.cardList, duelActionInput.cardList);
+                    });
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        var selected = (List<string>)EffectInformation[1];
+                        duelActionOutput.actionObject = selected[0];
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hBP01-102":
+
+                    if (_DuelField.cardsPlayer.Count > 6)
+                        break; 
+
+                    isServerResponseArrive = false;
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+
+                        List<Card> filteresList = new();
+                        foreach (Card card in duelActionInput.cardList)
+                        {
+                            card.GetCardInfo();
+                            if (card.cardTag.Contains($"#歌"))
+                            {
+                                filteresList.Add(card);
+                            }
+
+                        }
+                        return _DuelField_ShowListPickThenReorder.SetupSelectableItems(duelActionInput, duelActionInput.cardList, filteresList, true, 1);
+                    });
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[0];
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
                 case "hSD01-016":
                 case "hSD01-017":
                     menuActions.Add(() =>
@@ -371,6 +434,213 @@ namespace Assets.Scripts.Lib
                         return WaitForServerResponse();
                     });
                     break;
+                case "hBP01-104":
+                    isServerResponseArrive = false;
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+
+                        return _DuelField_ShowAlistPickOne.SetupSelectableItems(duelActionInput, duelActionInput.cardList, duelActionInput.cardList);
+                    });
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        List<string> cardnumber = (List<string>)EffectInformation[0];
+                        _DuelActionFirstAction.actionObject = cardnumber[0];  
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hBP01-105":
+                    isServerResponseArrive = false;
+                    //pay the cost
+                    menuActions.Add(() =>
+                    {
+                        isSelectionCompleted = false;
+                        return _DuelField_DetachEnergyMenu.SetupSelectableItems(_DuelActionFirstAction);
+                    });
+                    //add the targert to action with the cost
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[0];
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelActionOutput);
+                    });
+                    //send both cost and targer(color) to the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[1];
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    //from the list of energy recieved, pick one
+                    menuActions.Add(() =>
+                    {
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        isSelectionCompleted = false;
+                        return _DuelField_ShowAlistPickOne.SetupSelectableItems(duelActionInput, duelActionInput.cardList, duelActionInput.cardList);
+                    });
+                    //then, target one card to assign the energy
+                    menuActions.Add(() =>
+                    {
+                        isSelectionCompleted = false;
+
+                        List<string> cardnumber = (List<string>)EffectInformation[2];
+                        duelActionInput.actionObject = cardnumber[0];
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelActionInput);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = new DuelAction { 
+                            usedCard = ((DuelAction)EffectInformation[3]).usedCard,
+                            targetCard = ((DuelAction)EffectInformation[3]).targetCard,
+                           actionObject = ((DuelAction)EffectInformation[3]).actionObject,
+                        };
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hBP01-106":
+                    isServerResponseArrive = false;
+                    //select the card to return to back
+                    menuActions.Add(() =>
+                    {
+                        var zonesThatPlayerCanSelect = new string[] {"BackStage1", "BackStage2", "BackStage3", "BackStage4", "BackStage5"};
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction, zonesThatPlayerCanSelect: zonesThatPlayerCanSelect);
+                    });
+                    //send both cost and targer(color) to the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[0];
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hBP01-108":
+                    isServerResponseArrive = false;
+                    //select the card to return to back
+                    menuActions.Add(() =>
+                    {
+                        var zonesThatPlayerCanSelect = new string[] { "BackStage1", "BackStage2", "BackStage3", "BackStage4", "BackStage5" };
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction, target : TargetPlayer.Oponnent , zonesThatPlayerCanSelect: zonesThatPlayerCanSelect);
+                    });
+                    //send both cost and targer(color) to the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[0];
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hBP01-109":
+
+                    if (_DuelField.cardsPlayer.Count > 6)
+                        break;
+
+                    isServerResponseArrive = false;
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+
+                        List<Card> filteresList = new();
+                        foreach (Card card in duelActionInput.cardList)
+                        {
+                            card.GetCardInfo();
+                            if (card.cardName.Equals("兎田ぺこら") || card.cardName.Equals("ムーナ・ホシノヴァ"))
+                            {
+                                filteresList.Add(card);
+                            }
+
+                        }
+                        return _DuelField_ShowListPickThenReorder.SetupSelectableItems(duelActionInput, duelActionInput.cardList, filteresList, true, 1);
+                    });
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[0];
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hBP01-111":
+
+                    if (_DuelField.cardsPlayer.Count > 6)
+                        break;
+
+                    isServerResponseArrive = false;
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+
+                        List<Card> filteresList = new();
+                        foreach (Card card in duelActionInput.cardList)
+                        {
+                            card.GetCardInfo();
+                            if (card.cardTag.Contains($"#ID３期生"))
+                            {
+                                filteresList.Add(card);
+                            }
+
+                        }
+                        return _DuelField_ShowListPickThenReorder.SetupSelectableItems(duelActionInput, duelActionInput.cardList, filteresList, true, 1);
+                    });
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[0];
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hBP01-113":
+
+                    if (_DuelField.cardsPlayer.Count > 6)
+                        break;
+
+                    isServerResponseArrive = false;
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+
+                        List<Card> filteresList = new();
+                        foreach (Card card in duelActionInput.cardList)
+                        {
+                            card.GetCardInfo();
+                            if (card.cardTag.Contains($"#Promise"))
+                            {
+                                filteresList.Add(card);
+                            }
+
+                        }
+                        return _DuelField_ShowListPickThenReorder.SetupSelectableItems(duelActionInput, duelActionInput.cardList, filteresList, true, 1);
+                    });
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[0];
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
             }
             StartCoroutine(StartMenuSequenceCoroutine());
             isSelectionCompleted = false;
@@ -466,7 +736,7 @@ namespace Assets.Scripts.Lib
         public IEnumerator WaitForServerResponse() {
             yield return new WaitUntil(() => isServerResponseArrive);
         }
-        private static bool CheckForDetachableEnergy()
+        public static bool CheckForDetachableEnergy()
         {
             List<Card> cardList = new();
 

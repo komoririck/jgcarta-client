@@ -13,11 +13,11 @@ public class Art : MonoBehaviour
     public (string Color, int Amount) ExtraColorDamage { get; set; }
     public string Effect;
 
-    public static Art ParseArtFromString(string artString)
+    public static Art ParseArtFromString(string artString, string artEffect)
     {
         var parts = artString.Split(':');
-        if (parts.Length != 6)
-            return null; //throw new ArgumentException("Invalid art string format");
+        if (parts.Length != 5)
+            return null;
 
         // Create a new instance of Art to hold the parsed data
         var art = new Art();
@@ -26,7 +26,8 @@ public class Art : MonoBehaviour
         string costString = parts[0];
         var splitedCosts = costString.Split('*');
 
-        foreach (string cost in splitedCosts) {
+        foreach (string cost in splitedCosts)
+        {
             var splitedcostString = cost.Split('x');
             // Ensure we have two parts
             if (splitedcostString.Length == 2)
@@ -42,7 +43,7 @@ public class Art : MonoBehaviour
 
         // Parse name (example: "あなたの心は…くもりのち晴れ！")
         art.Name = parts[1];
-        art.Effect = parts[5];
+        art.Effect = artEffect;
 
         // Parse damage (example: "50x1白")
         var damageParts = parts[2].Split('x');
@@ -56,7 +57,15 @@ public class Art : MonoBehaviour
 
         // Parse extra color damage (example: "青0")
         string extraColor = parts[4].Substring(0, 1);
-        int extraColorDamage = int.Parse(parts[4].Substring(1));
+        int extraColorDamage = 0;
+        try
+        {
+            extraColorDamage = int.Parse(parts[4].Substring(1));
+        }
+        catch (Exception e)
+        {
+            Debug.Log(e + $"Card value {parts[4]}");
+        }
 
         // Set the parsed values to the Art object
         art.Damage = (damageColor, damageValue);

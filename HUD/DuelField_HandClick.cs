@@ -122,10 +122,8 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
                 }
                 else
                 {
-                    CanvasGroup canvasGroup = itemButton.GetComponent<CanvasGroup>();
+                    newItem.transform.Find("ArtButton").GetComponent<Image>().color = new Color32(0x33, 0x33, 0x33, 0xFF);
                     itemButton.interactable = false;
-                    canvasGroup.alpha = 0.5f; // Makes the button look semi-transparent
-                    canvasGroup.blocksRaycasts = false; // Prevents interactions
                 }
             }
         }
@@ -245,7 +243,6 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
 
         if (isViewMode == false && _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn == _DuelField.PlayerInfo.PlayerID)
         {
-
             //if no clicling in a dropzone which is assigned to all field zones
             if (transform.parent.TryGetComponent<DropZone>(out var pointedZoneFather))
             {
@@ -333,7 +330,8 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
         var children = new List<Transform>();
         foreach (Transform child in fromParent)
         {
-            children.Add(child);
+            if(!child.name.Equals("EnergyList"))        
+                children.Add(child);
         }
         foreach (Transform child in children)
         {

@@ -1,4 +1,5 @@
 ﻿using Assets.Scripts.Lib;
+using System;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -99,11 +100,14 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
 
             Card targetCard = dropZone.GetComponent<Card>();
 
-
             switch (_DuelField._MatchConnection._DuelFieldData.currentGamePhase)
             {
                 case DuelFieldData.GAMEPHASE.HolomemDefeatedEnergyChoose:
                 case DuelFieldData.GAMEPHASE.CheerStepChoose:
+                    if (targetCard == null)
+                    {
+                        break;
+                    }
                     if (dropZone.zoneType.Equals("HoloMember"))
                     {
                         if (thisCard.cardType.Equals("エール"))
@@ -157,6 +161,10 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                     
                     if (thisCard.cardType.Equals("サポート・イベント") || thisCard.cardType.Equals("サポート・アイテム") || thisCard.cardType.Equals("サポート・スタッフ・LIMITED") || thisCard.cardType.Equals("サポート・イベント・LIMITED") || thisCard.cardType.Equals("サポート・アイテム・LIMITED"))
                     {
+                        if (!CheckRestrictions(thisCard.cardNumber)){
+                            break;
+                        }
+
                         if (thisCard.cardType.Equals("サポート・スタッフ・LIMITED") || thisCard.cardType.Equals("サポート・イベント・LIMITED") || thisCard.cardType.Equals("サポート・アイテム・LIMITED")) {
 
                             if (_DuelField._MatchConnection._DuelFieldData.playerLimiteCardPlayed.Count > 0)
@@ -189,11 +197,14 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                         _DuelField.ArrangeCards(_DuelField.cardsPlayer, _DuelField.cardHolderPlayer);
 
                         _DuelField.SendCardToZone(this.gameObject, sendThisCardTo, TargetPlayer.Player, false);
+                        //remove drag and drop before sending to arquive
+                        Destroy(this);
+
                         rectTransform.anchoredPosition = Vector2.zero;
 
                         validDropZoneFound = true;
-                    } else if (thisCard.cardType.Equals("ホロメン"))
-                    switch (dropZone.zoneType)
+                    } else if (thisCard.cardType.Equals("ホロメン")) // PLAY HOLOOMEM
+                        switch (dropZone.zoneType)
                     {
                         case "BackStage1":
                         case "BackStage2":
@@ -201,8 +212,14 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                         case "BackStage4":
                         case "BackStage5":
                         case "Stage":
+                                Transform lastChild = null;
+                                if (dropZone.transform.childCount > 0) 
+                                    lastChild = dropZone.transform.GetChild(dropZone.transform.childCount - 1);
+
+                                Card pointedCard = lastChild.GetComponent<Card>();
+
                                 // se a posição que jogamos a carta está vázia, e a carta jogada e holomem ou buzz, nos tentamos abaixar, senão tentamos bloomar
-                                if (dropZone.GetComponentInChildren<Card>() == null && (thisCard.cardType.Equals("ホロメン") || thisCard.cardType.Equals("Buzzホロメン")))
+                                if (pointedCard == null && (thisCard.cardType.Equals("ホロメン") || thisCard.cardType.Equals("Buzzホロメン")))
                                 {
                                     if (_DuelField.GetZone(dropZone.zoneType, TargetPlayer.Player).GetComponentInChildren<Card>() != null)
                                         break;
@@ -253,9 +270,6 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                                 }
                                 else // BLOOM
                                 {
-                                    Transform lastChild = dropZone.transform.GetChild(dropZone.transform.childCount - 1);
-                                    Card pointedCard = lastChild.GetComponent<Card>();
-
                                     //cards cannot bloom the turn they are played 
                                     if (pointedCard.playedThisTurn == true)
                                         break;
@@ -308,6 +322,30 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
         }
         if(!validDropZoneFound)
         rectTransform = defaultValues.ApplyToRectTransform(rectTransform);
+    }
+
+    private bool CheckRestrictions(string cardNumber)
+    {
+        switch (cardNumber) {
+            case "hBP01-109":
+            case "hBP01-102":
+                if (_DuelField.cardsPlayer.Count > 6)
+                    return false;
+                break;
+            case "hBP01-105":
+            case "hSD01-019":
+            case "hBP01-103":
+                return EffectController.CheckForDetachableEnergy();
+            case "hBP01-106":
+                //check if we have back holomems to switch
+                int backstagecount = _DuelField.CountBackStageTotal(true);
+                return (backstagecount > 0);
+            case "hBP01-108":
+                //check if opponent have back holomems to switch
+                backstagecount = _DuelField.CountBackStageTotal(true, TargetPlayer.Oponnent);
+                return (backstagecount > 0);
+        }
+        return true;
     }
 
     void PerformActionBasedOnDropZone(string zoneType, bool toBack = false)

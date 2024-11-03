@@ -48,10 +48,13 @@ public class Card : MonoBehaviour
     [JsonIgnore]
     public string life;
     [JsonIgnore]
+    public string artEffect;
+    [JsonIgnore]
     public bool playedThisTurn = false;
     [JsonIgnore]
     public bool suspended = false;
-
+    [JsonIgnore]
+    public string cardTag;
     [JsonIgnore]
     public List<CardEffect> cardEffects  = new List<CardEffect>();
     [JsonIgnore]
@@ -112,15 +115,17 @@ public class Card : MonoBehaviour
                 abilityText = record.AbilityText;
                 illustrator = record.Illustrator;
                 life = record.Life;
+                artEffect = record.ArtEffect;
+                cardTag = record.Tag;
 
                 try { gameObject.transform.Find("CardImage").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/" + record.CardNumber + "_" + record.Rarity); } catch (Exception e) { Debug.Log($"Sprite Problem: {record.CardNumber}"); }
 
-                List<string> words = arts.Split('-').ToList();
+                List<string> words = arts.Split(';').ToList();
                 Arts = new();
                 foreach (string art in words)
                 {
                     if ((cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン")))
-                    Arts.Add(Art.ParseArtFromString(art));
+                        Arts.Add(Art.ParseArtFromString(art, artEffect));
                 }
             }
         }

@@ -21,6 +21,7 @@ public class Record
     public string CardNumber { get; set; }
     public string Life { get; set; }
     public string Tag { get; set; }
+    public string ArtEffect { get; set; }
 }
 
 
@@ -91,7 +92,8 @@ public class FileReader : MonoBehaviour
                 Illustrator = parts[11],
                 CardNumber = parts[12],
                 Life = parts[13],
-                Tag = parts[14]
+                Tag = parts[14],
+                ArtEffect = parts[17]
             };
 
             //Debug.Log($"Loaded Record: {record.Name}");

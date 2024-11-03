@@ -9,7 +9,10 @@ public class GenericButton : MonoBehaviour
     public void closeViewButton(GameObject obj) { 
         obj.SetActive(false);
     }
-
+    public void ShowObject(GameObject obj)
+    {
+        obj.SetActive(true);
+    }
     public void LoadSceneButton(string scene)
     {
         SceneManager.LoadScene(scene);

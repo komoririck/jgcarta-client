@@ -105,10 +105,13 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
     }
     void FinishSelection()
     {
-        if (selectedItem == null)
+        if (selectedItem == null )
             return;
 
         Card returnCard = selectedItem.GetComponent<Card>();
+
+        if (returnCard == null)
+            return;
 
         duelAction.targetCard = CardData.CreateCardDataFromCard(returnCard);
         duelAction.usedCard.cardPosition = duelAction.usedCard.cardPosition;

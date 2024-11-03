@@ -16,10 +16,19 @@ public class ZoneEnergyCounter : MonoBehaviour
         int currentChildCount = transform.parent.childCount;
         if (currentChildCount != previousChildCount)
         {
+            if (colorPrefabs.Count > 0)
+            {
+                foreach (RectTransform transform in this.gameObject.transform)
+                {
+                    Destroy(transform.gameObject);
+                    colorPrefabs.Clear();
+                }
+            }
             UpdateColorPrefabs();
             previousChildCount = currentChildCount;
         }
     }
+
 
     // Call this method whenever cards are added or removed
     public void UpdateColorPrefabs()

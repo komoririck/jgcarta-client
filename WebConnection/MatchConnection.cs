@@ -61,12 +61,6 @@ public class MatchConnection : MonoBehaviour
                 {
                     switch (responseData.type)
                     {
-                        case "Waitingforopponent":
-                            _connectionState = 2;
-                            break;
-                        case "matchFound":
-                            _connectionState = 3;
-                            break;
                         case "goToRoom":
                             _connectionState = 4;
                             StartCoroutine(HandleLoadNewScene("DuelField"));
@@ -74,18 +68,9 @@ public class MatchConnection : MonoBehaviour
                             DuelActionList.Add("StartDuel", "StartDuel");
                             DuelActionListIndex.Add("StartDuel");
                             break;
-                        case "duelUpdate":
-                            DuelActionList.Add(responseData.description, responseData.requestObject);
-                            DuelActionListIndex.Add(responseData.description);
-                            break;
-                        case "GamePhase":
+                        case "DuelUpdate":
                             if (responseData.description.Equals("Endduel"))
                                 FindAnyObjectByType<DuelField>().LockGameFlow = false;
-                            DuelActionList.Add(responseData.description, responseData.requestObject);
-                            DuelActionListIndex.Add(responseData.description);
-                            break;
-                        case "NextGamePhase":
-                        case "BoardReadyToPlay":
                             DuelActionList.Add(responseData.description, responseData.requestObject);
                             DuelActionListIndex.Add(responseData.description);
                             break;
@@ -93,10 +78,6 @@ public class MatchConnection : MonoBehaviour
                             DontDestroyManager.DestroyAllDontDestroyOnLoadObjects();
                             StartCoroutine(HandleLoadNewScene("Match"));
                             break; 
-                        case "Update":
-                            DuelActionList.Add(responseData.description, responseData.requestObject);
-                            DuelActionListIndex.Add(responseData.description);
-                            break;
                     }
                     string s = responseData.requestObject;
                     Debug.Log("Msg recieved:\n" + responseData.type + "\n" + responseData.description + "\n" + s.Replace("\\u0022", "\""));
