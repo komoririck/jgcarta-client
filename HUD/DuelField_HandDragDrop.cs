@@ -1,5 +1,6 @@
 ﻿using Assets.Scripts.Lib;
 using System;
+using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -14,10 +15,8 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
     [SerializeField] private DropZone[] dropZones; // Array to store all drop zones
     [SerializeField] public RectTransformData defaultValues;
     [SerializeField] private DuelField _DuelField;
-    [SerializeField] private CardPanel cardPanel;
     [SerializeField] private DropZone PlayerField;
     DuelField_HandClick handClick;
-    bool validDropZoneFound = false;
 
     private int originalSiblingIndex;
 
@@ -37,7 +36,6 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
         dropZones = FindObjectsOfType<DropZone>(); // Find all DropZone components in the scene
         defaultValues = new RectTransformData(rectTransform);
         _DuelField = GameObject.FindAnyObjectByType<DuelField>();
-        cardPanel = GameObject.FindAnyObjectByType<CardPanel>();
         handClick = GetComponent<DuelField_HandClick>();
     }
 
@@ -89,12 +87,9 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
 
         DuelAction _DuelAction = new();
 
-        int zoneCounter = 0;
+        bool validDropZoneFound = false;
         foreach (DropZone dropZone in dropZones)
         {
-            if (!(zoneCounter < dropZones.Length))
-                return;
-
             if (!dropZone.isHovered)
                 continue;
 
@@ -104,30 +99,26 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
             {
                 case DuelFieldData.GAMEPHASE.HolomemDefeatedEnergyChoose:
                 case DuelFieldData.GAMEPHASE.CheerStepChoose:
+
                     if (targetCard == null)
-                    {
                         break;
-                    }
+
                     if (dropZone.zoneType.Equals("HoloMember"))
                     {
                         if (thisCard.cardType.Equals("エール"))
                         {
                             if (targetCard.cardType.Equals("ホロメン") || targetCard.cardType.Equals("Buzzホロメン"))
                             {
-                                AttachCardToCard(targetCard.gameObject.transform.parent.gameObject, thisCard.gameObject);
-                                if (targetCard.attachedCards == null)
-                                    targetCard.attachedCards = new();
-                                targetCard.attachedCards.Add(thisCard.gameObject);
-                                thisCard.gameObject.SetActive(false);
-
                                 _DuelAction.playerID = _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn;
-                                _DuelAction.usedCard =  CardData.CreateCardDataFromCard(thisCard);
+                                _DuelAction.usedCard = CardData.CreateCardDataFromCard(thisCard);
                                 _DuelAction.playedFrom = "Hand";
                                 _DuelAction.local = targetCard.gameObject.transform.parent.gameObject.name;
-                                _DuelAction.targetCard = CardData.CreateCardDataFromCard(targetCard); 
+                                _DuelAction.targetCard = CardData.CreateCardDataFromCard(targetCard);
 
                                 _DuelField.GenericActionCallBack(_DuelAction, "CheerChooseRequest");
+
                                 validDropZoneFound = true;
+                                break;
                             }
                         }
                     }
@@ -158,14 +149,15 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                     }
                     break;
                 case DuelFieldData.GAMEPHASE.MainStep:
-                    
+
                     if (thisCard.cardType.Equals("サポート・イベント") || thisCard.cardType.Equals("サポート・アイテム") || thisCard.cardType.Equals("サポート・スタッフ・LIMITED") || thisCard.cardType.Equals("サポート・イベント・LIMITED") || thisCard.cardType.Equals("サポート・アイテム・LIMITED"))
                     {
-                        if (!CheckRestrictions(thisCard.cardNumber)){
+                        if (!CheckForPlayRestrictions(thisCard.cardNumber))
                             break;
-                        }
 
-                        if (thisCard.cardType.Equals("サポート・スタッフ・LIMITED") || thisCard.cardType.Equals("サポート・イベント・LIMITED") || thisCard.cardType.Equals("サポート・アイテム・LIMITED")) {
+
+                        if (thisCard.cardType.Equals("サポート・スタッフ・LIMITED") || thisCard.cardType.Equals("サポート・イベント・LIMITED") || thisCard.cardType.Equals("サポート・アイテム・LIMITED"))
+                        {
 
                             if (_DuelField._MatchConnection._DuelFieldData.playerLimiteCardPlayed.Count > 0)
                                 break;
@@ -179,41 +171,54 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                             }
                         }
 
-                        string sendThisCardTo = "Arquive";
-
-                        //if (thisCard.cardType.Equals("サポート・スタッフ・LIMITED")) { 
-                            _DuelAction = new DuelAction()
-                            {
-                                usedCard = CardData.CreateCardDataFromCard(thisCard),
-                                playerID = _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn,
-                                playedFrom = "Hand",
-                                local = (targetCard != null) ? targetCard.gameObject.transform.parent.gameObject.name : "",
-                                targetCard = CardData.CreateCardDataFromCard(targetCard)
-                            };
-                        //}
+                        _DuelAction = new DuelAction()
+                        {
+                            usedCard = CardData.CreateCardDataFromCard(thisCard),
+                            playerID = _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn,
+                            playedFrom = "Hand",
+                            local = (targetCard != null) ? targetCard.gameObject.transform.parent.gameObject.name : "",
+                            targetCard = CardData.CreateCardDataFromCard(targetCard)
+                        };
                         FindAnyObjectByType<EffectController>().ResolveSuportEffect(_DuelAction);
-
-                        _DuelField.cardsPlayer.Remove(this.transform.GetComponent<RectTransform>());
-                        _DuelField.ArrangeCards(_DuelField.cardsPlayer, _DuelField.cardHolderPlayer);
-
-                        _DuelField.SendCardToZone(this.gameObject, sendThisCardTo, TargetPlayer.Player, false);
-                        //remove drag and drop before sending to arquive
-                        Destroy(this);
 
                         rectTransform.anchoredPosition = Vector2.zero;
 
                         validDropZoneFound = true;
-                    } else if (thisCard.cardType.Equals("ホロメン")) // PLAY HOLOOMEM
-                        switch (dropZone.zoneType)
+                        break;
+                    }
+                    else if (thisCard.cardType.Equals("サポート・ツール") || thisCard.cardType.Equals("サポート・マスコット") || thisCard.cardType.Equals("サポート・ファン"))
                     {
-                        case "BackStage1":
-                        case "BackStage2":
-                        case "BackStage3":
-                        case "BackStage4":
-                        case "BackStage5":
-                        case "Stage":
+
+                        if (!CheckForPlayEquipRestrictions(thisCard))
+                            break;
+
+                        _DuelAction = new DuelAction()
+                        {
+                            usedCard = CardData.CreateCardDataFromCard(thisCard),
+                            playerID = _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn,
+                            playedFrom = "Hand",
+                            local = (targetCard != null) ? targetCard.gameObject.transform.parent.gameObject.name : "",
+                            targetCard = CardData.CreateCardDataFromCard(targetCard)
+                        };
+
+
+                        _DuelField.GenericActionCallBack(_DuelAction, "AttachEquipamentToHolomem");
+
+                        validDropZoneFound = true;
+                        break;
+                    }
+                    else if (thisCard.cardType.Equals("ホロメン") || thisCard.cardType.Equals("Buzzホロメン"))
+                        // PLAY HOLOOMEM
+                        switch (dropZone.zoneType)
+                        {
+                            case "BackStage1":
+                            case "BackStage2":
+                            case "BackStage3":
+                            case "BackStage4":
+                            case "BackStage5":
+                            case "Stage":
                                 Transform lastChild = null;
-                                if (dropZone.transform.childCount > 0) 
+                                if (dropZone.transform.childCount > 0)
                                     lastChild = dropZone.transform.GetChild(dropZone.transform.childCount - 1);
 
                                 Card pointedCard = lastChild.GetComponent<Card>();
@@ -244,34 +249,25 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                                         if (count < 5)
                                             canContinue = true;
                                     }
-                                
+
                                     if (!canContinue)
                                         break;
 
-                                    PerformActionBasedOnDropZone(dropZone.zoneType);
+                                    //PerformActionBasedOnDropZone(dropZone.zoneType);
 
-                                    _DuelAction.actionType = "PlayHolomem";
                                     _DuelAction.usedCard.cardNumber = thisCard.cardNumber;
                                     _DuelAction.local = dropZone.zoneType;
                                     _DuelAction.playedFrom = "Hand";
 
-                                    _DuelField.GenericActionCallBack(_DuelAction);
-                                    validDropZoneFound = true;
+                                    _DuelField.GenericActionCallBack(_DuelAction, "PlayHolomem");
 
-                                    //if we played the 5º holomem, we need to disable drag and drop for others
-                                    if (count == 5) {
-                                        foreach (RectTransform r in _DuelField.cardsPlayer)
-                                        {
-                                            Card cardComponent = r.GetComponent<Card>();
-                                            if (cardComponent.cardType.Equals("Debut"))
-                                                cardComponent.GetComponent<DuelField_HandDragDrop>().enabled = false;
-                                        }
-                                    }
+                                    validDropZoneFound = true;
+                                    break;
                                 }
                                 else // BLOOM
                                 {
                                     //cards cannot bloom the turn they are played 
-                                    if (pointedCard.playedThisTurn == true)
+                                    if (pointedCard.playedThisTurn == true || pointedCard.cardType.Equals("Buzzホロメン"))
                                         break;
 
                                     pointedCard.GetCardInfo();
@@ -280,13 +276,16 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                                     bool canContinue = false;
                                     if (thisCard.cardType.Equals("ホロメン") || thisCard.cardType.Equals("Buzzホロメン"))
                                     {
+
                                         //get level to bloom
                                         string bloomToLevel = pointedCard.bloomLevel.Equals("Debut") ? "1st" : "2nd";
                                         //especial card condition to bloom match
                                         if (thisCard.cardNumber.Equals("hSD01-013") && thisCard.bloomLevel.Equals(bloomToLevel) && (pointedCard.cardName.Equals("ときのそら") || pointedCard.cardName.Equals("AZKi")))
                                         {
                                             canContinue = true;
-                                        } else if (pointedCard.cardNumber.Equals("hSD01-013") && (thisCard.cardName.Equals("ときのそら") || thisCard.cardName.Equals("AZKi")) && bloomToLevel.Equals("2nd")) {
+                                        }
+                                        else if (pointedCard.cardNumber.Equals("hSD01-013") && (thisCard.cardName.Equals("ときのそら") || thisCard.cardName.Equals("AZKi")) && bloomToLevel.Equals("2nd"))
+                                        {
                                             canContinue = true;
                                         }
                                         //normal condition to bloom match
@@ -294,12 +293,12 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                                         {
                                             canContinue = true;
                                         }
-                                        
+
                                         if (!canContinue)
                                             break;
 
                                         //attaching energys
-                                        BloomCard(pointedCard.gameObject.transform.parent.gameObject, thisCard.gameObject);
+                                        //BloomCard(pointedCard.gameObject.transform.parent.gameObject, thisCard.gameObject);
 
                                         //creating the informatio for the server
                                         _DuelAction.playerID = _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn;
@@ -307,26 +306,40 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                                         _DuelAction.playedFrom = "Hand";
                                         _DuelAction.local = pointedCard.gameObject.transform.parent.gameObject.name;
                                         _DuelAction.targetCard = CardData.CreateCardDataFromCard(pointedCard);
-                                        _DuelAction.actionType = "BloomHolomem";
 
-                                        _DuelField.GenericActionCallBack(_DuelAction);
+                                        _DuelField.GenericActionCallBack(_DuelAction, "BloomHolomem");
+
                                         validDropZoneFound = true;
-                                        _DuelField.ArrangeCards(_DuelField.cardsPlayer, _DuelField.cardHolderPlayer);
+                                        break;
                                     }
                                 }
                                 break;
                         }
                     break;
             }
-            zoneCounter++;
+
+
+
         }
-        if(!validDropZoneFound)
-        rectTransform = defaultValues.ApplyToRectTransform(rectTransform);
+
+        if (!validDropZoneFound) { 
+            rectTransform = defaultValues.ApplyToRectTransform(rectTransform);
+        }
+        else
+        {
+            if (_DuelField._MatchConnection._DuelFieldData.currentGamePhase != DuelFieldData.GAMEPHASE.SettingUpBoard)
+            {
+                _DuelField.cardsPlayer.Remove(rectTransform);
+                Destroy(this.gameObject);
+            }
+        }
+        _DuelField.ArrangeCards(_DuelField.cardsPlayer, _DuelField.cardHolderPlayer);
     }
 
-    private bool CheckRestrictions(string cardNumber)
+    private bool CheckForPlayRestrictions(string cardNumber)
     {
-        switch (cardNumber) {
+        switch (cardNumber)
+        {
             case "hBP01-109":
             case "hBP01-102":
                 if (_DuelField.cardsPlayer.Count > 6)
@@ -341,11 +354,67 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                 int backstagecount = _DuelField.CountBackStageTotal(true);
                 return (backstagecount > 0);
             case "hBP01-108":
+            case "hBP01-112":
                 //check if opponent have back holomems to switch
                 backstagecount = _DuelField.CountBackStageTotal(true, TargetPlayer.Oponnent);
                 return (backstagecount > 0);
+            case "hSD01-020":
+                var energyList = _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>();
+                foreach (Card card in energyList)
+                {
+                    card.GetCardInfo();
+                    if (card.cardType.Equals("エール"))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            case "xxxxxxx":
+                break;
         }
         return true;
+    }
+    private bool CheckForPlayEquipRestrictions(Card card)
+    {
+        switch (card.cardNumber)
+        {
+            case "hBP01-114":
+            case "hBP01-116":
+            case "hBP01-117":
+            case "hBP01-118":
+            case "hBP01-119":
+            case "hBP01-120":
+            case "hBP01-115":
+            case "hBP01-121":
+                foreach (GameObject _Card in card.attachedEquipe)
+                {
+                    _Card.GetComponent<Card>().cardNumber.Equals(card.cardNumber);
+                    return false;
+                }
+                break;
+        }
+        return true;
+    }
+
+
+    private bool CheckForOtherCopiesEquipped(string cardNumber)
+    {
+
+        List<GameObject> playerAttachments = new();
+
+        playerAttachments.AddRange(_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentInChildren<Card>().attachedEquipe);
+        playerAttachments.AddRange(_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentInChildren<Card>().attachedEquipe);
+
+        for (int i = 1; i <= 5; i++)
+            playerAttachments.AddRange(_DuelField.GetZone($"BackStage{i}", TargetPlayer.Player).GetComponentInChildren<Card>().attachedEquipe);
+
+        foreach (GameObject cardObj in playerAttachments)
+        {
+            Card card = cardObj.GetComponentInChildren<Card>().GetCardInfo();
+            if (card.cardNumber.Equals(cardNumber))
+                return true;
+        }
+        return false;
     }
 
     void PerformActionBasedOnDropZone(string zoneType, bool toBack = false)
@@ -397,7 +466,6 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                 Destroy(this);
                 break;
         }
-        _DuelField.ArrangeCards(_DuelField.cardsPlayer, _DuelField.cardHolderPlayer);
 
 
         //   if (!validDropZoneFound)
@@ -405,24 +473,24 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
         //        rectTransform = defaultValues.ApplyToRectTransform(rectTransform);
     }
 
-    void AttachCardToCard(GameObject FatherZone, GameObject Card) {
+    void AttachCardToCard(GameObject FatherZone, GameObject Card)
+    {
 
         Card.transform.SetParent(FatherZone.transform, true);
 
-        Card.transform.SetSiblingIndex(0); 
+        Card.transform.SetSiblingIndex(0);
 
         Card.transform.localPosition = Vector3.zero;
         Card.transform.localScale = new Vector3(0.9f, 0.9f);
 
-            _DuelField.cardsPlayer.Remove(Card.GetComponent<RectTransform>());
+        _DuelField.cardsPlayer.Remove(Card.GetComponent<RectTransform>());
         Card.GetComponentInChildren<Card>().playedFrom = "hand";
-            _DuelField.ArrangeCards(_DuelField.cardsPlayer, _DuelField.cardHolderPlayer);
         Destroy(this);
     }
-    void BloomCard(GameObject FatherZone,  GameObject Card)
+    void BloomCard(GameObject FatherZone, GameObject Card)
     {
 
-        GameObject FatherZoneActiveCard = FatherZone.transform.GetChild(FatherZone.transform.childCount -1).gameObject;
+        GameObject FatherZoneActiveCard = FatherZone.transform.GetChild(FatherZone.transform.childCount - 1).gameObject;
 
         //set this card dropped card as child of the zone
         Card.transform.SetParent(FatherZone.transform, true);
@@ -440,7 +508,8 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
 
         CardComponent.suspended = FatherZoneActiveCardComponent.suspended;
         //if the card targeted is suspended, lets suspend
-        if (FatherZoneActiveCardComponent.suspended) { 
+        if (FatherZoneActiveCardComponent.suspended)
+        {
             this.gameObject.transform.Rotate(0, 0, 90);
         }
 
@@ -448,6 +517,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
         CardComponent.currentHp = FatherZoneActiveCardComponent.currentHp;
         CardComponent.effectDamageRecieved = FatherZoneActiveCardComponent.effectDamageRecieved;
         CardComponent.normalDamageRecieved = FatherZoneActiveCardComponent.normalDamageRecieved;
+        _DuelField.UpdateHP(CardComponent);
         //end of passing the hp to the new card
 
         //getting the name of the father gameobject the the position of the new card
@@ -455,14 +525,12 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
         //adding all the bloomed childs as reference to the new card
         Card.GetComponentInChildren<Card>().bloomChild.Add(FatherZoneActiveCard);
         //adding of attachs from the bloomed card to the new card
-        Card.GetComponentInChildren<Card>().attachedCards = FatherZoneActiveCard.GetComponentInChildren<Card>().attachedCards;
+        Card.GetComponentInChildren<Card>().attachedEnergy = FatherZoneActiveCard.GetComponentInChildren<Card>().attachedEnergy;
         //removing the reference from the past form card
-        FatherZoneActiveCard.GetComponentInChildren<Card>().attachedCards = null;
+        FatherZoneActiveCard.GetComponentInChildren<Card>().attachedEnergy = null;
 
         _DuelField.cardsPlayer.Remove(Card.GetComponent<RectTransform>());
         Card.GetComponentInChildren<Card>().playedFrom = "hand";
-        _DuelField.ArrangeCards(_DuelField.cardsPlayer, _DuelField.cardHolderPlayer);
-        _DuelField.UpdateHP(Card.GetComponent<Card>());
 
         //make the older last position card invisible 
         FatherZoneActiveCard.SetActive(false);
@@ -477,7 +545,6 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
 
     public void EffectQuestionYesButton(DuelAction duelAction)
     {
-        duelAction.actionType = "BloomHolomemWithEffect";
         _DuelField.GenericActionCallBack(duelAction, "BloomHolomemWithEffect");
         EffectQuestionPainel.SetActive(false);
     }

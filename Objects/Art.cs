@@ -58,14 +58,13 @@ public class Art : MonoBehaviour
         // Parse extra color damage (example: "青0")
         string extraColor = parts[4].Substring(0, 1);
         int extraColorDamage = 0;
-        try
-        {
-            extraColorDamage = int.Parse(parts[4].Substring(1));
-        }
-        catch (Exception e)
-        {
-            Debug.Log(e + $"Card value {parts[4]}");
-        }
+        int numberStartIndex = parts[4].Length - 1;
+        while (numberStartIndex > 0 && !char.IsDigit(parts[4][numberStartIndex]))
+            numberStartIndex--;
+        
+        // Extract the color part and parse the damage part
+        extraColor = parts[4].Substring(0, numberStartIndex);
+        extraColorDamage = int.Parse(parts[4].Substring(numberStartIndex));
 
         // Set the parsed values to the Art object
         art.Damage = (damageColor, damageValue);

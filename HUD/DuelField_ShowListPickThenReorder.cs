@@ -34,8 +34,7 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
 
     public IEnumerator SetupSelectableItems(DuelAction DuelAction, List<Card> SelectableCards, List<Card> avaliableForSelect, bool doubleselect = false, int MaximumCanPick = -1)
     {
-
-
+        effectController.isSelectionCompleted = false;
         contentPanel.transform.parent.parent.parent.gameObject.SetActive(true);
         FillMenu(DuelAction, SelectableCards, avaliableForSelect, doubleselect, MaximumCanPick);
         yield return new WaitUntil(() => effectController.isSelectionCompleted);

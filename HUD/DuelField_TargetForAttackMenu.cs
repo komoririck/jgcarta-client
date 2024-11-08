@@ -1,3 +1,5 @@
+using Assets.Scripts.Lib;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using TMPro;
@@ -20,9 +22,12 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
     DuelAction duelAction;
 
     List<GameObject> instantiatedItem = new();
+    private EffectController effectController;
 
-    public void SetupSelectableItems(DuelAction _DuelAction, TargetPlayer target = TargetPlayer.Player)
+    public IEnumerator SetupSelectableItems(DuelAction _DuelAction, TargetPlayer target = TargetPlayer.Player)
     {
+        effectController.isSelectionCompleted = false;
+
         duelAction = _DuelAction;
         this.usedCard.cardNumber = _DuelAction.usedCard.cardNumber;
         usedCard.GetCardInfo();
@@ -43,7 +48,7 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
             newC.cardNumber = item.cardNumber;
             newC.cardPosition = item.transform.parent.name;
             newC.GetCardInfo();
-            newC.attachedCards = item.attachedCards;
+            newC.attachedEnergy = item.attachedEnergy;
 
 
             TMP_Text itemText = newItem.GetComponentInChildren<TMP_Text>();
@@ -58,6 +63,9 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
         }
 
         CardListContent.transform.parent.parent.parent.gameObject.SetActive(true);
+
+        yield return new WaitUntil(() => effectController.isSelectionCompleted);
+        effectController.isSelectionCompleted = false;
     }
 
     void OnItemClick(GameObject itemObject, int itemName, bool canSelect)
@@ -76,6 +84,7 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
     {
         _DuelField = GameObject.FindAnyObjectByType<DuelField>();
         confirmButton.onClick.AddListener(FinishSelection);
+        effectController = FindAnyObjectByType<EffectController>();
     }
     void FinishSelection()
     {
@@ -92,12 +101,11 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
 
         duelAction.usedCard.cardPosition = pos;
         if (duelAction.actionType.Equals("doArt")) {
-            _DuelField.GenericActionCallBack(duelAction);
+            _DuelField.GenericActionCallBack(duelAction, "doArt");
         }
 
-
-
         CardListContent.transform.parent.parent.parent.gameObject.SetActive(false);
+        effectController.isSelectionCompleted = true;
     }
 
 

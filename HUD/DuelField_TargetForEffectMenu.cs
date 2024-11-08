@@ -53,7 +53,7 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
             newC.cardNumber = item.cardNumber;
             newC.cardPosition = item.transform.parent.name;
             newC.GetCardInfo();
-            newC.attachedCards = item.attachedCards;
+            newC.attachedEnergy = item.attachedEnergy;
 
 
             TMP_Text itemText = newItem.GetComponentInChildren<TMP_Text>();
@@ -64,12 +64,12 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
 
 
 
-            for (int i = 0; i <  newC.attachedCards.Count; i++) {
+            for (int i = 0; i <  newC.attachedEnergy.Count; i++) {
                 GameObject attachedCardItem = Instantiate(AttachedCardItem, newItem.GetComponentInChildren<GridLayoutGroup>().transform);
                 Destroy(attachedCardItem.GetComponent<DuelField_HandClick>());
                 Card attachedCard = attachedCardItem.GetComponent<Card>();
                 attachedCard.cardPosition = newC.cardPosition;
-                attachedCard.cardNumber = newC.attachedCards[i].GetComponent<Card>().cardNumber;
+                attachedCard.cardNumber = newC.attachedEnergy[i].GetComponent<Card>().cardNumber;
                 attachedCard.GetCardInfo();
 
             }

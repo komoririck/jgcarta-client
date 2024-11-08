@@ -58,7 +58,9 @@ public class Card : MonoBehaviour
     [JsonIgnore]
     public List<CardEffect> cardEffects  = new List<CardEffect>();
     [JsonIgnore]
-    public List<GameObject> attachedCards = new();
+    public List<GameObject> attachedEnergy = new();
+    [JsonIgnore]
+    public List<GameObject> attachedEquipe = new();
     [JsonIgnore]
     public List<GameObject> bloomChild = new List<GameObject>();
     [JsonIgnore]
@@ -81,8 +83,10 @@ public class Card : MonoBehaviour
         SRMaterial = 2,
         URMaterial = 3,
     }
-    public Card(string number) {
+    public Card(string number, string position = "") {
         this.cardNumber = number;
+        if(!string.IsNullOrEmpty(position))
+            this.cardPosition = position;
         if(!string.IsNullOrEmpty(cardNumber))
             GetCardInfo();
     }
@@ -94,9 +98,13 @@ public class Card : MonoBehaviour
         return returnC;
     }
 
-    public void GetCardInfo() {
-        if (cardNumber.Equals("0") || string.IsNullOrEmpty(cardNumber))
-            return;
+    public Card GetCardInfo(bool forceUpdate = false) {
+
+        if (!string.IsNullOrEmpty(cardType) && !forceUpdate)
+            return null;
+
+        if (cardNumber.Equals("0") || string.IsNullOrEmpty(cardNumber) )
+            return null;
         
         foreach (Record record in FileReader.result) {
             if (record.CardNumber == cardNumber)
@@ -120,18 +128,44 @@ public class Card : MonoBehaviour
 
                 try { gameObject.transform.Find("CardImage").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/" + record.CardNumber + "_" + record.Rarity); } catch (Exception e) { Debug.Log($"Sprite Problem: {record.CardNumber}"); }
 
-                List<string> words = arts.Split(';').ToList();
-                Arts = new();
-                foreach (string art in words)
-                {
-                    if ((cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン")))
-                        Arts.Add(Art.ParseArtFromString(art, artEffect));
+                List<string> eachArtText = arts.Split(';').ToList();
+                List<string> eachArtEffectText = artEffect.Split(';').ToList();
+                eachArtText.Add("");
+
+                if ((cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン"))) {
+                    if (Arts != null)
+                        Arts.Clear();
+                    else
+                        Arts = new ();
+                    for (int n = 0; n < eachArtText.Count; n++)
+                    {
+                        if (string.IsNullOrEmpty(eachArtText[n]))
+                            continue;
+
+                        string eachArtEffectTextValidText = "";
+                        if (n >= 0 && n < eachArtEffectText.Count) {
+                            if (!string.IsNullOrEmpty(eachArtEffectText[n]) || eachArtEffectText != null) 
+                            { 
+                                eachArtEffectTextValidText = eachArtEffectText[n];
+                            }
+                        }
+                        Arts.Add(Art.ParseArtFromString(eachArtText[n], eachArtEffectTextValidText));
+                    }
+                    //adding the retreat to holomemns
+                    Arts.Add(new Art { Name = "Retreat", Cost = new List<(string Color, int Amount)>() { ("無色", 1) }, Effect = "Return this card o the backstage" });
                 }
             }
         }
         if (this.currentHp == 0 && (cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン"))) {
             currentHp = int.Parse(hp);
         }
+
+        return this;
+    }
+
+    public Card SetCardNumber(string numnber) {
+        this.cardNumber = numnber;
+        return this;
     }
 
     public static bool ContainsCard(List<Card> c, string name) {
@@ -156,6 +190,29 @@ public class Card : MonoBehaviour
     { 
 
     }
+
+
+    public List<Card> StringListToCardList(List<string> cards)
+    {
+        List<Card> returnCards = new();
+        foreach (string s in cards)
+        {
+            Card card = new(s);
+            returnCards.Add(card);
+        }
+        return returnCards;
+    }
+
+    public List<string> CardListToStringList(List<Card> cards)
+    {
+        List<string> returnCards = new();
+        foreach (Card c in cards)
+        {
+            returnCards.Add(c.cardNumber);
+        }
+        return returnCards;
+    }
+
 
 }
 [Serializable]

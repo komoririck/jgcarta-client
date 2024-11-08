@@ -19,4 +19,13 @@ public class CardData
             cardPosition = card.cardPosition,
         };
     }
+    public static CardData CreateCardDataFromCard(string cardnumber, string playedfrom, string cardposition)
+    {
+        return new CardData
+        {
+            cardNumber = cardnumber,
+            playerdFrom = playedfrom,
+            cardPosition = cardposition,
+        };
+    }
 }

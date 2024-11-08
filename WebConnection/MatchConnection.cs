@@ -85,7 +85,7 @@ public class MatchConnection : MonoBehaviour
             }
             catch (Exception e)
             {
-                Debug.LogError("Error parsing JSON response: " + e.Message);
+                Debug.LogError(e + "Error parsing JSON response");
             }
         };
 

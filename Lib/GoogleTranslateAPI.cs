@@ -43,6 +43,7 @@ public class GoogleTranslateAPI : MonoBehaviour
     public static async Task<string> TranslateTextHandle(string text)
     {
         text.Replace("cheer", "XXXXXXX");
+        text.Replace("cheers", "XXXX01X");
         text.Replace("&lt", "|");
 
         if (string.IsNullOrEmpty(text))
@@ -62,7 +63,7 @@ public class GoogleTranslateAPI : MonoBehaviour
             var request = translateService.Translations.List(text, settings.Language);
             TranslationsListResponse response = await request.ExecuteAsync();
 
-            return response.Translations[0].TranslatedText.Replace("XXXXXXX", "cheer");
+            return response.Translations[0].TranslatedText.Replace("XXXXXXX", "cheer").Replace("XXXX01X", "cheers");
         }
         catch (System.Exception ex)
         {

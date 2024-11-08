@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -124,7 +125,9 @@ public class DuelField_LogManager : MonoBehaviour
                 InstantiateLogObj($"{whichPlayer} drew {_DuelAction.cardList.Count} by card effect");
                 break;
             case "RollDice":
-                InstantiateLogObj($"{whichPlayer} rolled a dice {_DuelAction.actionObject}");
+                List<string> serverReturn = JsonConvert.DeserializeObject<List<string>>(_DuelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                string diceRoll = serverReturn[0];
+                InstantiateLogObj($"{whichPlayer} rolled a dice {diceRoll}");
                 break;
         }
         void InstantiateLogObj(string text) {
