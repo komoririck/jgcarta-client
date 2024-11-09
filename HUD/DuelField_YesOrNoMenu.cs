@@ -16,11 +16,13 @@ public class DuelField_YesOrNoMenu : MonoBehaviour
     [SerializeField] private Transform CardListContent;
     private EffectController effectController;
 
-    public IEnumerator ShowYesOrNoMenu()
+    public IEnumerator ShowYesOrNoMenu(string text = "")
     {
         effectController.isSelectionCompleted = false;
 
         CardListContent.gameObject.SetActive(true);
+        if (!string.IsNullOrEmpty(text))
+            CardListContent.GetComponentInChildren<TMP_Text>().text = text;
 
         yield return new WaitUntil(() => effectController.isSelectionCompleted);
         effectController.isSelectionCompleted = false;

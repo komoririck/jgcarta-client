@@ -251,6 +251,8 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
                 _DuelField.OshiPowerPanel.SetActive(false);
                 _DuelField.CardEffectPanel.SetActive(true);
 
+                CarditemList[currentIndex].GetCardInfo();
+
                 //need to make this better later, get each card attack and match with its text effect
                 string translatedArts = await GoogleTranslateAPI.TranslateTextHandle(CarditemList[currentIndex].artEffect.Replace(";", "\n"));
                 string translatedOshiSkill = await GoogleTranslateAPI.TranslateTextHandle(CarditemList[currentIndex].oshiSkill);
