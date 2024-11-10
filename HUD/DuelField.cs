@@ -114,8 +114,6 @@ public class DuelField : MonoBehaviour
 
     private int currentTurn;
 
-    public List<int> DiceRolls { get; internal set; }
-
     void Start()
     {
         PlayerInfo = GameObject.Find("PlayerInfo").GetComponent<PlayerInfo>();
@@ -802,6 +800,8 @@ public class DuelField : MonoBehaviour
                         SendCardToZone(GetZone("Deck", target).transform.GetChild(0).gameObject, "HoloPower", target);
                         DuelField_HandClick.MoveCardsToZone(GetZone(SrvMessageCounter_DuelAction.playedFrom, target).transform, zone.transform);
 
+                        zone.GetComponentInChildren<Card>().cardPosition = SrvMessageCounter_DuelAction.local;
+
                         if (_MatchConnection._DuelFieldData.currentPlayerTurn == PlayerInfo.PlayerID)
                             _EffectController.ResolveOnCollabEffect(SrvMessageCounter_DuelAction);
 
@@ -912,21 +912,29 @@ public class DuelField : MonoBehaviour
                         _EffectController.isServerResponseArrive = true;
                         currentGameHigh++;
                         break;
+                    case "ActiveArtEffect":
+                        if (_MatchConnection._DuelFieldData.currentGamePhase != GAMEPHASE.MainStep)
+                        {
+                            throw new Exception("not in the right gamephase, we're at " + DuelActionTypeOfAction + " and tried to enter at" + _MatchConnection._DuelFieldData.currentGamePhase.GetType());
+                        }
+                        currentGameHigh++;
+                        if (SrvMessageCounter_DuelAction.playerID == PlayerInfo.PlayerID)
+                        {
+                            LockGameFlow = true;
+                            _EffectController.ResolveOnArtEffect(SrvMessageCounter_DuelAction);
+                        }
+                        break;
                     case "OnArtEffect":
                         if (_MatchConnection._DuelFieldData.currentGamePhase != GAMEPHASE.MainStep)
                         {
                             throw new Exception("not in the right gamephase, we're at " + DuelActionTypeOfAction + " and tried to enter at" + _MatchConnection._DuelFieldData.currentGamePhase.GetType());
                         }
-
+                        currentGameHigh++;
                         if (SrvMessageCounter_DuelAction.playerID == PlayerInfo.PlayerID)
                         {
-                            //lock game flow till player finish selection
                             LockGameFlow = true;
-                            _EffectController.ResolveOnArtEffect(SrvMessageCounter_DuelAction);
+                            _EffectController.isServerResponseArrive = true;
                         }
-
-                        _EffectController.isServerResponseArrive = true;
-                        currentGameHigh++;
                         break;
                     case "PickFromListThenGiveBacKFromHandDone":
                         if (_MatchConnection._DuelFieldData.currentGamePhase != GAMEPHASE.MainStep)
@@ -1114,6 +1122,9 @@ public class DuelField : MonoBehaviour
                         zoneArt.GetComponentInChildren<Card>().cardPosition = SrvMessageCounter_DuelAction.targetCard.cardPosition;
                         stageZone.GetComponentInChildren<Card>().cardPosition = "Stage";
 
+
+                        _EffectController.isServerResponseArrive = true;
+
                         currentGameHigh++;
                         break;
                     case "SwitchOpponentStageCard":
@@ -1143,33 +1154,61 @@ public class DuelField : MonoBehaviour
                         break;
                     case "RemoveEnergyAtAndDestroy":
                     case "RemoveEnergyAtAndSendToArquive":
-                        if (SrvMessageCounter_DuelAction.playerID == PlayerInfo.PlayerID)
+                        target = PlayerInfo.PlayerID == SrvMessageCounter_DuelAction.playerID ? TargetPlayer.Player : TargetPlayer.Oponnent;
+
+
+                        GameObject TargetZone = GetZone(SrvMessageCounter_DuelAction.usedCard.cardPosition, target);
+                        Card targetCard = TargetZone.transform.GetChild(TargetZone.transform.childCount - 1).GetComponent<Card>();
+                        int nn = 0;
+                        int jj = 0;
+
+                        foreach (GameObject attachEnergy in targetCard.attachedEnergy)
                         {
-                            GameObject TargetZone = GetZone(SrvMessageCounter_DuelAction.usedCard.cardPosition, TargetPlayer.Oponnent);
-                            Card targetCard = TargetZone.transform.GetChild(TargetZone.transform.childCount - 1).GetComponent<Card>();
-                            int n = 0;
-                            int j = 0;
-                            foreach (GameObject attachEnergy in targetCard.attachedEnergy)
+                            Card energyInfo = attachEnergy.GetComponent<Card>();
+                            if (energyInfo.cardNumber.Equals(SrvMessageCounter_DuelAction.usedCard.cardNumber))
                             {
-                                Card energyInfo = attachEnergy.GetComponent<Card>();
-                                if (energyInfo.cardNumber.Equals(SrvMessageCounter_DuelAction.usedCard.cardNumber))
-                                {
-                                    n = j;
-                                    break;
-                                }
-                                j++;
+                                nn = jj;
+                                break;
                             }
-                            if (DuelActionTypeOfAction.Equals("RemoveEnergyAtAndSendToArquive"))
-                            {
-                                SendCardToZone(targetCard.attachedEnergy[n], "Arquive", TargetPlayer.Oponnent);
-                                targetCard.attachedEnergy[n].gameObject.SetActive(true);
-                            }
-                            else
-                            {
-                                Destroy(targetCard.attachedEnergy[n]);
-                            }
-                            targetCard.attachedEnergy.RemoveAt(n);
+                            jj++;
                         }
+                        if (DuelActionTypeOfAction.Equals("RemoveEnergyAtAndSendToArquive"))
+                        {
+                            SendCardToZone(targetCard.attachedEnergy[nn], "Arquive", target);
+                            targetCard.attachedEnergy[nn].gameObject.SetActive(true);
+                        }
+                        else
+                        {
+                            Destroy(targetCard.attachedEnergy[nn]);
+                        }
+                        targetCard.attachedEnergy.RemoveAt(nn);
+
+                        currentGameHigh++;
+                        break;
+                    case "RemoveEquipAtAndSendToArquive":
+                        target = PlayerInfo.PlayerID == SrvMessageCounter_DuelAction.playerID ? TargetPlayer.Player : TargetPlayer.Oponnent;
+
+
+                        TargetZone = GetZone(SrvMessageCounter_DuelAction.usedCard.cardPosition, target);
+                        targetCard = TargetZone.transform.GetChild(TargetZone.transform.childCount - 1).GetComponent<Card>();
+                         nn = 0;
+                         jj = 0;
+
+                        foreach (GameObject attachEnergy in targetCard.attachedEquipe)
+                        {
+                            Card energyInfo = attachEnergy.GetComponent<Card>();
+                            if (energyInfo.cardNumber.Equals(SrvMessageCounter_DuelAction.usedCard.cardNumber))
+                            {
+                                nn = jj;
+                                break;
+                            }
+                            jj++;
+                        }
+                            SendCardToZone(targetCard.attachedEquipe[nn], "Arquive", target);
+                            targetCard.attachedEquipe[nn].gameObject.SetActive(true);
+                        
+                        targetCard.attachedEquipe.RemoveAt(nn);
+
                         currentGameHigh++;
                         break;
                     default:
@@ -2080,7 +2119,7 @@ public class DuelField : MonoBehaviour
         }
         else if (duelAction.usedCard.cardPosition.Equals("Arquive"))
         {
-            GameObject ZoneToRemove = GetZone("CardCheer", _MatchConnection._DuelFieldData.currentPlayerTurn.Equals(PlayerInfo.PlayerID) ? TargetPlayer.Player : TargetPlayer.Oponnent);
+            GameObject ZoneToRemove = GetZone("Arquive", _MatchConnection._DuelFieldData.currentPlayerTurn.Equals(PlayerInfo.PlayerID) ? TargetPlayer.Player : TargetPlayer.Oponnent);
 
             var cardList = ZoneToRemove.GetComponentsInChildren<Card>();
             foreach (Card card in cardList)

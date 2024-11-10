@@ -25,6 +25,8 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
     static public Button EffectQuestionPainelNoButton;
 
 
+    public const bool TESTEMODE = true;
+
     void Start()
     {
         EffectQuestionPainel = GameObject.Find("MatchField").transform.Find("ActivateEffectPanel").gameObject;
@@ -224,8 +226,10 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                                 Card pointedCard = lastChild.GetComponent<Card>();
 
                                 // se a posição que jogamos a carta está vázia, e a carta jogada e holomem ou buzz, nos tentamos abaixar, senão tentamos bloomar
-                                if (pointedCard == null && (thisCard.cardType.Equals("ホロメン") || thisCard.cardType.Equals("Buzzホロメン")))
+                                if (pointedCard == null && (thisCard.cardType.Equals("ホロメン") || thisCard.cardType.Equals("Buzzホロメン")) || TESTEMODE)
                                 {
+                                    if (!TESTEMODE) { 
+
                                     if (_DuelField.GetZone(dropZone.zoneType, TargetPlayer.Player).GetComponentInChildren<Card>() != null)
                                         break;
 
@@ -253,6 +257,8 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                                     if (!canContinue)
                                         break;
 
+
+                                    }
                                     //PerformActionBasedOnDropZone(dropZone.zoneType);
 
                                     _DuelAction.usedCard.cardNumber = thisCard.cardNumber;

@@ -9,7 +9,7 @@ using UnityEngine.UI;
 using static DuelField;
 using static UnityEngine.GraphicsBuffer;
 
-public class DuelField_DetachEnergyMenu : MonoBehaviour
+public class DuelField_DetachCardMenu : MonoBehaviour
 {
     [SerializeField] private Button confirmButton;
     [SerializeField] private Transform CardListContent;
@@ -27,12 +27,13 @@ public class DuelField_DetachEnergyMenu : MonoBehaviour
 
     private EffectController effectController;
     bool _AddCostToEffectInformation;
-    bool _DestroyCostWhenDeAtach;
 
-    public IEnumerator SetupSelectableItems(DuelAction _DuelAction, bool AddCostToEffectInformation = false, string[] zonesThatPlayerCanSelect = null, bool DestroyCostWhenDeAtach = false)
+    bool CHEER = true;
+
+    public IEnumerator SetupSelectableItems(DuelAction _DuelAction, bool AddCostToEffectInformation = false, string[] zonesThatPlayerCanSelect = null, bool Cheer = true)
     {
         _AddCostToEffectInformation = AddCostToEffectInformation;
-        _DestroyCostWhenDeAtach = DestroyCostWhenDeAtach;
+        CHEER = Cheer;
 
         duelAction = _DuelAction;
         this.usedCard.cardNumber = _DuelAction.usedCard.cardNumber;
@@ -54,19 +55,28 @@ public class DuelField_DetachEnergyMenu : MonoBehaviour
             newItem.name = clickObjects.ToString();
             instantiatedItem.Add(newItem);
 
-            Card newC = newItem.GetComponent<Card>();
-            newC.cardNumber = item.cardNumber;
+            Card newC = newItem.GetComponent<Card>().SetCardNumber(item.cardNumber).GetCardInfo();
             newC.cardPosition = item.transform.parent.name;
-            newC.GetCardInfo();
             newC.attachedEnergy = item.attachedEnergy;
+            newC.attachedEquipe = item.attachedEquipe;
 
-            if (newC.attachedEnergy.Count > 0)
-                for (int i = 0; i <  newC.attachedEnergy.Count; i++) {
+            List<GameObject> ListToSelectFrom = new();
+            if (Cheer)
+            {
+                ListToSelectFrom = newC.attachedEnergy;
+            }
+            else
+            {
+                ListToSelectFrom = newC.attachedEquipe;
+            }
+
+            if (ListToSelectFrom.Count > 0)
+                for (int i = 0; i < ListToSelectFrom.Count; i++) {
                     GameObject attachedCardItem = Instantiate(AttachedCardItem, newItem.GetComponentInChildren<GridLayoutGroup>().transform);
                     Destroy(attachedCardItem.GetComponent<DuelField_HandClick>());
                     Card attachedCard = attachedCardItem.GetComponent<Card>();
                     attachedCard.cardPosition = newC.cardPosition;
-                    attachedCard.cardNumber = newC.attachedEnergy[i].GetComponent<Card>().cardNumber;
+                    attachedCard.cardNumber = ListToSelectFrom[i].GetComponent<Card>().cardNumber;
                     attachedCard.GetCardInfo();
 
                     TMP_Text itemText = attachedCardItem.GetComponentInChildren<TMP_Text>();
@@ -118,12 +128,20 @@ public class DuelField_DetachEnergyMenu : MonoBehaviour
         GameObject fatherObj = _DuelField.GetZone(duelAction.local, DuelField.TargetPlayer.Player);
         Card FatherCard = fatherObj.transform.GetChild(fatherObj.transform.childCount - 1).GetComponent<Card>();
 
-        if (FatherCard.attachedEnergy.Count < 0)
+        List<GameObject> DetachbleList = null;
+
+        if (CHEER)
+            DetachbleList = FatherCard.attachedEnergy;
+        else
+            DetachbleList = FatherCard.attachedEquipe;
+
+
+        if (DetachbleList.Count < 0)
             return;
 
         int j = -1;
-        for (int i = 0; i < FatherCard.attachedEnergy.Count; i++) {
-            Card childCard = FatherCard.attachedEnergy[i].GetComponent<Card>();
+        for (int i = 0; i < DetachbleList.Count; i++) {
+            Card childCard = DetachbleList[i].GetComponent<Card>();
             if (childCard.cardNumber.Equals(duelAction.cheerCostCard.cardNumber)) { 
                 j = i;
                 break;
@@ -139,21 +157,7 @@ public class DuelField_DetachEnergyMenu : MonoBehaviour
             effectController.EffectInformation.Add(duelAction);
         }
 
-        if (_DestroyCostWhenDeAtach)
-        {
-            Destroy(FatherCard.attachedEnergy[j]);
-        }
-        else
-        {
-            _DuelField.SendCardToZone(FatherCard.attachedEnergy[j], "Arquive", DuelField.TargetPlayer.Player);
-            FatherCard.attachedEnergy[j].SetActive(true);
-        }
-
-        FatherCard.attachedEnergy.RemoveAt(j);
-
-
         CardListContent.transform.parent.parent.parent.gameObject.SetActive(false);
-
         effectController.isSelectionCompleted = true;
     }
 }

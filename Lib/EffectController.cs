@@ -14,12 +14,12 @@ namespace Assets.Scripts.Lib
 
         private DuelField_ShowListPickThenReorder _DuelField_ShowListPickThenReorder;
         private DuelField_TargetForEffectMenu _DuelField_TargetForEffectMenu;
-        private DuelField_DetachEnergyMenu _DuelField_DetachEnergyMenu;
+        private DuelField_DetachCardMenu _DuelField_DetachEnergyOrEquipMenu;
         private DuelField_ShowAlistPickOne _DuelField_ShowAlistPickOne;
         private DuelField_YesOrNoMenu _DuelField_YesOrNoMenu;
 
         private DuelField _DuelField;
-        private List<Func<IEnumerator>> menuActions;
+        private List<Func<IEnumerator>> menuActions = new List<Func<IEnumerator>>();
 
         public List<object> EffectInformation;
         private object lastRetrievedValue;
@@ -36,16 +36,13 @@ namespace Assets.Scripts.Lib
             _DuelField_ShowListPickThenReorder = FindAnyObjectByType<DuelField_ShowListPickThenReorder>();
             _DuelField_TargetForEffectMenu = FindAnyObjectByType<DuelField_TargetForEffectMenu>();
             _DuelField_ShowAlistPickOne = FindAnyObjectByType<DuelField_ShowAlistPickOne>();
-            _DuelField_DetachEnergyMenu = FindAnyObjectByType<DuelField_DetachEnergyMenu>();
+            _DuelField_DetachEnergyOrEquipMenu = FindAnyObjectByType<DuelField_DetachCardMenu>();
             _DuelField_YesOrNoMenu = FindAnyObjectByType<DuelField_YesOrNoMenu>();
             EffectInformation = new List<object>();
         }
         public IEnumerator OshiSkill(DuelAction _DuelActionFirstAction)
         {
-            menuActions = new List<Func<IEnumerator>>();
             List<Card> holoPowerList;
-            EffectInformation.Clear();
-
             List<string> serverReturn;
             string cheerNumber;
 
@@ -55,7 +52,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         var zonesThatPlayerCanSelect = new string[] { "Stage" };
-                        return _DuelField_DetachEnergyMenu.SetupSelectableItems(_DuelActionFirstAction, AddCostToEffectInformation: true, zonesThatPlayerCanSelect: zonesThatPlayerCanSelect, DestroyCostWhenDeAtach: true);
+                        return _DuelField_DetachEnergyOrEquipMenu.SetupSelectableItems(_DuelActionFirstAction, AddCostToEffectInformation: true, zonesThatPlayerCanSelect: zonesThatPlayerCanSelect);
                     });
                     menuActions.Add(() =>
                     {
@@ -155,7 +152,10 @@ namespace Assets.Scripts.Lib
                         WillActivate = (string)EffectInformation[0];
 
                         if (!WillActivate.Equals("Yes"))
+                        {
+                            menuActions.Clear();
                             return null;
+                        }
 
                         DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         holoPowerList = JsonConvert.DeserializeObject<List<Card>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
@@ -174,7 +174,7 @@ namespace Assets.Scripts.Lib
                         duelActionOutput.actionObject = WillActivate;
 
                         _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnCollabEffect");
-                        return WaitForServerResponse();
+                        return dummy();
                     });
                     break;
                 case "hSD01-007":
@@ -299,50 +299,9 @@ namespace Assets.Scripts.Lib
             StartCoroutine(StartMenuSequenceCoroutine());
 
         }
-
-        private IEnumerator RollDiceTilNotAbleOrDontWantTo(DuelAction _DuelAction)
-        {  
-
-            // Check if the player can reroll based on game rules.
-            if (CanReRollDice())
-            {
-                // Ask the player if they want to reroll and wait for the response.
-                menuActions.Insert(0, () =>
-                {                          // Roll the dice and store the result.
-                    int diceRoll = GetLastValue<int>();
-                    return _DuelField_YesOrNoMenu.ShowYesOrNoMenu($"You rolled a {diceRoll}. Reroll?");
-                });
-
-                menuActions.Insert(1, () =>
-                {
-                    string choosed = GetLastValue<string>();
-                    // If player chooses "YES", resolve the reroll effect
-                    if (choosed.Equals("Yes"))
-                    {
-                        _DuelField.GenericActionCallBack(_DuelAction, "ResolveRerollEffect");
-                        var x = WaitForServerResponse();
-                        RollDiceTilNotAbleOrDontWantTo(_DuelAction);
-                        return x;
-                    }
-                    else
-                    {
-                        return dummy();
-                    }
-                });
-            }
-            else
-            {
-                EffectInformation.Add("No");
-                return dummy();
-            }
-            return dummy();
-        }
-
         public void ResolveSuportEffect(DuelAction _DuelActionFirstAction)
         {
-            menuActions = new List<Func<IEnumerator>>();
-            List<Card> holoPowerList;
-            EffectInformation.Clear();
+            List<Card> energyList;
 
             List<string> serverReturn;
             string cheerNumber;
@@ -353,7 +312,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
 
-                        return _DuelField_DetachEnergyMenu.SetupSelectableItems(_DuelActionFirstAction);
+                        return _DuelField_DetachEnergyOrEquipMenu.SetupSelectableItems(_DuelActionFirstAction);
                     });
                     //inform the server
                     menuActions.Add(() =>
@@ -381,7 +340,6 @@ namespace Assets.Scripts.Lib
 
                     if (_DuelField.cardsPlayer.Count > 6)
                         break;
-
 
                     menuActions.Add(() =>
                     {
@@ -456,7 +414,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
 
-                        return _DuelField_DetachEnergyMenu.SetupSelectableItems(_DuelActionFirstAction);
+                        return _DuelField_DetachEnergyOrEquipMenu.SetupSelectableItems(_DuelActionFirstAction);
                     });
                     //inform the server
                     menuActions.Add(() =>
@@ -490,26 +448,24 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        if (CanReRollDice())
-                            _DuelField_YesOrNoMenu.ShowYesOrNoMenu($"Dice Roll {_DuelActionFirstAction.actionObject}");
-                        else
-                            EffectInformation.Add("NO");
-
-                        _DuelActionFirstAction.actionObject = GetLastValue<string>();
-
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnArtEffect");
+                        RollDiceTilNotAbleOrDontWantTo(_DuelActionFirstAction);
+                        return dummy();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
                         duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        //we recieve a list, first pos is the number of the dice, second pos is the card from top of cheer
-                        serverReturn = JsonConvert.DeserializeObject<List<string>>(duelActionInput.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        string diceRoll = serverReturn[0];
 
                         //if not oddnumber, we draw a card calling "Draw" at DuelField, so break
-                        if (int.Parse(diceRoll) < 3)
+                        if (GetLastValue<int>(1) < 3)
+                        {
+                            menuActions.Clear();
                             return null;
+                        }
 
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(duelActionInput, duelActionInput.cardList, duelActionInput.cardList);
                     });
@@ -595,7 +551,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
 
-                        return _DuelField_DetachEnergyMenu.SetupSelectableItems(_DuelActionFirstAction);
+                        return _DuelField_DetachEnergyOrEquipMenu.SetupSelectableItems(_DuelActionFirstAction);
                     });
                     //add the targert to action with the cost
                     menuActions.Add(() =>
@@ -818,23 +774,12 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        if (CanReRollDice())
-                            _DuelField_YesOrNoMenu.ShowYesOrNoMenu($"Dice Roll {_DuelActionFirstAction.actionObject}");
-                        else
-                            EffectInformation.Add("NO");
-
-                        _DuelActionFirstAction.actionObject = GetLastValue<string>();
-
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnArtEffect");
-                        return WaitForServerResponse();
+                        RollDiceTilNotAbleOrDontWantTo(_DuelActionFirstAction);
+                        return dummy();
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        serverReturn = JsonConvert.DeserializeObject<List<string>>(duelActionInput.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        diceRoll = serverReturn[0];
-
-                        if (int.Parse(diceRoll) > 3)
+                        if (GetLastValue<int>(1) > 3)
                         {
                             var zonesThatPlayerCanSelect = new string[] { "BackStage1", "BackStage2", "BackStage3", "BackStage4", "BackStage5" };
                             return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction, target: TargetPlayer.Oponnent, zonesThatPlayerCanSelect: zonesThatPlayerCanSelect);
@@ -847,12 +792,10 @@ namespace Assets.Scripts.Lib
 
                     menuActions.Add(() =>
                     {
-
-
-                        if (int.Parse(diceRoll) < 4)
+                        if (GetLastValue<int>(2) < 4)
                             return dummy();
 
-                        duelActionOutput = (DuelAction)EffectInformation[0];
+                        duelActionOutput = GetLastValue<DuelAction>();
                         _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
@@ -864,131 +807,85 @@ namespace Assets.Scripts.Lib
         }
         public void ResolveOnArtEffect(DuelAction _DuelActionR)
         {
-            menuActions = new List<Func<IEnumerator>>();
-            List<Card> holoPowerList;
-            EffectInformation.Clear();
+            List<Card> energyList;
 
-            switch (_DuelActionR.usedCard.cardNumber)
+            switch (_DuelActionR.usedCard.cardNumber + "-" + _DuelActionR.selectedSkill)
             {
-                case "hSD01-011":
+                case "hSD01-011-デスティニーソング":
                     menuActions.Add(() =>
                     {
-                        if (CanReRollDice())
-                            _DuelField_YesOrNoMenu.ShowYesOrNoMenu($"Dice Roll {_DuelActionR.actionObject}");
-                        else
-                            EffectInformation.Add("NO");
-
-                        _DuelActionR.actionObject = GetLastValue<string>();
-
+                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
+                        return WaitForServerResponse();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        RollDiceTilNotAbleOrDontWantTo(_DuelActionR);
+                        return dummy();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hSD01-011-SorAZ グラビティ":
+                    menuActions.Add(() =>
+                    {
                         _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
                         return WaitForServerResponse();
                     });
                     //target the card
                     menuActions.Add(() =>
                     {
-                        //we recieve a list, first pos is the number of the dice, second pos is the card from top of cheer
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        List<string> serverReturn = JsonConvert.DeserializeObject<List<string>>(duelActionInput.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-
-                        string cheerNumber = "";
-                        if (serverReturn.Count > 0)
-                            cheerNumber = serverReturn[0];
-
-                        if (!_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentInChildren<Card>().name.Equals("ときのそら"))
+                        if (!_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentInChildren<Card>().name.Equals("ときのそら") || !_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentInChildren<Card>().name.Equals("SorAZ"))
+                        {
+                            menuActions.Clear();
                             return dummy();
+                        }
 
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionR, TargetPlayer.Player, null);
                     });
-
                     //inform the server
                     menuActions.Add(() =>
                     {
-                        duelActionOutput = (DuelAction)EffectInformation[1];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnArtEffect");
-                        return WaitForServerResponse();
+                        DuelAction _duelaction = GetLastValue<DuelAction>();
+                        DuelAction da = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        _duelaction.actionObject = da.actionObject;
 
+                        _DuelField.GenericActionCallBack(_duelaction, "ResolveOnArtEffect");
+                        return WaitForServerResponse();
                     });
                     break;
-                case "hSD01-013":
+                case "hSD01-013-越えたい未来":
                     menuActions.Add(() =>
                     {
-                        if (CanReRollDice())
-                            _DuelField_YesOrNoMenu.ShowYesOrNoMenu($"Dice Roll {_DuelActionR.actionObject}");
-                        else
-                            EffectInformation.Add("NO");
-
-                        _DuelActionR.actionObject = GetLastValue<string>();
-
                         _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
                         return WaitForServerResponse();
                     });
-                    //target the card
                     menuActions.Add(() =>
                     {
-                        //we recieve a list, first pos is the number of the dice, second pos is the card from top of cheer
-                        List<string> serverReturn = JsonConvert.DeserializeObject<List<string>>(_DuelActionR.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        int diceRoll = _DuelField.DiceRolls.Last();
-
-                        string cheerNumber = "";
-                        if (serverReturn.Count > 1)
-                            cheerNumber = serverReturn[0];
-
-                        //if not oddnumber, we draw a card calling "Draw" at DuelField, so break
-                        if (diceRoll == 2 || diceRoll == 4 || diceRoll == 6)
-                            return dummy();
-
-                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionR, TargetPlayer.Player, new string[] { _DuelActionR.usedCard.cardPosition });
+                        RollDiceTilNotAbleOrDontWantTo(_DuelActionR);
+                        return dummy();
                     });
-
-                    //inform the server
                     menuActions.Add(() =>
                     {
-                        duelActionOutput = (DuelAction)EffectInformation[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnArtEffect");
+                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
                         return WaitForServerResponse();
                     });
                     break;
             }
             StartCoroutine(StartMenuSequenceCoroutine());
 
+
         }
-
-        private bool CanReRollDice()
-        {
-            List<Card> allAttachments = new();
-
-            allAttachments.AddRange(_DuelField.GetZone("BackStage1", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
-            allAttachments.AddRange(_DuelField.GetZone("BackStage2", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
-            allAttachments.AddRange(_DuelField.GetZone("BackStage3", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
-            allAttachments.AddRange(_DuelField.GetZone("BackStage4", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
-            allAttachments.AddRange(_DuelField.GetZone("BackStage5", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
-            allAttachments.AddRange(_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
-            allAttachments.AddRange(_DuelField.GetZone("Collaboration", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
-
-            bool canReroll = false;
-
-            foreach (Card card in allAttachments)
-            {
-                if (card.cardNumber.Equals("hBP01-123"))
-                    canReroll = true;
-            }
-
-            return true;
-            return canReroll;
-        }
-
         public IEnumerator RetreatArt(DuelAction _DuelActionR)
         {
-            menuActions = new List<Func<IEnumerator>>();
-            EffectInformation.Clear();
-
-
             //pay the cost
             menuActions.Add(() =>
             {
 
                 var zonesThatPlayerCanSelect = new string[] { _DuelActionR.usedCard.cardPosition };
-                return _DuelField_DetachEnergyMenu.SetupSelectableItems(_DuelActionR, AddCostToEffectInformation: true, zonesThatPlayerCanSelect);
+                return _DuelField_DetachEnergyOrEquipMenu.SetupSelectableItems(_DuelActionR, AddCostToEffectInformation: true, zonesThatPlayerCanSelect);
             });
             /*
             * this is comented, but in the future we may need to implement a counter to be able to charge more than 1 energy for retrat depending of the card
@@ -1011,67 +908,12 @@ namespace Assets.Scripts.Lib
                 //duelActionOutput.cardList = new List<Card>() { (Card)EffectInformation[0] };//, (Card)EffectInformation[1] };
                 //duelActionOutput.cheerCostCard = (CardData.CreateCardDataFromCard((Card)EffectInformation[0]));
                 _DuelField.GenericActionCallBack(duelActionOutput, "Retreat");
-                return WaitForServerResponse();
+                return dummy();
             });
             StartCoroutine(StartMenuSequenceCoroutine());
 
             yield return true;
         }
-
-        private void ShowCardEffect(string cheerNumber)
-        {
-            //throw new NotImplementedException();
-        }
-        public IEnumerator StartMenuSequenceCoroutine(bool type = false)
-        {
-            while (menuActions.Count > 0)
-            {
-                Func<IEnumerator> nextMenu = menuActions[0];
-                menuActions.RemoveAt(0);
-                isServerResponseArrive = false;
-                isSelectionCompleted = false;
-
-                if (menuActions.Count == 0)
-                {
-                    var finishActions = StartCoroutine(nextMenu());
-                    isServerResponseArrive = false;
-                    isSelectionCompleted = false;
-                    EffectInformation.Clear();
-                    yield return finishActions;
-                }
-
-                yield return StartCoroutine(nextMenu());
-            }
-        }
-        public IEnumerator dummy()
-        {
-            yield return new WaitUntil(() => true);
-        }
-        public IEnumerator WaitForServerResponse()
-        {
-            yield return new WaitUntil(() => isServerResponseArrive);
-        }
-        public static bool CheckForDetachableEnergy()
-        {
-            List<Card> cardList = new();
-
-            cardList.AddRange(GameObject.Find("Collaboration").GetComponentsInChildren<Card>(true));
-            cardList.AddRange(GameObject.Find("Stage").GetComponentsInChildren<Card>(true));
-            cardList.AddRange(GameObject.Find("CardCheer").GetComponentsInChildren<Card>(true));
-
-            foreach (Card c in cardList)
-            {
-                if (c.cardType.Equals("エール"))
-                    return true;
-            }
-            Debug.Log("No Avalible cards found to deatch");
-            return false;
-        }
-
-        internal void ResolveOnBloomEffect(DuelAction duelAction)
-        {
-        }
-
         internal void ResolveOnDamageResolveEffect(DuelAction _DuelActionDamageResolveFirst)
         {
             menuActions = new List<Func<IEnumerator>>();
@@ -1097,14 +939,132 @@ namespace Assets.Scripts.Lib
                     break;
             }
             StartCoroutine(StartMenuSequenceCoroutine());
+        }
+        internal void ResolveOnBloomEffect(DuelAction duelAction)
+        {
+        }
+        public IEnumerator StartMenuSequenceCoroutine()
+        {
+            while (menuActions.Count > 0)
+            {
+                Func<IEnumerator> nextMenu = menuActions[0];
+                menuActions.RemoveAt(0);
+                isServerResponseArrive = false;
+                isSelectionCompleted = false;
 
+                if (menuActions.Count == 0)
+                {
+                    var finishActions = StartCoroutine(nextMenu());
+                    isServerResponseArrive = false;
+                    isSelectionCompleted = false;
+                    EffectInformation.Clear();
+                    yield return finishActions;
+                }
+                else
+                {
+                    yield return StartCoroutine(nextMenu());
+                }
+            }
+        }
+        public IEnumerator dummy()
+        {
+            yield return new WaitUntil(() => true);
+        }
+        public IEnumerator WaitForServerResponse()
+        {
+            yield return new WaitUntil(() => isServerResponseArrive);
         }
 
+        private void ShowCardEffect(string cheerNumber)
+        {
+            //throw new NotImplementedException();
+        }
+        public static bool CheckForDetachableEnergy()
+        {
+            List<Card> cardList = new();
+
+            cardList.AddRange(GameObject.Find("Collaboration").GetComponentsInChildren<Card>(true));
+            cardList.AddRange(GameObject.Find("Stage").GetComponentsInChildren<Card>(true));
+            cardList.AddRange(GameObject.Find("CardCheer").GetComponentsInChildren<Card>(true));
+
+            foreach (Card c in cardList)
+            {
+                if (c.cardType.Equals("エール"))
+                    return true;
+            }
+            Debug.Log("No Avalible cards found to deatch");
+            return false;
+        }
         private bool CanActivateDamageStepEffect()
         {
-
-
             return false;
+        }
+        private List<Card> CanReRollDice()
+        {
+            List<Card> allAttachments = new();
+            HashSet<Card> uniqueParents = new HashSet<Card>();
+
+            allAttachments.AddRange(_DuelField.GetZone("BackStage1", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
+            allAttachments.AddRange(_DuelField.GetZone("BackStage2", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
+            allAttachments.AddRange(_DuelField.GetZone("BackStage3", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
+            allAttachments.AddRange(_DuelField.GetZone("BackStage4", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
+            allAttachments.AddRange(_DuelField.GetZone("BackStage5", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
+            allAttachments.AddRange(_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
+            allAttachments.AddRange(_DuelField.GetZone("Collaboration", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
+
+            foreach (Card card in allAttachments)
+            {
+                if (card.cardNumber.Equals("hBP01-123"))
+                {
+                    Card parentCard = card.transform.parent.GetComponent<Card>();
+                    uniqueParents.Add(parentCard);
+                }
+            }
+
+            return uniqueParents.ToList();
+        }
+        private IEnumerator RollDiceTilNotAbleOrDontWantTo(DuelAction _DuelAction)
+        {
+            List<Card> allAttachments = CanReRollDice();
+            // Check if the player can reroll based on game rules.
+            if (allAttachments.Count > 0)
+            {
+                // Ask the player if they want to reroll and wait for the response.
+                menuActions.Insert(0, () =>
+                {                          // Roll the dice and store the result.
+                    int diceRoll = GetLastValue<int>();
+                    return _DuelField_YesOrNoMenu.ShowYesOrNoMenu($"You rolled a {diceRoll}. Reroll?");
+                });
+
+                menuActions.Insert(1, () =>
+                {
+                    string choosed = GetLastValue<string>();
+                    // If player chooses "YES", resolve the reroll effect
+                    if (choosed.Equals("Yes"))
+                    {
+                        menuActions.Insert(0, () =>
+                        {
+                            return _DuelField_DetachEnergyOrEquipMenu.SetupSelectableItems(_DuelAction, Cheer: false);
+                        });
+                        menuActions.Insert(1, () =>
+                        {
+                            DuelAction da = GetLastValue<DuelAction>();
+                            EffectInformation.RemoveAt(EffectInformation.Count - 1);
+                            _DuelField.GenericActionCallBack(da, "ResolveRerollEffect");
+                            var x = WaitForServerResponse();
+                            RollDiceTilNotAbleOrDontWantTo(_DuelAction);
+                            return x;
+                        });
+                    }
+                    return dummy();
+                });
+            }
+            else
+            {
+                EffectInformation.Add("No");
+                return dummy();
+            }
+            return dummy();
         }
         public T GetLastValue<T>(int minus = 0)
         {
@@ -1125,12 +1085,10 @@ namespace Assets.Scripts.Lib
                 throw new InvalidCastException($"Cannot cast item of type {lastItem.GetType()} to {typeof(T)}.");
             }
         }
-
         public object GetLastRetrievedValue()
         {
             return lastRetrievedValue;
         }
-
         internal void ResolveOnRecoveryEffect(Card targetedCard)
         {
         }
