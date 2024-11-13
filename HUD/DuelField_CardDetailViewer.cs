@@ -181,7 +181,7 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
                     Button itemButton = newItem.GetComponent<Button>();
                     DuelAction duelaction = new() { usedCard = CardData.CreateCardDataFromCard(thisCard) };
                     duelaction.usedCard.cardPosition = thisCard.cardPosition;
-                    if (IsCostCovered(currentArt.Cost, energyAmount)
+                    if (IsCostCovered(currentArt.Cost, energyAmount, CarditemList[currentIndex])
                         && ((thisCard.cardPosition.Equals("Stage") && !_DuelField.centerStageArtUsed)
                         || (thisCard.cardPosition.Equals("Collaboration") && !_DuelField.collabStageArtUsed))
                         )
@@ -392,12 +392,30 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
         }
         return energyAmount;
     }
-    public bool IsCostCovered(List<(string Color, int Amount)> cost, Dictionary<string, List<GameObject>> energyAmount)
+    public bool IsCostCovered(List<(string Color, int Amount)> cost, Dictionary<string, List<GameObject>> energyAmount, Card SkillOwnerCard)
     {
         // Convert energyAmount to a payment list with color and total available amount.
         List<(string Color, int Amount)> payment = energyAmount
             .Select(entry => (Color: entry.Key, Amount: entry.Value.Count))
             .ToList();
+
+
+        //check for equipaments effects
+        foreach (GameObject cardObj in SkillOwnerCard.attachedEquipe)
+        {
+            Card card = cardObj.GetComponent<Card>();
+            switch (card.cardNumber)
+            {
+                case "hBP01-126":
+                    int index = payment.FindIndex(p => p.Color == "赤");
+                    payment[index] = (payment[index].Color, (payment[index].Amount +1));
+                    break;
+                case "hBP01-118":
+                    index = payment.FindIndex(p => p.Color == "白");
+                    payment[index] = (payment[index].Color, (payment[index].Amount + 1));
+                    break;
+            }
+        }
 
         foreach (var (Color, Amount) in cost.ToList())
         {

@@ -121,6 +121,8 @@ namespace Assets.Scripts.Lib
                 case "hSD01-004":
                 case "hBP01-016":
                 case "hBP01-023":
+                case "hBP01-010":
+                case "hBP01-015":
                     menuActions.Add(() =>
                     {
                         _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
@@ -228,8 +230,51 @@ namespace Assets.Scripts.Lib
                         return WaitForServerResponse();
                     });
                     break;
-                case "hSD01-009":
+                case "hBP01-033":
                     int diceRoll = 0;
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        return WaitForServerResponse();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        RollDiceTilNotAbleOrDontWantTo(_DuelActionR);
+                        return dummy();
+                    });
+
+                    menuActions.Add(() =>
+                    {
+                        diceRoll = GetLastValue<int>(1);
+
+                        if (diceRoll == 1 || diceRoll == 3 || diceRoll == 5)
+                        {
+                            menuActions.Clear();
+                            return dummy();
+                        }
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionR, target: TargetPlayer.Player);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        DuelAction duelaction = GetLastValue<DuelAction>();
+                        _DuelField.GenericActionCallBack(duelaction, "ResolveOnCollabEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hBP01-036":
+                    menuActions.Add(() =>
+                    {
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionR, target: TargetPlayer.Player);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        DuelAction duelaction = GetLastValue<DuelAction>();
+                        _DuelField.GenericActionCallBack(duelaction, "ResolveOnCollabEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hSD01-009":
+                    diceRoll = 0;
                     menuActions.Add(() =>
                     {
                         _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
@@ -940,6 +985,41 @@ namespace Assets.Scripts.Lib
             }
             StartCoroutine(StartMenuSequenceCoroutine());
         }
+        internal void ResolveOnAttachEffect(DuelAction _DuelActionR)
+        {
+            List<Card> energyList;
+
+            switch (_DuelActionR.usedCard.cardNumber)
+            {
+                case "hBP01-125":
+                    menuActions.Add(() =>
+                    {
+                        return _DuelField_YesOrNoMenu.ShowYesOrNoMenu();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        string WillActivate = (string)EffectInformation[0];
+
+                        if (!WillActivate.Equals("Yes"))
+                        {
+                            menuActions.Clear();
+                            return null;
+                        }
+                        List<Card> canSelect = _DuelField.cardHolderPlayer.GetComponentsInChildren<Card>().ToList();
+                        return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionR, canSelect, canSelect);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        List<string> cardnumber = GetLastValue<List<string>>();
+                        _DuelActionR.actionObject = cardnumber[0];
+                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnAttachEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+            }
+
+            StartCoroutine(StartMenuSequenceCoroutine());
+        }
         internal void ResolveOnBloomEffect(DuelAction duelAction)
         {
         }
@@ -1051,9 +1131,12 @@ namespace Assets.Scripts.Lib
                             DuelAction da = GetLastValue<DuelAction>();
                             EffectInformation.RemoveAt(EffectInformation.Count - 1);
                             _DuelField.GenericActionCallBack(da, "ResolveRerollEffect");
-                            var x = WaitForServerResponse();
+                            return WaitForServerResponse();
+                        });
+                        menuActions.Insert(2, () =>
+                        {
                             RollDiceTilNotAbleOrDontWantTo(_DuelAction);
-                            return x;
+                            return dummy();
                         });
                     }
                     return dummy();
@@ -1092,5 +1175,7 @@ namespace Assets.Scripts.Lib
         internal void ResolveOnRecoveryEffect(Card targetedCard)
         {
         }
+
+
     }
 }

@@ -32,6 +32,22 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
         this.usedCard.cardNumber = _DuelAction.usedCard.cardNumber;
         usedCard.GetCardInfo();
 
+        //some cards have limitations for target
+        switch (_DuelAction.usedCard.cardNumber)
+        {
+            case "hBP01-009":
+                if (_DuelField.GetZone("Stage", TargetPlayer.Oponnent).GetComponentInChildren<Card>() == null) { 
+                    CardListContent.transform.parent.parent.parent.gameObject.SetActive(false);
+                    yield return null;
+                }
+
+                _DuelField.PopulateSelectableCards(target, new string[] { "Stage" }, CardListContent.gameObject, SelectableCards);
+                break;
+                default:
+                _DuelField.PopulateSelectableCards(target, new string[] { "Stage", "Collaboration" }, CardListContent.gameObject, SelectableCards);
+                break;
+        }
+
         _DuelField.PopulateSelectableCards(target, new string[] { "Stage", "Collaboration"}, CardListContent.gameObject, SelectableCards);
 
         int x = 0;  // Variable to track order

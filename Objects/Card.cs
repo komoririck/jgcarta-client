@@ -186,12 +186,6 @@ public class Card : MonoBehaviour
         }
     }
 
-    void OnEnable()
-    { 
-
-    }
-
-
     public List<Card> StringListToCardList(List<string> cards)
     {
         List<Card> returnCards = new();

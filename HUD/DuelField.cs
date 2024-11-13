@@ -320,6 +320,7 @@ public class DuelField : MonoBehaviour
                         {
                             currentGameHigh++;
                             currentGameHigh++;
+                            _MatchConnection._DuelFieldData.currentGamePhase = GAMEPHASE.SettingUpBoard;
                             LockGameFlow = true;
                         }
                         break;
@@ -576,9 +577,6 @@ public class DuelField : MonoBehaviour
                         if (SrvMessageCounter_DuelAction.playerID == PlayerInfo.PlayerID)
                             LockGameFlow = true;
 
-                        //habiliting card that can be played this turn -- energy
-                        GetUsableCards();
-
                         _MatchConnection._DuelFieldData.currentGamePhase = GAMEPHASE.HolomemDefeatedEnergyChoose;
                         currentGameHigh++;
 
@@ -644,8 +642,6 @@ public class DuelField : MonoBehaviour
                         if (SrvMessageCounter_DuelAction.playerID == PlayerInfo.PlayerID)
                             LockGameFlow = true;
 
-                        //habiliting card that can be played this turn -- energy
-                        GetUsableCards();
                         _MatchConnection._DuelFieldData.currentGamePhase = GAMEPHASE.CheerStepChoose;
                         currentGameHigh++;
                         GamePhaseMsg.StartMessage("Cheer Step");
@@ -680,10 +676,8 @@ public class DuelField : MonoBehaviour
                         }
 
                         if (_MatchConnection._DuelFieldData.currentPlayerTurn.Equals(PlayerInfo.PlayerID))
-                        {
                             EndTurnButton.SetActive(true);
-                            GetUsableCards();
-                        }
+
                         _MatchConnection._DuelFieldData.currentGamePhase = GAMEPHASE.MainStep;
                         currentGameHigh++;
                         break;
@@ -776,7 +770,6 @@ public class DuelField : MonoBehaviour
                         usedCardGameObjectCard.bloomChild.Add(FatherZoneActiveCard);
                         usedCardGameObjectCard.attachedEnergy = FatherZoneActiveCard.GetComponent<Card>().attachedEnergy;
                         usedCardGameObjectCard.attachedEnergy = null;
-                        usedCardGameObjectCard.AddComponent<DropZone>().zoneType = "HoloMember";
 
                         usedCardGameObjectCard.playedFrom = "hand";
                         usedCardGameObjectCard.playedThisTurn = true;
@@ -883,31 +876,16 @@ public class DuelField : MonoBehaviour
                         currentGameHigh++;
                         break;
                     case "ResolveOnSupportEffect":
-                        if (_MatchConnection._DuelFieldData.currentGamePhase != GAMEPHASE.MainStep)
-                        {
-                            throw new Exception("not in the right gamephase, we're at " + DuelActionTypeOfAction + " and tried to enter at" + _MatchConnection._DuelFieldData.currentGamePhase.GetType());
-                        }
-
-                        if (SrvMessageCounter_DuelAction.playerID == PlayerInfo.PlayerID)
-                        {
-                            //lock game flow till player finish selection
-                            LockGameFlow = true;
-                        }
-
-                        _EffectController.isServerResponseArrive = true;
-                        currentGameHigh++;
-                        break;
                     case "OnCollabEffect":
+                    case "OnArtEffect":
+                    case "ResolveOnAttachEffect":
                         if (_MatchConnection._DuelFieldData.currentGamePhase != GAMEPHASE.MainStep)
                         {
                             throw new Exception("not in the right gamephase, we're at " + DuelActionTypeOfAction + " and tried to enter at" + _MatchConnection._DuelFieldData.currentGamePhase.GetType());
                         }
 
                         if (SrvMessageCounter_DuelAction.playerID == PlayerInfo.PlayerID)
-                        {
-                            //lock game flow till player finish selection
                             LockGameFlow = true;
-                        }
 
                         _EffectController.isServerResponseArrive = true;
                         currentGameHigh++;
@@ -922,18 +900,6 @@ public class DuelField : MonoBehaviour
                         {
                             LockGameFlow = true;
                             _EffectController.ResolveOnArtEffect(SrvMessageCounter_DuelAction);
-                        }
-                        break;
-                    case "OnArtEffect":
-                        if (_MatchConnection._DuelFieldData.currentGamePhase != GAMEPHASE.MainStep)
-                        {
-                            throw new Exception("not in the right gamephase, we're at " + DuelActionTypeOfAction + " and tried to enter at" + _MatchConnection._DuelFieldData.currentGamePhase.GetType());
-                        }
-                        currentGameHigh++;
-                        if (SrvMessageCounter_DuelAction.playerID == PlayerInfo.PlayerID)
-                        {
-                            LockGameFlow = true;
-                            _EffectController.isServerResponseArrive = true;
                         }
                         break;
                     case "PickFromListThenGiveBacKFromHandDone":
@@ -982,9 +948,46 @@ public class DuelField : MonoBehaviour
 
                         currentGameHigh++;
                         break;
+                    case "RemoveCardsFromHand":
+                        if (_MatchConnection._DuelFieldData.currentGamePhase != GAMEPHASE.MainStep)
+                        {
+                            throw new Exception("not in the right gamephase, we're at " + DuelActionTypeOfAction + " and tried to enter at" + _MatchConnection._DuelFieldData.currentGamePhase.GetType());
+                        }
+
+
+                        if (SrvMessageCounter_DuelAction.playerID == PlayerInfo.PlayerID)
+                        {
+                            List<Card> canSelect = cardHolderPlayer.GetComponentsInChildren<Card>().ToList();
+
+                            for (int i = 0; i < SrvMessageCounter_DuelAction.cardList.Count; i++)
+                            {
+                                bool match = false;
+                                int j = 0;
+                                for (; j < canSelect.Count; j++)
+                                {
+                                    if (SrvMessageCounter_DuelAction.cardList[i].cardNumber.Equals(canSelect[j].cardNumber)) { 
+                                        match = true;
+                                        break;
+                                    }
+                                }
+                                if (match) {
+                                    cardsPlayer.RemoveAt(j);
+                                    Destroy(canSelect[j].gameObject);
+                                    continue;
+                                }
+                            }
+                        }
+                        else {
+                            RemoveCardsFromCardHolder(SrvMessageCounter_DuelAction.cardList.Count, cardsOponnent, cardHolderOponnent);
+                        }
+
+                        currentGameHigh++;
+                        break;
+                    case "DrawBloomIncreaseEffect":
                     case "DrawCollabEffect":
                     case "DrawArtEffect":
                     case "SupportEffectDraw":
+                    case "DrawAttachEffect":
                         if (_MatchConnection._DuelFieldData.currentGamePhase != GAMEPHASE.MainStep)
                         {
                             throw new Exception("not in the right gamephase, we're at " + DuelActionTypeOfAction + " and tried to enter at" + _MatchConnection._DuelFieldData.currentGamePhase.GetType());
@@ -1005,7 +1008,6 @@ public class DuelField : MonoBehaviour
                                         Destroy(gmd.gameObject);
                                     }
                                     cardsPlayer.Clear();
-                                    ArrangeCards(cardsPlayer, cardHolderPlayer);
                                 }
                             }
                             else
@@ -1019,16 +1021,11 @@ public class DuelField : MonoBehaviour
                                         Destroy(gmd.gameObject);
                                     }
                                     cardsOponnent.Clear();
-                                    ArrangeCards(cardsOponnent, cardHolderOponnent);
                                 }
                             }
                         }
 
                         DrawCard(SrvMessageCounter_DuelAction);
-                        if (SrvMessageCounter_DuelAction.playerID.Equals(PlayerInfo.PlayerID))
-                        {
-                            GetUsableCards();
-                        }
                         currentGameHigh++;
                         break;
                     case "RollDice":
@@ -1053,6 +1050,7 @@ public class DuelField : MonoBehaviour
                         break;
                     case "InflicArtDamageToHolomem":
                     case "InflicDamageToHolomem":
+                    case "InflicRecoilDamageToHolomem":
                         if (_MatchConnection._DuelFieldData.currentGamePhase != GAMEPHASE.MainStep)
                         {
                             throw new Exception("not in the right gamephase, we're at " + DuelActionTypeOfAction + " and tried to enter at" + _MatchConnection._DuelFieldData.currentGamePhase.GetType());
@@ -1220,15 +1218,16 @@ public class DuelField : MonoBehaviour
                 if (_MatchConnection.DuelActionListIndex.Count == currentGameHigh)
                     _DuelField_LogManager.AddLog(SrvMessageCounter_DuelAction, DuelActionTypeOfAction);
             }
+
+            GetUsableCards();
+            ArrangeCards(cardsPlayer, cardHolderPlayer);
+            ArrangeCards(cardsOponnent, cardHolderOponnent);
         }
 
         if (playerMulliganF && oponnentMulliganF && !ReadyButtonShowed)
         {
             ReadyButton.SetActive(true);
             ReadyButtonShowed = true;
-            _MatchConnection._DuelFieldData.currentGamePhase = GAMEPHASE.SettingUpBoard;
-
-            GetUsableCards();
         }
     }
     ////////////////////////////////////////////////////////////////////////
@@ -1244,6 +1243,7 @@ public class DuelField : MonoBehaviour
         string jsonString;
         switch (type)
         {
+            case "ResolveOnAttachEffect":
             case "ResolveRerollEffect":
             case "ResolveDamageToHolomem":
             case "AttachEquipamentToHolomem":
@@ -1364,7 +1364,7 @@ public class DuelField : MonoBehaviour
         _ = _MatchConnection.SendCallToServer(PlayerInfo.PlayerID, PlayerInfo.Password, "AskForMulligan", "", "t");
         LockGameFlow = false;
     }
-
+    
     public void MulliganBoxNoButton()
     {
         MulliganMenu.SetActive(false);
@@ -1377,8 +1377,6 @@ public class DuelField : MonoBehaviour
 
     public void GetUsableCards(bool clearList = false)
     {
-        cardsPlayer.RemoveAll(item => item == null);
-
         foreach (RectTransform r in cardsPlayer)
         {
             Card cardComponent = r.GetComponent<Card>();
@@ -1386,13 +1384,16 @@ public class DuelField : MonoBehaviour
             handDragDrop.enabled = false;
         }
 
+        if (!_MatchConnection._DuelFieldData.currentPlayerTurn.Equals(PlayerInfo.PlayerID) && _MatchConnection._DuelFieldData.currentGamePhase != GAMEPHASE.SettingUpBoard)
+            clearList = true;
+
         List<Record> cList = new();
         if (!clearList)
         {
             switch (_MatchConnection._DuelFieldData.currentGamePhase)
             {
-                case GAMEPHASE.CheerStep:
-                case GAMEPHASE.HolomemDefeated:
+                case GAMEPHASE.CheerStepChoose:
+                case GAMEPHASE.HolomemDefeatedEnergyChoose:
                     foreach (RectTransform r in cardsPlayer)
                     {
                         Card cardComponent = r.GetComponent<Card>();
@@ -1408,10 +1409,16 @@ public class DuelField : MonoBehaviour
                     {
                         Card cardComponent = r.GetComponent<Card>();
                         cardComponent.GetCardInfo();
-                        if (cardComponent.cardType.Equals("サポート・スタッフ・LIMITED") || cardComponent.cardType.Equals("サポート・イベント・LIMITED") || cardComponent.cardType.Equals("サポート・アイテム・LIMITED"))
+                        if (cardComponent.cardType.Equals("サポート・スタッフ・LIMITED") || cardComponent.cardType.Equals("サポート・イベント・LIMITED") || cardComponent.cardType.Equals("サポート・アイテム・LIMITED") 
+                            || cardComponent.cardType.Equals("サポート・スタッフ") || cardComponent.cardType.Equals("サポート・イベント") || cardComponent.cardType.Equals("サポート・アイテム")
+                            )
                         {
                             DuelField_HandDragDrop handDragDrop = r.GetComponent<DuelField_HandDragDrop>() ?? r.gameObject.AddComponent<DuelField_HandDragDrop>();
-                            handDragDrop.enabled = true;
+                            if (CheckForPlayRestrictions(cardComponent.cardNumber))
+                                handDragDrop.enabled = true;
+                            else
+                                handDragDrop.enabled = false;
+
                         }
                         else if (cardComponent.cardType.Equals("ホロメン") || cardComponent.cardType.Equals("Buzzホロメン"))
                         {
@@ -1447,11 +1454,6 @@ public class DuelField : MonoBehaviour
                                 }
                             }
                         }
-                        else if (cardComponent.cardType.Equals("サポート・スタッフ") || cardComponent.cardType.Equals("サポート・イベント") || cardComponent.cardType.Equals("サポート・アイテム"))
-                        {
-                            DuelField_HandDragDrop handDragDrop = r.GetComponent<DuelField_HandDragDrop>() ?? r.gameObject.AddComponent<DuelField_HandDragDrop>();
-                            handDragDrop.enabled = true;
-                        }
                         else if (cardComponent.cardType.Equals("サポート・ツール") || cardComponent.cardType.Equals("サポート・マスコット") || cardComponent.cardType.Equals("サポート・ファン"))
                         {
                             DuelField_HandDragDrop handDragDrop = r.GetComponent<DuelField_HandDragDrop>() ?? r.gameObject.AddComponent<DuelField_HandDragDrop>();
@@ -1474,6 +1476,99 @@ public class DuelField : MonoBehaviour
             }
         }
     }
+
+    public bool CheckForPlayRestrictions(string cardNumber)
+    {
+        switch (cardNumber)
+        {
+            case "hSD01-018":
+            case "hBP01-111":
+            case "hBP01-113":
+                var deckCount = GetZone("Deck", TargetPlayer.Player).transform.childCount - 1;
+                if (deckCount == 0)
+                    return false;
+                break;
+            case "hBP01-109":
+            case "hBP01-102":
+                if (cardsPlayer.Count > 6)
+                    return false;
+                break;
+            case "hBP01-105":
+            case "hSD01-019":
+            case "hBP01-103":
+                return EffectController.CheckForDetachableEnergy();
+            case "hBP01-106":
+                //check if we have back holomems to switch
+                int backstagecount = CountBackStageTotal(true);
+                return (backstagecount > 0);
+            case "hBP01-108":
+            case "hBP01-112":
+                //check if opponent have back holomems to switch
+                backstagecount = CountBackStageTotal(true, TargetPlayer.Oponnent);
+                return (backstagecount > 0);
+            case "hSD01-020":
+            case "hBP01-107":
+                var energyList = GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>();
+                foreach (Card card in energyList)
+                {
+                    card.GetCardInfo();
+                    if (card.cardType.Equals("エール"))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            case "xxxxxxx":
+                break;
+        }
+        return true;
+    }
+
+
+    public bool CheckForPlayEquipRestrictions(Card card)
+    {
+        switch (card.cardNumber)
+        {
+            case "hBP01-114":
+            case "hBP01-116":
+            case "hBP01-117":
+            case "hBP01-118":
+            case "hBP01-119":
+            case "hBP01-120":
+            case "hBP01-115":
+            case "hBP01-121":
+                foreach (GameObject _Card in card.attachedEquipe)
+                {
+                    _Card.GetComponent<Card>().cardNumber.Equals(card.cardNumber);
+                    return false;
+                }
+                break;
+        }
+        return true;
+    }
+
+
+    private bool CheckForOtherCopiesEquipped(string cardNumber)
+    {
+
+        List<GameObject> playerAttachments = new();
+
+        playerAttachments.AddRange(GetZone("Stage", TargetPlayer.Player).GetComponentInChildren<Card>().attachedEquipe);
+        playerAttachments.AddRange(GetZone("Stage", TargetPlayer.Player).GetComponentInChildren<Card>().attachedEquipe);
+
+        for (int i = 1; i <= 5; i++)
+            playerAttachments.AddRange(GetZone($"BackStage{i}", TargetPlayer.Player).GetComponentInChildren<Card>().attachedEquipe);
+
+        foreach (GameObject cardObj in playerAttachments)
+        {
+            Card card = cardObj.GetComponentInChildren<Card>().GetCardInfo();
+            if (card.cardNumber.Equals(cardNumber))
+                return true;
+        }
+        return false;
+    }
+
+
 
     public List<string> NamesThatCanBloom(string level)
     {
@@ -1561,7 +1656,6 @@ public class DuelField : MonoBehaviour
             // Destroy the GameObject for the card
             Destroy(cardToRemove.gameObject);
         }
-        ArrangeCards(cardsList, holder);
     }
 
     public void AddCardToGameZone(GameObject holder, List<Card> cardNumbers)
@@ -1740,9 +1834,6 @@ public class DuelField : MonoBehaviour
                 Destroy(newObject.GetComponent<Card>());
             }
         }
-
-        ArrangeCards(cardsList, holder);
-        GetUsableCards();
     }
     public void RemoveCardFromZone(GameObject game, int amount)
     {
@@ -1857,8 +1948,6 @@ public class DuelField : MonoBehaviour
         }
 
     }
-
-
     public void ArrangeCards(List<RectTransform> c, RectTransform cardHolder)
     {
         c.RemoveAll(item => item == null);
@@ -2107,6 +2196,11 @@ public class DuelField : MonoBehaviour
         {
             RemoveCardsFromCardHolder(1, cardsOponnent, cardHolderOponnent);
         }
+        else {
+            if (!usedCardGameObjectCard.cardType.Equals("エール"))
+                _EffectController.ResolveOnAttachEffect(duelAction);
+        }
+
     }
 
     void RemoveCardFromPosition(DuelAction duelAction)
@@ -2149,9 +2243,6 @@ public class DuelField : MonoBehaviour
         GameObject usedCardGameObject = Instantiate(cardPrefab, Vector3.zero, Quaternion.identity);
         //get its card
         Card usedCardGameObjectCard = usedCardGameObject.GetComponent<Card>();
-        //if have no zone, set a holomember zone to it, so we can keep track more easily
-        DropZone usedCardDropZone = usedCardGameObjectCard.GetComponent<DropZone>() == null ? usedCardGameObjectCard.AddComponent<DropZone>() : usedCardGameObjectCard.GetComponent<DropZone>();
-        usedCardDropZone.zoneType = "HoloMember";
         // set the card number and update the card info
         usedCardGameObjectCard.cardNumber = duelAction.usedCard.cardNumber;
         usedCardGameObjectCard.GetCardInfo();
