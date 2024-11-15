@@ -294,6 +294,13 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                                         {
                                             canContinue = true;
                                         }
+                                        else if (thisCard.cardNumber.Equals("hBP01-045")) {
+                                            int lifeCounter = _DuelField.GetZone("Life", TargetPlayer.Player).transform.childCount - 1;
+                                            if (lifeCounter < 4 && pointedCard.cardName.Equals("AZKi") || pointedCard.cardName.Equals("SorAZ"))
+                                            {
+                                                canContinue = true;
+                                            }
+                                        }
                                         //normal condition to bloom match
                                         else if (thisCard.cardName.Equals(pointedCard.cardName) && thisCard.bloomLevel.Equals(bloomToLevel))
                                         {

@@ -779,6 +779,9 @@ public class DuelField : MonoBehaviour
                         {
                             RemoveCardsFromCardHolder(1, cardsOponnent, cardHolderOponnent);
                         }
+                        else {
+                            _EffectController.ResolveOnBloomEffect(SrvMessageCounter_DuelAction);
+                        }
 
                         currentGameHigh++;
                         break;
@@ -1059,7 +1062,7 @@ public class DuelField : MonoBehaviour
 
                         currentGameHigh++;
                         break;
-
+                    case "SetHPToFixedValue":
                     case "ResolveDamageToHolomem":
                         if (_MatchConnection._DuelFieldData.currentGamePhase != GAMEPHASE.MainStep)
                         {
@@ -1069,6 +1072,10 @@ public class DuelField : MonoBehaviour
                         zoneArt = GetZone(SrvMessageCounter_DuelAction.targetCard.cardPosition, !SrvMessageCounter_DuelAction.playerID.Equals(PlayerInfo.PlayerID) ? TargetPlayer.Player : TargetPlayer.Oponnent);
 
                         Card card = zoneArt.GetComponentInChildren<Card>();
+
+                        if (DuelActionTypeOfAction.Equals("SetHPToFixedValue"))
+                            card.currentHp = int.Parse(SrvMessageCounter_DuelAction.actionObject);
+
                         card.currentHp -= int.Parse(SrvMessageCounter_DuelAction.actionObject);
 
                         UpdateHP(card);
@@ -1427,7 +1434,9 @@ public class DuelField : MonoBehaviour
                                 DuelField_HandDragDrop handDragDrop = r.GetComponent<DuelField_HandDragDrop>() ?? r.gameObject.AddComponent<DuelField_HandDragDrop>();
                                 handDragDrop.enabled = true;
                             }
-                            if (cardComponent.bloomLevel.Equals("1st"))
+                            if (cardComponent.bloomLevel.Equals("1st") 
+                                || cardComponent.cardNumber.Equals("hBP01-045") //AZKI GIFT
+                                )
                             {
                                 List<string> bloomableNames;
                                 bloomableNames = NamesThatCanBloom("Debut");
@@ -1440,7 +1449,9 @@ public class DuelField : MonoBehaviour
                                     }
                                 }
                             }
-                            if (cardComponent.bloomLevel.Equals("2nd"))
+                            if (cardComponent.bloomLevel.Equals("2nd") 
+                                || cardComponent.cardNumber.Equals("hBP01-045") //AZKI GIFT
+                                )
                             {
                                 List<string> bloomableNames;
                                 bloomableNames = NamesThatCanBloom("1st");
@@ -1481,10 +1492,16 @@ public class DuelField : MonoBehaviour
     {
         switch (cardNumber)
         {
+            case "hSD01-016":
+                var deckCount = GetZone("Deck", TargetPlayer.Player).transform.childCount - 1;
+                if (deckCount < 3)
+                    return false;
+                break;
+            case "hSD01-021":
             case "hSD01-018":
             case "hBP01-111":
             case "hBP01-113":
-                var deckCount = GetZone("Deck", TargetPlayer.Player).transform.childCount - 1;
+                deckCount = GetZone("Deck", TargetPlayer.Player).transform.childCount - 1;
                 if (deckCount == 0)
                     return false;
                 break;
@@ -1589,6 +1606,7 @@ public class DuelField : MonoBehaviour
                 //EXTRA CONDITIONS
                 if (BackStage1Card.bloomLevel.Equals("Debut") && BackStage1Card.cardName.Equals("ときのそら") || BackStage1Card.cardName.Equals("AZKi"))
                     validNames.Add("SorAZ");
+                if()
             }
         if (BackStage2Card != null)
             if (BackStage2Card.bloomLevel.Equals(level) && BackStage2Card.playedThisTurn == false)

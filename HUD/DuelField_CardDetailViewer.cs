@@ -147,7 +147,8 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
                 && _DuelField._MatchConnection._DuelFieldData.currentGamePhase == DuelFieldData.GAMEPHASE.MainStep
                 && CarditemList[currentIndex].playedThisTurn == false
                 && _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn.Equals(_DuelField.PlayerInfo.PlayerID)
-                && !isViewMode)
+                && !isViewMode
+                && CarditemList[currentIndex].transform.parent.parent.name.Equals("Oponente"))
             {
                 _DuelField.ArtPanel.SetActive(true);
                 _DuelField.OshiPowerPanel.SetActive(false);

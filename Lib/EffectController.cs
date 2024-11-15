@@ -70,6 +70,13 @@ namespace Assets.Scripts.Lib
                         return WaitForServerResponse();
                     });
                     break;
+                case "hBP01-001":
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiSPEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
             }
             StartCoroutine(StartMenuSequenceCoroutine());
 
@@ -94,6 +101,19 @@ namespace Assets.Scripts.Lib
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction, target: TargetPlayer.Oponnent, zonesThatPlayerCanSelect: zonesThatPlayerCanSelect);
                     });
                     //send both cost and targer(color) to the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[0];
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnOshiSPEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hBP01-001":
+                    menuActions.Add(() =>
+                    {
+                        var zonesThatPlayerCanSelect = new string[] {"Stage", "Collaboration"};
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction, target: TargetPlayer.Oponnent, zonesThatPlayerCanSelect: zonesThatPlayerCanSelect);
+                    });
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[0];
@@ -856,6 +876,8 @@ namespace Assets.Scripts.Lib
 
             switch (_DuelActionR.usedCard.cardNumber + "-" + _DuelActionR.selectedSkill)
             {
+                case "hBP01-042-きｔらあああ":
+                case "hBP01-038-こんぺこー！":
                 case "hSD01-011-デスティニーソング":
                     menuActions.Add(() =>
                     {
@@ -1020,8 +1042,33 @@ namespace Assets.Scripts.Lib
 
             StartCoroutine(StartMenuSequenceCoroutine());
         }
-        internal void ResolveOnBloomEffect(DuelAction duelAction)
+        internal void ResolveOnBloomEffect(DuelAction _DuelActionFirstAction)
         {
+            menuActions = new List<Func<IEnumerator>>();
+
+            switch (_DuelActionFirstAction.usedCard.cardNumber)
+            {
+                case "hBP01-043":
+                    menuActions.Add(() =>
+                    {
+                        RollDiceTilNotAbleOrDontWantTo(_DuelActionFirstAction);
+                        return dummy();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnCollabEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hBP01-030":
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+            }
+
         }
         public IEnumerator StartMenuSequenceCoroutine()
         {
