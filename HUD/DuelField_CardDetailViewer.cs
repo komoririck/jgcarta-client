@@ -333,7 +333,11 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
                 int backstagecount = _DuelField.CountBackStageTotal(true, TargetPlayer.Oponnent);
                 return (backstagecount > 0);
                 break;
-            case "xxx":
+            case "hYS01-003":
+                foreach (Card card in _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>())
+                    if (card.cardType.Equals("ホロメン") || card.cardType.Equals("Buzzホロメン"))
+                        return true;
+                    return false;
                 break;
         }
         return true;

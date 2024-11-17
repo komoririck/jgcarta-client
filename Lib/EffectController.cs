@@ -6,6 +6,8 @@ using UnityEngine;
 using Newtonsoft.Json;
 using static DuelField;
 using static UnityEngine.GraphicsBuffer;
+using Unity.VisualScripting;
+using System.Runtime.ConstrainedExecution;
 
 namespace Assets.Scripts.Lib
 {
@@ -17,6 +19,7 @@ namespace Assets.Scripts.Lib
         private DuelField_DetachCardMenu _DuelField_DetachEnergyOrEquipMenu;
         private DuelField_ShowAlistPickOne _DuelField_ShowAlistPickOne;
         private DuelField_YesOrNoMenu _DuelField_YesOrNoMenu;
+        private DuelField_ShowANumberList _DuelField_ShowANumberList;
 
         private DuelField _DuelField;
         private List<Func<IEnumerator>> menuActions = new List<Func<IEnumerator>>();
@@ -38,6 +41,7 @@ namespace Assets.Scripts.Lib
             _DuelField_ShowAlistPickOne = FindAnyObjectByType<DuelField_ShowAlistPickOne>();
             _DuelField_DetachEnergyOrEquipMenu = FindAnyObjectByType<DuelField_DetachCardMenu>();
             _DuelField_YesOrNoMenu = FindAnyObjectByType<DuelField_YesOrNoMenu>();
+            _DuelField_ShowANumberList = FindAnyObjectByType<DuelField_ShowANumberList>();
             EffectInformation = new List<object>();
         }
         public IEnumerator OshiSkill(DuelAction _DuelActionFirstAction)
@@ -48,6 +52,24 @@ namespace Assets.Scripts.Lib
 
             switch (_DuelActionFirstAction.usedCard.cardNumber)
             {
+                case "hBP01-006":
+                    menuActions.Add(() =>
+                    {
+                        List<Card> canSelect = new();
+                        foreach (Card card in _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>())
+                            if (card.cardType.Equals("ホロメン") || card.cardType.Equals("Buzzホロメン"))
+                                canSelect.Add(card);
+
+                        return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionFirstAction, canSelect, canSelect);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        List<string> cardnumber = GetLastValue<List<string>>();
+                        _DuelActionFirstAction.actionObject = cardnumber[0];
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnArtEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
                 case "hSD01-001":
                     menuActions.Add(() =>
                     {
@@ -70,10 +92,15 @@ namespace Assets.Scripts.Lib
                         return WaitForServerResponse();
                     });
                     break;
+                case "hYS01-001":
+                case "hYS01-002":
+                case "hYS01-003":
+                case "hBP01-004":
+                case "hBP01-003":
                 case "hBP01-001":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiSPEffect");
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -111,7 +138,7 @@ namespace Assets.Scripts.Lib
                 case "hBP01-001":
                     menuActions.Add(() =>
                     {
-                        var zonesThatPlayerCanSelect = new string[] {"Stage", "Collaboration"};
+                        var zonesThatPlayerCanSelect = new string[] { "Stage", "Collaboration" };
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction, target: TargetPlayer.Oponnent, zonesThatPlayerCanSelect: zonesThatPlayerCanSelect);
                     });
                     menuActions.Add(() =>
@@ -121,7 +148,64 @@ namespace Assets.Scripts.Lib
                         return WaitForServerResponse();
                     });
                     break;
+                case "hYS01-003":
+                    menuActions.Add(() =>
+                    {
+                        List<Card> canSelect = new();
+                        foreach (Card card in _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>())
+                            if (card.cardType.Equals("ホロメン") || card.cardType.Equals("Buzzホロメン"))
+                                canSelect.Add(card);
 
+                        return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionFirstAction, canSelect, canSelect);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        List<string> cardnumber = GetLastValue<List<string>>();
+                        _DuelActionFirstAction.actionObject = cardnumber[0];
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiSPEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hYS01-004":
+                case "hYS01-002":
+                case "hBP01-006":
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiSPEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hBP01-003":
+                    menuActions.Add(() =>
+                    {
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionFirstAction, duelAction.cardList, duelAction.cardList);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        DuelAction duelAction = GetLastValue<DuelAction>();
+                        List<string> cardnumber = GetLastValue<List<string>>(1);
+                        duelAction.actionObject = cardnumber[0];
+                        _DuelField.GenericActionCallBack(duelAction, "ResolveOnOshiSPEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hSD01-002":
+                    menuActions.Add(() =>
+                    {
+                        return _DuelField_ShowANumberList.SetupSelectableNumbers(1, 6);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        _DuelActionFirstAction.actionObject = GetLastValue<string>();
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiSPEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
             }
             StartCoroutine(StartMenuSequenceCoroutine());
 
@@ -137,6 +221,7 @@ namespace Assets.Scripts.Lib
 
             switch (_DuelActionR.usedCard.cardNumber)
             {
+                case "hBP01-057":
                 case "hSD01-015":
                 case "hSD01-004":
                 case "hBP01-016":
@@ -876,6 +961,19 @@ namespace Assets.Scripts.Lib
 
             switch (_DuelActionR.usedCard.cardNumber + "-" + _DuelActionR.selectedSkill)
             {
+                case "hBP01-035-アキロゼ幻想曲":
+                case "hBP01-057-漆黒の翼で誘おう":
+                case "hBP01-051-エールを束ねて":
+                case "hBP01-037-秘密の合鍵":
+                case "hBP01-020-みんな一緒に":
+                case "hBP01-027-アクセスコード：ID":
+                case "hSD01-006-SorAZ シンパシー":
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
                 case "hBP01-042-きｔらあああ":
                 case "hBP01-038-こんぺこー！":
                 case "hSD01-011-デスティニーソング":
@@ -923,6 +1021,40 @@ namespace Assets.Scripts.Lib
                         return WaitForServerResponse();
                     });
                     break;
+                case "hBP01-072-WAZZUP!!":
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
+                        return WaitForServerResponse();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        RollDiceTilNotAbleOrDontWantTo(_DuelActionR);
+                        return dummy();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        int diceRoll = GetLastValue<int>();
+
+                        bool hasRedEnergy = false;
+
+                        Card thisCard = _DuelActionR.usedCard.cardPosition.Equals("Stage") ? _DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentInChildren<Card>() : _DuelField.GetZone("Collaboration", TargetPlayer.Player).GetComponentInChildren<Card>();
+
+                        foreach (GameObject cardObj in thisCard.attachedEnergy) { 
+                            Card card = cardObj.GetComponent<Card>();
+                            if (card.color.Equals("赤"))
+                                hasRedEnergy = true;
+                        }
+
+                        if (IsOddNumber(diceRoll) || !hasRedEnergy){
+                            menuActions.Clear();
+                            return dummy();
+                        }
+
+                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
                 case "hSD01-013-越えたい未来":
                     menuActions.Add(() =>
                     {
@@ -940,11 +1072,45 @@ namespace Assets.Scripts.Lib
                         return WaitForServerResponse();
                     });
                     break;
+                case "hBP01-062-キッケリキー！":
+                    menuActions.Add(() =>
+                    {
+                        return _DuelField_YesOrNoMenu.ShowYesOrNoMenu();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        string WillActivate = (string)EffectInformation[0];
+
+                        if (!WillActivate.Equals("Yes") || _DuelField.cardsPlayer.Count > 0)
+                        {
+                            menuActions.Clear();
+                            return null;
+                        }
+                        List<Card> canSelect = _DuelField.cardHolderPlayer.GetComponentsInChildren<Card>().ToList();
+                        return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionR, canSelect, canSelect);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        List<string> cardnumber = GetLastValue<List<string>>();
+                        _DuelActionR.actionObject = cardnumber[0];
+                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
             }
             StartCoroutine(StartMenuSequenceCoroutine());
 
 
         }
+
+        private bool IsOddNumber(int x)
+        {
+            if ((x & 1) == 0)
+                return false;
+            else
+                return true;
+        }
+
         public IEnumerator RetreatArt(DuelAction _DuelActionR)
         {
             //pay the cost
@@ -954,14 +1120,6 @@ namespace Assets.Scripts.Lib
                 var zonesThatPlayerCanSelect = new string[] { _DuelActionR.usedCard.cardPosition };
                 return _DuelField_DetachEnergyOrEquipMenu.SetupSelectableItems(_DuelActionR, AddCostToEffectInformation: true, zonesThatPlayerCanSelect);
             });
-            /*
-            * this is comented, but in the future we may need to implement a counter to be able to charge more than 1 energy for retrat depending of the card
-            menuActions.Add(() =>
-            {
-                
-                return _DuelField_DetachEnergyMenu.SetupSelectableItems(_DuelActionR, AddCostToEffectInformation: true);
-            });
-            */
             //select the card to return to back
             menuActions.Add(() =>
             {
@@ -972,8 +1130,6 @@ namespace Assets.Scripts.Lib
             menuActions.Add(() =>
             {
                 duelActionOutput = (DuelAction)EffectInformation[1];
-                //duelActionOutput.cardList = new List<Card>() { (Card)EffectInformation[0] };//, (Card)EffectInformation[1] };
-                //duelActionOutput.cheerCostCard = (CardData.CreateCardDataFromCard((Card)EffectInformation[0]));
                 _DuelField.GenericActionCallBack(duelActionOutput, "Retreat");
                 return dummy();
             });
@@ -1022,7 +1178,7 @@ namespace Assets.Scripts.Lib
                     {
                         string WillActivate = (string)EffectInformation[0];
 
-                        if (!WillActivate.Equals("Yes"))
+                        if (!WillActivate.Equals("Yes") || _DuelField.cardsPlayer.Count > 0)
                         {
                             menuActions.Clear();
                             return null;
@@ -1056,10 +1212,12 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnCollabEffect");
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     break;
+                case "hBP01-014":
+                case "hBP01-013":
                 case "hBP01-030":
                     menuActions.Add(() =>
                     {
@@ -1067,9 +1225,250 @@ namespace Assets.Scripts.Lib
                         return WaitForServerResponse();
                     });
                     break;
+                case "hBP01-060":
+                    menuActions.Add(() =>
+                    {
+                        List<Card> canSelect = _DuelField.cardHolderPlayer.GetComponentsInChildren<Card>().ToList();
+                        return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionFirstAction, canSelect, canSelect);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        List<string> cardnumber = GetLastValue<List<string>>();
+                        _DuelActionFirstAction.actionObject = cardnumber[0];
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hBP01-012":
+                    menuActions.Add(() =>
+                    {
+                        return _DuelField_YesOrNoMenu.ShowYesOrNoMenu();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        string WillActivate = (string)EffectInformation[0];
+
+                        if (!WillActivate.Equals("Yes") || _DuelField.cardsPlayer.Count > 0)
+                        {
+                            menuActions.Clear();
+                            return null;
+                        }
+                        _DuelActionFirstAction.actionObject = WillActivate;
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        return WaitForServerResponse();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        int diceRoll = GetLastValue<int>();
+                        if (diceRoll > 3)
+                        {
+                            menuActions.Clear();
+                            return null;
+                        }
+
+                        RollDiceTilNotAbleOrDontWantTo(_DuelActionFirstAction);
+                        return dummy();
+                    });
+                    menuActions.Add(() =>
+                    {
+                        DuelAction da = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        List<Card> canSelect = _DuelField.cardHolderPlayer.GetComponentsInChildren<Card>().ToList();
+                        return _DuelField_ShowAlistPickOne.SetupSelectableItems(da, da.cardList, da.cardList);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction, target: TargetPlayer.Player);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        DuelAction duelaction = GetLastValue<DuelAction>();
+                        List<string> cardnumber = GetLastValue<List<string>>(1);
+                        duelaction.actionObject = cardnumber[0];
+                        _DuelField.GenericActionCallBack(duelaction, "ResolveOnBloomEffect");
+                        return WaitForServerResponse();
+                    });
+                    break;
+                case "hBP01-090":
+                    string WillActivate = "";
+                    //select if active
+                    menuActions.Add(() =>
+                    {
+                        if (_DuelField.GetZone("CardCheer", TargetPlayer.Player).gameObject.transform.childCount - 1 < 1)
+                        {
+                            menuActions.Clear();
+                            return dummy();
+                        }
+
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        return WaitForServerResponse();
+                    });
+
+                    menuActions.Add(() =>
+                    {
+                        return _DuelField_YesOrNoMenu.ShowYesOrNoMenu();
+                    });
+
+                    menuActions.Add(() =>
+                    {
+                        WillActivate = (string)EffectInformation[0];
+
+                        if (!WillActivate.Equals("Yes"))
+                        {
+                            menuActions.Clear();
+                            return null;
+                        }
+
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        List<Card> cheerList = JsonConvert.DeserializeObject<List<Card>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        
+                        if (cheerList.Count == 0)
+                        {
+                            menuActions.Clear();
+                            return null;
+                        }
+
+                        //show the list to the player, player pick 1
+                        return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionFirstAction, cheerList, cheerList);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        List<string> cardnumber = (List<string>)EffectInformation[1];
+                        _DuelActionFirstAction.usedCard = new CardData() { cardNumber = cardnumber[0] };
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction, TargetPlayer.Player);
+                    });
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = (DuelAction)EffectInformation[2];
+                        duelActionOutput.actionObject = WillActivate;
+
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
+                        return dummy();
+                    });
+                    break;
+                case "hBP01-037":
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        return WaitForServerResponse();
+                    });
+                    //target the card
+                    menuActions.Add(() =>
+                    {
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player);
+                    });
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = GetLastValue<DuelAction>();
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
+
+                        return WaitForServerResponse();
+
+                    });
+                    break;
+                case "hBP01-081":
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        return WaitForServerResponse();
+                    });
+                    //target the card
+                    menuActions.Add(() =>
+                    {
+                        string[] targetZones = GetAreasThatContainsCardWithColorOrTagOrName(color: "青");
+
+                        if (targetZones.Length < 1)
+                        {
+                            menuActions.Clear();
+                            return null;
+                        }
+
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player, targetZones);
+                    });
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = GetLastValue<DuelAction>();
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
+
+                        return WaitForServerResponse();
+
+                    });
+                    break;
+                case "hBP01-054":
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        return WaitForServerResponse();
+                    });
+                    //target the card
+                    menuActions.Add(() =>
+                    {
+                        string[] targetZones = GetAreasThatContainsCardWithColorOrTagOrName(tag:"#ID");
+                        string[] removeZones = GetAreasThatContainsCardWithColorOrTagOrName(name: "アイラニ・イオフィフティーン");
+
+                        string[] filteredZones = targetZones.Except(removeZones).ToArray();
+
+                        if (targetZones.Length < 1)
+                        {
+                            menuActions.Clear();
+                            return null;
+                        }
+
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player, filteredZones);
+                    });
+                    //inform the server
+                    menuActions.Add(() =>
+                    {
+                        duelActionOutput = GetLastValue<DuelAction>();
+                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
+
+                        return WaitForServerResponse();
+
+                    });
+                    break;
             }
 
         }
+
+        private string[] GetAreasThatContainsCardWithColorOrTagOrName(string color = "", string tag = "", string name = "")
+        {
+            List<Card> allAttachments = new();
+            List<string> list = new();
+
+            allAttachments.AddRange(_DuelField.GetZone("BackStage1", TargetPlayer.Player).GetComponentsInChildren<Card>());
+            allAttachments.AddRange(_DuelField.GetZone("BackStage2", TargetPlayer.Player).GetComponentsInChildren<Card>());
+            allAttachments.AddRange(_DuelField.GetZone("BackStage3", TargetPlayer.Player).GetComponentsInChildren<Card>());
+            allAttachments.AddRange(_DuelField.GetZone("BackStage4", TargetPlayer.Player).GetComponentsInChildren<Card>());
+            allAttachments.AddRange(_DuelField.GetZone("BackStage5", TargetPlayer.Player).GetComponentsInChildren<Card>());
+            allAttachments.AddRange(_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentsInChildren<Card>());
+            allAttachments.AddRange(_DuelField.GetZone("Collaboration", TargetPlayer.Player).GetComponentsInChildren<Card>());
+
+            if (!string.IsNullOrEmpty(color))
+            {
+                foreach (Card card in allAttachments)
+                    if (card.color.Equals(color))
+                        list.Add(card.gameObject.transform.parent.name);
+            }
+            else if (!string.IsNullOrEmpty(tag))
+            {
+                foreach (Card card in allAttachments)
+                    if (card.cardTag.Contains(tag))
+                        list.Add(card.gameObject.transform.parent.name);
+            }
+            else if (!string.IsNullOrEmpty(name))
+            {
+                foreach (Card card in allAttachments)
+                    if (card.cardName.Contains(name))
+                        list.Add(card.gameObject.transform.parent.name);
+            }
+
+            return list.ToArray();
+        }
+
         public IEnumerator StartMenuSequenceCoroutine()
         {
             while (menuActions.Count > 0)
@@ -1092,6 +1491,7 @@ namespace Assets.Scripts.Lib
                     yield return StartCoroutine(nextMenu());
                 }
             }
+
         }
         public IEnumerator dummy()
         {

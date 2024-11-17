@@ -398,11 +398,6 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                 Destroy(this);
                 break;
         }
-
-
-        //   if (!validDropZoneFound)
-
-        //        rectTransform = defaultValues.ApplyToRectTransform(rectTransform);
     }
 
     void AttachCardToCard(GameObject FatherZone, GameObject Card)
