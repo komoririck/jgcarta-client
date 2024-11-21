@@ -43,7 +43,7 @@ public class DeckEditor : MonoBehaviour
     private bool isOneClick = false;
 
     [SerializeField] public GameObject CardDetailPanel;
-    string clickedCardNumber = "";
+    Card clickedCard;
 
     private void Start()
     {
@@ -83,10 +83,9 @@ public class DeckEditor : MonoBehaviour
             cardPool.ReturnCard(child.gameObject);  // Recycle cards instead of destroying
         }
 
-        // Filter records based on the search input
         List<Record> query = string.IsNullOrEmpty(filter)
-            ? FileReader.result
-            : FileReader.result.Where(r => r.CardNumber.Contains(filter, System.StringComparison.OrdinalIgnoreCase)).ToList();
+            ? FileReader.result.AsQueryable().Select(r => r.Value).ToList()
+            : new () {FileReader.result[filter]};
 
         // Display each matching card
         foreach (Record record in query)
@@ -150,7 +149,7 @@ public class DeckEditor : MonoBehaviour
         }
         else
         {
-            clickedCardNumber = thisCard.GetComponentInChildren<Card>().cardNumber;
+            clickedCard = thisCard.GetComponentInChildren<Card>();
 
             // First click detected
             isOneClick = true;
@@ -231,9 +230,7 @@ public class DeckEditor : MonoBehaviour
     void OpenCardDetailMenu()
     {
         CardDetailPanel.SetActive(true);
-        Card card = CardDetailPanel.GetComponentInChildren<Card>();
-        card.cardNumber = clickedCardNumber;
-        card.GetCardInfo();
+        Card card = CardDetailPanel.transform.Find("CardPanelInfo").GetComponent<Card>().SetCardNumber(clickedCard.cardNumber).GetCardInfo(true);
     }
 
     public void ImportDeckFromClipBoard()

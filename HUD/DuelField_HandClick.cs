@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Collections;
 using System.Linq;
 using Assets.Scripts.Lib;
+using Unity.VisualScripting;
 
 public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
 {
@@ -111,9 +112,10 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
             if (string.IsNullOrEmpty(GetComponentInChildren<Card>().cardNumber))
                 return;
 
-            if (_DuelfField_CardDetailViewer == null)
-                    _DuelfField_CardDetailViewer = FindAnyObjectByType<DuelfField_CardDetailViewer>(FindObjectsInactive.Include);
-            _DuelfField_CardDetailViewer.SetItemList(this.transform.parent.GetComponentsInChildren<Transform>(true), isViewMode);
+            _DuelfField_CardDetailViewer??= FindAnyObjectByType<DuelfField_CardDetailViewer>(FindObjectsInactive.Include);
+
+            List<Card> Cards = this.transform.parent.GetComponentsInChildren<Card>(true).ToList();
+            _DuelfField_CardDetailViewer.SetCardListToBeDisplayed(ref Cards, isViewMode, GetComponent<Card>());
         }
     }
 

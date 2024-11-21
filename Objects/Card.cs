@@ -105,8 +105,9 @@ public class Card : MonoBehaviour
 
         if (cardNumber.Equals("0") || string.IsNullOrEmpty(cardNumber) )
             return null;
-        
-        foreach (Record record in FileReader.result) {
+
+        Record record = FileReader.result[cardNumber];
+
             if (record.CardNumber == cardNumber)
             {
                 this.cardNumber = record.CardNumber;
@@ -155,7 +156,7 @@ public class Card : MonoBehaviour
                     Arts.Add(new Art { Name = "Retreat", Cost = new List<(string Color, int Amount)>() { ("無色", 1) }, Effect = "Return this card o the backstage" });
                 }
             }
-        }
+
         if (this.currentHp == 0 && (cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン"))) {
             currentHp = int.Parse(hp);
         }

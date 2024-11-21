@@ -614,7 +614,7 @@ namespace Assets.Scripts.Lib
                         if (GetLastValue<int>(1) < 3)
                         {
                             menuActions.Clear();
-                            return null;
+                            return dummy();
                         }
 
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(duelActionInput, duelActionInput.cardList, duelActionInput.cardList);
@@ -1097,10 +1097,15 @@ namespace Assets.Scripts.Lib
                         return WaitForServerResponse();
                     });
                     break;
+                default:
+                    menuActions.Add(() =>
+                    {
+                        _DuelField.GenericActionCallBack(_DuelActionR, "resolveArt");
+                        return dummy();
+                    });
+                    break;
             }
             StartCoroutine(StartMenuSequenceCoroutine());
-
-
         }
 
         private bool IsOddNumber(int x)
@@ -1139,11 +1144,9 @@ namespace Assets.Scripts.Lib
         }
         internal void ResolveOnDamageResolveEffect(DuelAction _DuelActionDamageResolveFirst)
         {
-            menuActions = new List<Func<IEnumerator>>();
-            List<Card> holoPowerList;
-            EffectInformation.Clear();
+            bool WillActivate = false;
 
-            if (!CanActivateDamageStepEffect())
+            if (!CanActivateDamageStepEffect() || !WillActivate)
             {
 
                 DuelAction _response = new()
@@ -1151,10 +1154,9 @@ namespace Assets.Scripts.Lib
                     actionObject = "false"
                 };
 
-                _DuelField.GenericActionCallBack(_response, "ResolveDamageToHolomem");
+                _DuelField.GenericActionCallBack(_response, "AskServerToResolveDamageToHolomem");
                 return;
             }
-
 
             switch (_DuelActionDamageResolveFirst.usedCard.cardNumber)
             {

@@ -9,6 +9,8 @@ using static DuelField;
 using System;
 using System.Collections;
 using Unity.VisualScripting;
+using static UnityEditor.PlayerSettings;
+using Unity.Collections.LowLevel.Unsafe;
 
 public class DuelfField_CardDetailViewer : MonoBehaviour
 {
@@ -43,8 +45,26 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
         DetectSwipe();
     }
 
-    public void SetItemList(Transform[] newItemList, bool viewmode)
+    public void SetCardListToBeDisplayed(ref List<Card> _CarditemList, bool viewmode, Card clickedCard)
     {
+
+        if (_CarditemList[0].transform.parent.name.Equals("PlayerHand") || _CarditemList[0].transform.parent.name.Equals("Content"))
+        {
+            int n = 0;
+            foreach (Card card in _CarditemList)
+            {
+                if (card == clickedCard)
+                    break;
+                n++;
+            }
+            currentIndex = n;
+
+        }
+        else {
+            _CarditemList.Reverse();
+            currentIndex = 0;
+        }
+
         isViewMode = viewmode;
 
         if (CardPanel.gameObject.activeInHierarchy == true)
@@ -52,24 +72,13 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
 
         CardPanel.SetActive(true);
 
-        Array.Reverse(newItemList);
-
-        if (newItemList == null || newItemList.Count() == 0)
+        if (_CarditemList == null || _CarditemList.Count() == 0)
         {
             Debug.LogWarning("Item list is null or empty.");
             return;
         }
 
-        CarditemList = new List<Card>();
-        foreach (Transform cardObj in newItemList)
-        {
-            Card card = cardObj.GetComponent<Card>();
-            if (card != null)
-            {
-                CarditemList.Add(card);
-            }
-        }
-        currentIndex = 0; // Reset to the first item
+        CarditemList = _CarditemList;
         UpdateDisplayAsync();
     }
 
@@ -145,10 +154,9 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
             if ((CarditemList[currentIndex].cardType.Equals("ホロメン") || CarditemList[currentIndex].cardType.Equals("Buzzホロメン"))
                 && CarditemList[currentIndex].cardPosition.Equals("Collaboration") || CarditemList[currentIndex].cardPosition.Equals("Stage")
                 && _DuelField._MatchConnection._DuelFieldData.currentGamePhase == DuelFieldData.GAMEPHASE.MainStep
-                && CarditemList[currentIndex].playedThisTurn == false
                 && _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn.Equals(_DuelField.PlayerInfo.PlayerID)
                 && !isViewMode
-                && CarditemList[currentIndex].transform.parent.parent.name.Equals("Oponente"))
+                && CarditemList[currentIndex].transform.parent.parent.name.Equals("Player"))
             {
                 _DuelField.ArtPanel.SetActive(true);
                 _DuelField.OshiPowerPanel.SetActive(false);

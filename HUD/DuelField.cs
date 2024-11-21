@@ -544,7 +544,6 @@ public class DuelField : MonoBehaviour
                             {
                                 EndTurnButton.SetActive(false);
                                 cardlist.Clear();
-                                cardlist = FileReader.QueryRecordsByType(new List<string>() { });
                             }
 
                             _MatchConnection._DuelFieldData.currentGamePhase = GAMEPHASE.HolomemDefeated;
@@ -605,7 +604,7 @@ public class DuelField : MonoBehaviour
 
                         currentGameHigh++;
 
-                        target = (_MatchConnection._DuelFieldData.currentPlayerTurn == PlayerInfo.PlayerID) ? TargetPlayer.Player : TargetPlayer.Oponnent;
+                        target = (SrvMessageCounter_DuelAction.playerID.Equals(PlayerInfo.PlayerID)) ? TargetPlayer.Player : TargetPlayer.Oponnent;
 
                         // if player still have cheer, we attach, else, we skip
                         if (!playerCannotDrawFromCheer)
@@ -770,7 +769,7 @@ public class DuelField : MonoBehaviour
 
                         usedCardGameObjectCard.bloomChild.Add(FatherZoneActiveCard);
                         usedCardGameObjectCard.attachedEnergy = FatherZoneActiveCard.GetComponent<Card>().attachedEnergy;
-                        usedCardGameObjectCard.attachedEnergy = null;
+                        FatherZoneActiveCard.GetComponent<Card>().attachedEnergy = null;
 
                         usedCardGameObjectCard.playedFrom = "hand";
                         usedCardGameObjectCard.playedThisTurn = true;
@@ -1234,7 +1233,7 @@ public class DuelField : MonoBehaviour
         }
     }
     ////////////////////////////////////////////////////////////////////////
-    public void GenericActionCallBack(DuelAction _DuelAction, string type = "standart")
+    public void GenericActionCallBack(DuelAction _DuelAction, string type)
     {
         JsonSerializerSettings settings = new JsonSerializerSettings
         {
@@ -1246,31 +1245,6 @@ public class DuelField : MonoBehaviour
         string jsonString;
         switch (type)
         {
-            case "ResolveOnAttachEffect":
-            case "ResolveRerollEffect":
-            case "ResolveDamageToHolomem":
-            case "AttachEquipamentToHolomem":
-            case "DoCollab":
-            case "BloomHolomem":
-            case "PlayHolomem":
-            case "ResolveOnOshiEffect":
-            case "ResolveOnOshiSPEffect":
-            case "doArt":
-            case "Retreat":
-            case "ResolveOnSupportEffect":
-            case "ReSetCardAtStage":
-            case "ResolveOnArtEffect":
-            case "ResolveOnCollabEffect":
-            case "PickFromListThenGiveBacKFromHand": //hSD01-007
-            case "SuporteEffectAttachEnergyIf":
-            case "ContinueCurrentPlayerTurn":
-            case "MainConditionedSummomResponse":
-            case "SuporteEffectSummomIf":
-                _DuelAction.playerID = PlayerInfo.PlayerID;
-                jsonString = JsonConvert.SerializeObject(_DuelAction, settings);
-                _ = _MatchConnection.SendCallToServer(PlayerInfo.PlayerID, PlayerInfo.Password, type, "", jsonString);
-                LockGameFlow = false;
-                break;
             case "Endturn":
                 _ = _MatchConnection.SendCallToServer(PlayerInfo.PlayerID, PlayerInfo.Password, "MainEndturnRequest", "Endturn");
                 _MatchConnection._DuelFieldData.currentGamePhase = GAMEPHASE.EndStep;
@@ -1288,6 +1262,12 @@ public class DuelField : MonoBehaviour
                 _DuelAction.playerID = PlayerInfo.PlayerID;
                 jsonString = JsonConvert.SerializeObject(_DuelAction);
                 _ = _MatchConnection.SendCallToServer(PlayerInfo.PlayerID, PlayerInfo.Password, "MainDoActionRequest", "", jsonString);
+                LockGameFlow = false;
+                break;
+            default:
+                _DuelAction.playerID = PlayerInfo.PlayerID;
+                jsonString = JsonConvert.SerializeObject(_DuelAction, settings);
+                _ = _MatchConnection.SendCallToServer(PlayerInfo.PlayerID, PlayerInfo.Password, type, "", jsonString);
                 LockGameFlow = false;
                 break;
         }
@@ -1387,16 +1367,17 @@ public class DuelField : MonoBehaviour
             handDragDrop.enabled = false;
         }
 
-        if (!_MatchConnection._DuelFieldData.currentPlayerTurn.Equals(PlayerInfo.PlayerID) && _MatchConnection._DuelFieldData.currentGamePhase != GAMEPHASE.SettingUpBoard)
+        if (!_MatchConnection._DuelFieldData.currentPlayerTurn.Equals(PlayerInfo.PlayerID) 
+            && !(_MatchConnection._DuelFieldData.currentGamePhase == GAMEPHASE.SettingUpBoard 
+            || _MatchConnection._DuelFieldData.currentGamePhase == GAMEPHASE.HolomemDefeatedEnergyChoose) )
             clearList = true;
 
-        List<Record> cList = new();
         if (!clearList)
         {
             switch (_MatchConnection._DuelFieldData.currentGamePhase)
             {
-                case GAMEPHASE.CheerStepChoose:
                 case GAMEPHASE.HolomemDefeatedEnergyChoose:
+                case GAMEPHASE.CheerStepChoose:
                     foreach (RectTransform r in cardsPlayer)
                     {
                         Card cardComponent = r.GetComponent<Card>();
@@ -1538,10 +1519,30 @@ public class DuelField : MonoBehaviour
     }
 
 
-    public bool CheckForPlayEquipRestrictions(Card card)
+    public bool HasRestrictionsToPlayEquip(Card card, Card target)
     {
         switch (card.cardNumber)
         {
+            case "hBP01-123":
+                if (target.name.Equals("兎田ぺこら"))
+                    return false;
+                break;
+            case "hBP01-122":
+                if (target.name.Equals("アキ・ローゼンタール"))
+                    return false;
+                break;
+            case "hBP01-126":
+                if (target.name.Equals("尾丸ポルカ"))
+                    return false;
+                break;
+            case "hBP01-125":
+                if (target.name.Equals("小鳥遊キアラ"))
+                    return false;
+                break;
+            case "hBP01-124":
+                if (target.name.Equals("AZKi") || target.name.Equals("SorAZ"))
+                    return false;
+                break;
             case "hBP01-114":
             case "hBP01-116":
             case "hBP01-117":
@@ -2237,7 +2238,6 @@ public class DuelField : MonoBehaviour
                     Destroy(card.gameObject);
                 }
             }
-
         }
         else
         {

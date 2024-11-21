@@ -191,7 +191,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                     else if (thisCard.cardType.Equals("サポート・ツール") || thisCard.cardType.Equals("サポート・マスコット") || thisCard.cardType.Equals("サポート・ファン"))
                     {
 
-                        if (!_DuelField.CheckForPlayEquipRestrictions(thisCard))
+                        if (_DuelField.HasRestrictionsToPlayEquip(thisCard, targetCard))
                             break;
 
                         _DuelAction = new DuelAction()
@@ -353,51 +353,35 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
 
     void PerformActionBasedOnDropZone(string zoneType, bool toBack = false)
     {
-        Card thisCard;
+        Card thisCard = GetComponentInChildren<Card>();
 
         switch (zoneType)
         {
             case "Collaboration":
                 _DuelField.SendCardToZone(gameObject, "Collaboration", TargetPlayer.Player, toBack);
-                _DuelField.cardsPlayer.Remove(gameObject.GetComponent<RectTransform>());
-                thisCard = GetComponentInChildren<Card>();
                 thisCard.playedFrom = "hand";
                 thisCard.cardPosition = zoneType;
-                thisCard.playedThisTurn = true;
-                rectTransform.anchoredPosition = Vector2.zero;
-                _DuelField.UpdateHP(thisCard);
-                Destroy(this);
                 break;
             case "Stage":
-
-
                 _DuelField.SendCardToZone(gameObject, "Stage", TargetPlayer.Player, toBack);
-                _DuelField.cardsPlayer.Remove(gameObject.GetComponent<RectTransform>());
-                thisCard = GetComponentInChildren<Card>();
                 thisCard.playedFrom = "hand";
                 thisCard.cardPosition = zoneType;
-                thisCard.playedThisTurn = true;
-                rectTransform.anchoredPosition = Vector2.zero;
-                _DuelField.UpdateHP(thisCard);
-                Destroy(this);
                 break;
             case "BackStage1":
             case "BackStage2":
             case "BackStage3":
             case "BackStage4":
             case "BackStage5":
-
                 _DuelField.SendCardToZone(gameObject, zoneType, TargetPlayer.Player, toBack);
-                _DuelField.cardsPlayer.Remove(gameObject.GetComponent<RectTransform>());
-                thisCard = GetComponentInChildren<Card>();
                 thisCard.playedFrom = "hand";
                 thisCard.cardPosition = zoneType;
-                thisCard.playedThisTurn = true;
-                rectTransform.anchoredPosition = Vector2.zero;
-                _DuelField.UpdateHP(thisCard);
-                Destroy(this);
                 break;
         }
+        _DuelField.cardsPlayer.Remove(gameObject.GetComponent<RectTransform>());
+        thisCard.playedThisTurn = true;
+        rectTransform.anchoredPosition = Vector2.zero;
+        _DuelField.UpdateHP(thisCard);
+        Destroy(this);
     }
 
     void AttachCardToCard(GameObject FatherZone, GameObject Card)
@@ -475,7 +459,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
     }
     public void EffectQuestionNoButton(DuelAction duelAction)
     {
-        _DuelField.GenericActionCallBack(duelAction);
+        _DuelField.GenericActionCallBack(duelAction, "standart");
         EffectQuestionPainel.SetActive(false);
     }
 }
