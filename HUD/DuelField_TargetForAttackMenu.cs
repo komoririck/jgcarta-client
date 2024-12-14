@@ -32,6 +32,9 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
         this.usedCard.cardNumber = _DuelAction.usedCard.cardNumber;
         usedCard.GetCardInfo();
 
+
+        _DuelField.PopulateSelectableCards(target, new string[] { "Stage", "Collaboration" }, CardListContent.gameObject, SelectableCards);
+
         //some cards have limitations for target
         switch (_DuelAction.usedCard.cardNumber)
         {
@@ -47,8 +50,10 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
                 _DuelField.PopulateSelectableCards(target, new string[] { "Stage", "Collaboration" }, CardListContent.gameObject, SelectableCards);
                 break;
         }
-
-        _DuelField.PopulateSelectableCards(target, new string[] { "Stage", "Collaboration"}, CardListContent.gameObject, SelectableCards);
+        if (_DuelField.GetZone("Collaboration", TargetPlayer.Oponnent).GetComponentInChildren<Card>().cardNumber.Equals("hBP01-050")) {
+        //GIFT: Bodyguard
+            _DuelField.PopulateSelectableCards(target, new string[] {"Collaboration"}, CardListContent.gameObject, SelectableCards);
+        }
 
         int x = 0;  // Variable to track order
         foreach (Card item in SelectableCards)

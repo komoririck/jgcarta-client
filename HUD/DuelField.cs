@@ -8,12 +8,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using TMPro;
-using Unity.Burst.Intrinsics;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using static DuelField;
 using static DuelFieldData;
 
 public class DuelField : MonoBehaviour
@@ -32,19 +30,17 @@ public class DuelField : MonoBehaviour
 
     PhaseMessage GamePhaseMsg;
 
-    /// <summary>
-    public RectTransform cardHolderPlayer; // The container holding the cards (this will define the available space)
-    public List<RectTransform> cardsPlayer; // List of card RectTransforms
+    public RectTransform cardHolderPlayer;
+    public List<RectTransform> cardsPlayer; 
 
-    public RectTransform cardHolderOponnent; // The container holding the cards (this will define the available space)
-    public List<RectTransform> cardsOponnent; // List of card RectTransforms
+    public RectTransform cardHolderOponnent;
+    public List<RectTransform> cardsOponnent; 
 
-    public RectTransform cardLifeHolderA; // The container holding the cards (this will define the available space)
-    public List<RectTransform> cardsLifeStageA; // List of card RectTransforms
+    public RectTransform cardLifeHolderA; 
+    public List<RectTransform> cardsLifeStageA; 
 
-    public RectTransform cardLifeHolderB; // The container holding the cards (this will define the available space)
-    public List<RectTransform> cardsLifeStageB; // List of card RectTransforms
-    /// <summary>
+    public RectTransform cardLifeHolderB; 
+    public List<RectTransform> cardsLifeStageB;
 
     public GameObject DeckPlayer;
     public GameObject DeckOponnent;
@@ -866,6 +862,25 @@ public class DuelField : MonoBehaviour
                         }
                         currentGameHigh++;
                         break;
+                    case "MoveCardToZone":
+                        target = SrvMessageCounter_DuelAction.playerID.Equals(PlayerInfo.PlayerID) ? TargetPlayer.Player : TargetPlayer.Oponnent;
+                        GameObject OrigemZone = GetZone(SrvMessageCounter_DuelAction.usedCard.playerdFrom, target);
+                        GameObject targetObj = OrigemZone.transform.GetChild(OrigemZone.transform.childCount -1).gameObject;
+
+                        if (target.Equals(TargetPlayer.Player))
+                            if (!string.IsNullOrEmpty(SrvMessageCounter_DuelAction.usedCard.cardNumber)) 
+                                foreach (Card _card in OrigemZone.GetComponentsInChildren<Card>()) 
+                                    if (_card.cardNumber.Equals(SrvMessageCounter_DuelAction.usedCard.cardNumber)) 
+                                        targetObj = _card.gameObject;
+                                    
+                        if (SrvMessageCounter_DuelAction.usedCard.cardPosition.Equals("Hand")) {
+                            var handcardlist = (target.Equals(TargetPlayer.Player)) ? cardsPlayer : cardsOponnent;
+                            handcardlist.Add(targetObj.GetComponent<RectTransform>());
+                        }
+
+                        SendCardToZone(targetObj, SrvMessageCounter_DuelAction.usedCard.cardPosition, target);
+                        currentGameHigh++;
+                        break;
                     case "DisposeUsedSupport":
                         target = SrvMessageCounter_DuelAction.playerID.Equals(PlayerInfo.PlayerID) ? TargetPlayer.Player : TargetPlayer.Oponnent;
                         AddCardToGameZone(GetZone("Arquive", target), new List<Card>() { new Card("") { cardNumber = SrvMessageCounter_DuelAction.usedCard.cardNumber } });
@@ -990,7 +1005,6 @@ public class DuelField : MonoBehaviour
                         {
                             RemoveCardsFromCardHolder(SrvMessageCounter_DuelAction.cardList.Count, cardsOponnent, cardHolderOponnent);
                         }
-
                         currentGameHigh++;
                         break;
                     case "DrawOshiEffect":
@@ -1039,6 +1053,12 @@ public class DuelField : MonoBehaviour
                         }
 
                         DrawCard(SrvMessageCounter_DuelAction);
+                        currentGameHigh++;
+                        break;
+                    case "ShowCard":
+                        List<int> ShowDuelAction = JsonConvert.DeserializeObject<List<int>>(SrvMessageCounter_DuelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        _EffectController.EffectInformation.AddRange(ShowDuelAction);
+                        _EffectController.isServerResponseArrive = true;
                         currentGameHigh++;
                         break;
                     case "RollDice":
@@ -1444,8 +1464,10 @@ public class DuelField : MonoBehaviour
                         }
                         else if (cardComponent.cardType.Equals("サポート・ツール") || cardComponent.cardType.Equals("サポート・マスコット") || cardComponent.cardType.Equals("サポート・ファン"))
                         {
-                            DuelField_HandDragDrop handDragDrop = r.GetComponent<DuelField_HandDragDrop>() ?? r.gameObject.AddComponent<DuelField_HandDragDrop>();
-                            handDragDrop.enabled = true;
+                            if (!HasRestrictionsToPlayEquipCheckField(cardComponent)) { 
+                               DuelField_HandDragDrop handDragDrop = r.GetComponent<DuelField_HandDragDrop>() ?? r.gameObject.AddComponent<DuelField_HandDragDrop>();
+                               handDragDrop.enabled = true;
+                            }
                         }
 
                     }
@@ -1518,7 +1540,22 @@ public class DuelField : MonoBehaviour
         return true;
     }
 
-
+    public bool HasRestrictionsToPlayEquipCheckField(Card card) {
+        foreach (Card target in GameObject.Find("MatchField").transform.Find("Player").GetComponentsInChildren<Card>())
+            if (HasRestrictionsToPlayEquip(card, target)
+                && (target.cardPosition.Equals("Stage")
+                || target.cardPosition.Equals("Collaboration")
+                || target.cardPosition.Equals("BackStage1")
+                || target.cardPosition.Equals("BackStage2")
+                || target.cardPosition.Equals("BackStage3")
+                || target.cardPosition.Equals("BackStage4")
+                || target.cardPosition.Equals("BackStage5"))
+                && target.gameObject.activeInHierarchy)
+            {
+                return false;
+            }
+        return true;
+    }
     public bool HasRestrictionsToPlayEquip(Card card, Card target)
     {
         switch (card.cardNumber)
@@ -2273,7 +2310,7 @@ public class DuelField : MonoBehaviour
 
         if (currentPlayer.Equals(PlayerInfo.PlayerID))
         {
-            RemoveCardFromZone(GetZone("Deck", TargetPlayer.Player), 1);
+            //RemoveCardFromZone(GetZone("Deck", TargetPlayer.Player), 1);
         }
         else
         {

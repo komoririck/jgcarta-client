@@ -26,14 +26,14 @@ public class DuelField_DetachCardMenu : MonoBehaviour
    
 
     private EffectController effectController;
-    bool _AddCostToEffectInformation;
+    bool _AddOnlyCostToEffectInformation;
 
     bool CHEER = true;
 
-    public IEnumerator SetupSelectableItems(DuelAction _DuelAction, bool AddCostToEffectInformation = false, string[] zonesThatPlayerCanSelect = null, bool Cheer = true)
+    public IEnumerator SetupSelectableItems(DuelAction _DuelAction, bool AddCostToEffectInformation = false, string[] zonesThatPlayerCanSelect = null, bool IsACheer = true)
     {
-        _AddCostToEffectInformation = AddCostToEffectInformation;
-        CHEER = Cheer;
+        _AddOnlyCostToEffectInformation = AddCostToEffectInformation;
+        CHEER = IsACheer;
 
         duelAction = _DuelAction;
         this.usedCard.cardNumber = _DuelAction.usedCard.cardNumber;
@@ -61,7 +61,7 @@ public class DuelField_DetachCardMenu : MonoBehaviour
             newC.attachedEquipe = item.attachedEquipe;
 
             List<GameObject> ListToSelectFrom = new();
-            if (Cheer)
+            if (IsACheer)
             {
                 ListToSelectFrom = newC.attachedEnergy;
             }
@@ -148,7 +148,7 @@ public class DuelField_DetachCardMenu : MonoBehaviour
             }
         }
 
-        if (_AddCostToEffectInformation)
+        if (_AddOnlyCostToEffectInformation)
         {
             effectController.EffectInformation.Add(new Card(returnCard.cardNumber, returnCard.cardPosition));
         }

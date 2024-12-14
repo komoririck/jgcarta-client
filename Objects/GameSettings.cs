@@ -4,9 +4,6 @@ using UnityEngine;
 
 public class GameSettings : MonoBehaviour
 {
-    public string PlayerAuthToken = "";
-    public int PlayerID = 0;
-
     public string OnlineMode = "S";
     public string Language = "EN";
     public int GameBGMVolume = 100;
@@ -15,14 +12,4 @@ public class GameSettings : MonoBehaviour
     public int GameResolution = 1;
     public List<string> GameUpdates = new();
     public List<Card> ForbbidenCardList = new();
-
-    void Start()
-    {
-        
-    }
-
-    void Update()
-    {
-        
-    }
 }

@@ -7,16 +7,12 @@ using System.Threading.Tasks;
 using System.Linq;
 using static DuelField;
 using System;
-using System.Collections;
-using Unity.VisualScripting;
-using static UnityEditor.PlayerSettings;
-using Unity.Collections.LowLevel.Unsafe;
 
 public class DuelfField_CardDetailViewer : MonoBehaviour
 {
     public const bool TESTEMODE = false;
 
-    private List<Card> CarditemList = new List<Card>(); // Internal list of GameObjects with Image components
+    private List<Card> CarditemList = new (); // Internal list of GameObjects with Image components
     private int currentIndex = 0;
 
     private Vector2 startTouchPosition;
@@ -156,7 +152,8 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
                 && _DuelField._MatchConnection._DuelFieldData.currentGamePhase == DuelFieldData.GAMEPHASE.MainStep
                 && _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn.Equals(_DuelField.PlayerInfo.PlayerID)
                 && !isViewMode
-                && CarditemList[currentIndex].transform.parent.parent.name.Equals("Player"))
+                && CarditemList[currentIndex].transform.parent.parent.name.Equals("Player")
+                )
             {
                 _DuelField.ArtPanel.SetActive(true);
                 _DuelField.OshiPowerPanel.SetActive(false);
@@ -193,6 +190,7 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
                     if (IsCostCovered(currentArt.Cost, energyAmount, CarditemList[currentIndex])
                         && ((thisCard.cardPosition.Equals("Stage") && !_DuelField.centerStageArtUsed)
                         || (thisCard.cardPosition.Equals("Collaboration") && !_DuelField.collabStageArtUsed))
+                        && PassSpecialDeclareAttackCondition(CarditemList[currentIndex], currentArt)
                         )
                     {
                         if (currentArt.Name.Equals("Retreat"))
@@ -283,6 +281,19 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
             Debug.LogWarning("Current item is null.");
         }
     }
+
+    private bool PassSpecialDeclareAttackCondition(Card card, Art currentArt)
+    {
+        switch (card.cardNumber + "+" + currentArt.Name) {
+            case "hBP01-070+共依存":
+                foreach (GameObject _card in card.attachedEquipe)
+                    if (_card.GetComponent<Card>().cardName.Equals("座員"))
+                        return true;
+                return false;
+        }
+        return true;
+    }
+
     private void OnItemClickRetrat(DuelAction duelaction)
     {
         StartCoroutine(_EffectController.RetreatArt(duelaction));
@@ -340,13 +351,16 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
                 //check if opponent has another holomem to switch for the center
                 int backstagecount = _DuelField.CountBackStageTotal(true, TargetPlayer.Oponnent);
                 return (backstagecount > 0);
-                break;
             case "hYS01-003":
                 foreach (Card card in _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>())
                     if (card.cardType.Equals("ホロメン") || card.cardType.Equals("Buzzホロメン"))
                         return true;
                     return false;
-                break;
+            case "hSD01-002":
+                foreach (Card card in _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>())
+                    if (card.cardType.Equals("エール") && new EffectController().GetAreasThatContainsCardWithColorOrTagOrName(color: "緑").Length > 0)
+                        return true;
+                return false;
         }
         return true;
     }

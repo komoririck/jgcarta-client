@@ -10,9 +10,6 @@ public class HTTPSMaker : MonoBehaviour
     [SerializeField] private GameObject alertLoadingPopup;
     public HttpManager httpManager;
 
-    public string authenticationToken = null;
-    public string clientToken = null;
-
     public string returnMessage;
     public List<object> returnedObjects = new();
 
@@ -309,7 +306,7 @@ public class HTTPSMaker : MonoBehaviour
         PlayerInfo playerInfo = FindAnyObjectByType<PlayerInfo>();
         PlayerRequest _PlayerRequest = new()
         {
-            playerID = playerInfo.PlayerID.ToString(),
+            playerID = playerInfo.PlayerID,
             password = playerInfo.Password,
         };
 
@@ -320,8 +317,8 @@ public class HTTPSMaker : MonoBehaviour
             {
                 try
                 {
-                    DeckData _DeckData = JsonConvert.DeserializeObject<DeckData>(response);
-                    returnedObjects.Add(_DeckData);
+                    List<DeckData> _DeckData = JsonConvert.DeserializeObject<List<DeckData>>(response);
+                    returnedObjects.AddRange(_DeckData);
                 }
                 catch (Exception e)
                 {
@@ -341,7 +338,7 @@ public class HTTPSMaker : MonoBehaviour
         PlayerInfo playerInfo = FindAnyObjectByType<PlayerInfo>();
         PlayerRequest _PlayerRequest = new()
         {
-            playerID = playerInfo.PlayerID.ToString(),
+            playerID = playerInfo.PlayerID,
             password = playerInfo.Password,
             jsonObject = deckData
         };
@@ -361,6 +358,32 @@ public class HTTPSMaker : MonoBehaviour
             "Put"
         );
         
+    }
+    public IEnumerator SetDeckAsActive(DeckData deckData)
+    {
+        DeckData deckDataId = new() { deckId = deckData.deckId };
+        PlayerInfo playerInfo = FindAnyObjectByType<PlayerInfo>();
+        PlayerRequest _PlayerRequest = new()
+        {
+            playerID = playerInfo.PlayerID,
+            password = playerInfo.Password,
+            jsonObject = deckDataId
+        };
+
+        yield return httpManager.MakeRequest(
+            (ConnectionUrl + "/DeckInfo/SetDeckAsActive"),
+            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
+            onSuccess: (response) =>
+            {
+                returnMessage = ("success");
+            },
+            onError: (error) =>
+            {
+                Debug.LogError("Request Error: " + error);
+                returnMessage = "connecition fail";
+            },
+            "Put"
+        );
     }
 
     [Serializable]

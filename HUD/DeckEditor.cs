@@ -11,6 +11,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static Card;
+using static Deck;
 
 public class DeckEditor : MonoBehaviour
 {
@@ -45,6 +46,10 @@ public class DeckEditor : MonoBehaviour
     [SerializeField] public GameObject CardDetailPanel;
     Card clickedCard;
 
+    DeckInfo _DeckData;
+
+    [SerializeField] public GameObject ActiveDeckButton;
+
     private void Start()
     {
         Button btn = OshiCard.AddComponent<Button>();
@@ -66,8 +71,17 @@ public class DeckEditor : MonoBehaviour
         // Set up search box input and clear button functionality
         textBox.onValueChanged.AddListener(OnSearchInputChanged);
 
-        StartCoroutine(GetDeckRequest());
-        ClearTextButton();
+        if ((_DeckData = FindAnyObjectByType<DeckInfo>()) != null)
+            GetDeckInfo(_DeckData);
+
+        ActiveDeckButton.AddComponent<Button>().onClick.AddListener(() => SetDeckAsActiveRequest());
+        ActiveDeckButton.active = false;
+
+        if (string.IsNullOrEmpty(_DeckData.status)) {
+            ActiveDeckButton.active = true;
+        }
+
+        UpdateDisplay("");
     }
     private void UpdateDisplay(string filter)
     {
@@ -85,7 +99,7 @@ public class DeckEditor : MonoBehaviour
 
         List<Record> query = string.IsNullOrEmpty(filter)
             ? FileReader.result.AsQueryable().Select(r => r.Value).ToList()
-            : new () {FileReader.result[filter]};
+            : new() { FileReader.result[filter] };
 
         // Display each matching card
         foreach (Record record in query)
@@ -102,7 +116,7 @@ public class DeckEditor : MonoBehaviour
             // Set up button listener for each card to add it to the deck
             Button button = newCardGameObject.GetComponent<Button>() ?? newCardGameObject.AddComponent<Button>();
             button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(() => HandleCardClick(newCardGameObject));
+            button.onClick.AddListener(() => SetDeckAsActiveRequest());
         }
     }
     private void EnsureCardPool(int count)
@@ -243,8 +257,9 @@ public class DeckEditor : MonoBehaviour
         // Define valid tags
         HashSet<string> validTags = new HashSet<string> { "#created by", "#main", "#energy", "#oshi" };
 
-        foreach (GameObject obj in DeckContent.transform) {
-            Destroy(obj); 
+        foreach (GameObject obj in DeckContent.transform)
+        {
+            Destroy(obj);
             DeckCardList.Clear();
         }
         foreach (GameObject obj in EnergyContent.transform)
@@ -357,33 +372,47 @@ public class DeckEditor : MonoBehaviour
         }
         if (EnergyText.Length > 0) EnergyText = EnergyText.Remove(EnergyText.Length - 1);
 
-        DeckData _DeckData = new()
+        DeckData NewDeckToSave = new()
         {
-            deckName = DeckName,
+            deckId = _DeckData.deckId,
+            deckName = _DeckData.deckName,
             main = DeckText,
             energy = EnergyText,
-            oshi = OshiCard.cardNumber
+            oshi = OshiCard.cardNumber,
         };
-
+        
         WaitingResponsePainel.SetActive(true);
-        StartCoroutine(SaveDeckRequest(_DeckData));
+        StartCoroutine(SaveDeckRequest(NewDeckToSave));
         WaitingResponsePainel.SetActive(false);
     }
     public IEnumerator SaveDeckRequest(DeckData _DeckData)
     {
+        IEnumerator HandleSaveDeckRequest(DeckData _DeckData)
+        {
+            yield return StartCoroutine(_HTTPSMaker.UpdateDeckRequest(_DeckData));
+            string response = _HTTPSMaker.returnMessage.Equals("success") ? "Deck Updated" : "Error";
+            _HTTPSMaker.returnMessage = "";
+            GenericButton.DisplayPopUp(MessageBox, MessageBoxText, response);
+        }
         yield return StartCoroutine(HandleSaveDeckRequest(_DeckData));
     }
-    public IEnumerator HandleSaveDeckRequest(DeckData _DeckData)
+    public IEnumerator SetDeckAsActiveRequest()
     {
-        yield return StartCoroutine(_HTTPSMaker.UpdateDeckRequest(_DeckData));
-        string response = _HTTPSMaker.returnMessage.Equals("success") ? "Deck Updated" : "Error";
-        _HTTPSMaker.returnMessage = "";
-        GenericButton.DisplayPopUp(MessageBox, MessageBoxText, response);
+
+        IEnumerator HandleSetDeckAsActiveRequest(DeckData _DeckData)
+        {
+            yield return StartCoroutine(_HTTPSMaker.SetDeckAsActive(_DeckData));
+            string response = _HTTPSMaker.returnMessage.Equals("success") ? "Deck Active" : "Error";
+            if (response.Equals("Deck Active"))
+                ActiveDeckButton.active = false;
+            _HTTPSMaker.returnMessage = "";
+            GenericButton.DisplayPopUp(MessageBox, MessageBoxText, response);
+        }
+        yield return StartCoroutine(HandleSetDeckAsActiveRequest(new DeckData() { deckId = _DeckData.deckId }));
     }
-    public IEnumerator GetDeckRequest()
+
+    public void GetDeckInfo(DeckInfo _DeckData)
     {
-        yield return StartCoroutine(HandleGetDeckRequest());
-        DeckData _DeckData = (DeckData)_HTTPSMaker.returnedObjects[_HTTPSMaker.returnedObjects.Count - 1];
         _HTTPSMaker.returnedObjects.Clear();
         DeckName = _DeckData.deckName;
         var main = _DeckData.main.Split(",");
@@ -426,10 +455,5 @@ public class DeckEditor : MonoBehaviour
         OshiCard.cardNumber = _DeckData.oshi;
         OshiCard.GetCardInfo();
 
-    }
-    public IEnumerator HandleGetDeckRequest()
-    {
-        yield return StartCoroutine(_HTTPSMaker.GetDeckRequest());
-        _HTTPSMaker.returnMessage = "";
     }
 }

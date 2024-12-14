@@ -23,6 +23,7 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
 
     public IEnumerator SetupSelectableItems(DuelAction da, List<Card> SelectableCards, List<Card> avaliableForSelect)
     {
+
         confirmButton.onClick.RemoveAllListeners();
         confirmButton.onClick.AddListener(FinishSelection);
         selectedItems.Clear();

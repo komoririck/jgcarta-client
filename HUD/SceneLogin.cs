@@ -12,7 +12,7 @@ public class SceneLoginLoginButton : MonoBehaviour // refact this name later
     [SerializeField] private GameObject DataTransferPanel = null;
     [SerializeField] private TMP_InputField DTEmail = null;
     [SerializeField] private TMP_InputField DTPassword = null;
-    
+
 
     public HTTPSMaker _HTTPSMaker;
 
@@ -33,7 +33,7 @@ public class SceneLoginLoginButton : MonoBehaviour // refact this name later
 
     void Update()
     {
-        
+
     }
 
     public IEnumerator CreateAccount()
@@ -41,7 +41,7 @@ public class SceneLoginLoginButton : MonoBehaviour // refact this name later
         yield return StartCoroutine(_HTTPSMaker.CreateAccount());
     }
 
-    public IEnumerator LoginAccount(string id, string password) 
+    public IEnumerator LoginAccount(string id, string password)
     {
         yield return StartCoroutine(_HTTPSMaker.GetPlayerInfo(id, password));
     }
@@ -55,20 +55,26 @@ public class SceneLoginLoginButton : MonoBehaviour // refact this name later
         PlayerInfo.PlayerID = PlayerPrefs.GetString("PlayerID");
         PlayerInfo.Password = PlayerPrefs.GetString("Password", null);
 
-        if (string.IsNullOrEmpty(PlayerInfo.Password))
+        if (string.IsNullOrEmpty(PlayerInfo.Password) || string.IsNullOrEmpty(PlayerInfo.PlayerID))
         {
             yield return StartCoroutine(CreateAccount());
             PlayerInfo.PlayerID = PlayerPrefs.GetString("PlayerID");
             PlayerInfo.Password = PlayerPrefs.GetString("Password", null);
         }
 
-        yield return StartCoroutine(LoginAccount(PlayerInfo.PlayerID, PlayerInfo.Password));
+        IEnumerator AuthenticateAccount(string playerID, string password)
+        {
+            yield return StartCoroutine(_HTTPSMaker.GetPlayerInfo(playerID, password));
+        }
+        yield return StartCoroutine(AuthenticateAccount(PlayerInfo.PlayerID, PlayerInfo.Password));
+
         if (_HTTPSMaker.returnMessage.Equals("success"))
         {
             _HTTPSMaker.returnMessage = "";
             SceneManager.LoadScene("MainMenu");
         }
     }
+
     public void ResetButton()
     {
         PlayerPrefs.DeleteAll();
@@ -76,7 +82,8 @@ public class SceneLoginLoginButton : MonoBehaviour // refact this name later
         PlayerInfo.PlayerID = "";
         PlayerInfo.Password = null;
     }
-    public void OpenDataTransferPanel() {
+    public void OpenDataTransferPanel()
+    {
         DataTransferPanel.SetActive(true);
     }
     public void CloseDataTransferPanel()
@@ -85,25 +92,29 @@ public class SceneLoginLoginButton : MonoBehaviour // refact this name later
     }
     public void LoginAccountButton()
     {
-        StartCoroutine(LoginAccount());
-    }
-    public IEnumerator LoginAccount()
-    {
-        yield return StartCoroutine(HandleLoginAccount());
-    }
-    public IEnumerator HandleLoginAccount()
-    {
-        yield return StartCoroutine(_HTTPSMaker.LoginAccount(DTEmail.text, DTPassword.text));
-        PlayerInfo.PlayerID = PlayerPrefs.GetString("PlayerID");
-        PlayerInfo.Password = PlayerPrefs.GetString("Password", null);
-        CloseDataTransferPanel();
-        StartCoroutine(LoginAccount(PlayerInfo.PlayerID, PlayerInfo.Password));
-
-
-        if (_HTTPSMaker.returnMessage.Equals("success"))
+        IEnumerator LoginAccount()
         {
-            _HTTPSMaker.returnMessage = "";
-            SceneManager.LoadScene("MainMenu");
+            IEnumerator HandleLoginAccount()
+            {
+                yield return StartCoroutine(_HTTPSMaker.LoginAccount(DTEmail.text, DTPassword.text));
+                PlayerInfo.PlayerID = PlayerPrefs.GetString("PlayerID");
+                PlayerInfo.Password = PlayerPrefs.GetString("Password", null);
+                CloseDataTransferPanel();
+
+                IEnumerator AuthenticateAccount(string playerID, string password)
+                {
+                    yield return StartCoroutine(_HTTPSMaker.GetPlayerInfo(playerID, password));
+                }
+                yield return StartCoroutine(AuthenticateAccount(PlayerInfo.PlayerID, PlayerInfo.Password));
+
+                if (_HTTPSMaker.returnMessage.Equals("success"))
+                {
+                    _HTTPSMaker.returnMessage = "";
+                    SceneManager.LoadScene("MainMenu");
+                }
+            }
+            yield return StartCoroutine(HandleLoginAccount());
         }
+        StartCoroutine(LoginAccount());
     }
 }

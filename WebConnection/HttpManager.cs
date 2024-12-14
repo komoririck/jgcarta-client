@@ -1,3 +1,4 @@
+using Newtonsoft.Json.Linq;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -46,6 +47,7 @@ public class HttpManager : MonoBehaviour
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
+            request.SetRequestHeader("Authorization", "Bearer " + PlayerPrefs.GetString("Password", null));
 
             Debug.Log($"Raw JSON Response:\n{request.downloadHandler.text}");
 
