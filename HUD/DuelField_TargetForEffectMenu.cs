@@ -52,6 +52,8 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
             Card newC = newItem.GetComponent<Card>();
             newC.cardNumber = item.cardNumber;
             newC.cardPosition = item.transform.parent.name;
+
+            newC.transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
             newC.GetCardInfo();
             newC.attachedEnergy = item.attachedEnergy;
 
@@ -70,6 +72,9 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
                 Card attachedCard = attachedCardItem.GetComponent<Card>();
                 attachedCard.cardPosition = newC.cardPosition;
                 attachedCard.cardNumber = newC.attachedEnergy[i].GetComponent<Card>().cardNumber;
+
+                attachedCard.transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
+
                 attachedCard.GetCardInfo();
 
             }

@@ -5,7 +5,7 @@ public class CardData
 {
 
     public string cardNumber { get; set; } = "";
-    public string playerdFrom { get; set; } = "";
+    public string playedFrom { get; set; } = "";
     public string cardPosition { get; set; } = "";
 
     public static CardData CreateCardDataFromCard(Card card)
@@ -15,16 +15,16 @@ public class CardData
         return new CardData
         {
             cardNumber = card.cardNumber,
-            playerdFrom = card.playedFrom,
+            playedFrom = card.playedFrom,
             cardPosition = card.cardPosition,
         };
     }
-    public static CardData CreateCardDataFromCard(string cardnumber, string playedfrom, string cardposition)
+    public static CardData CreateCardDataFromCard(string cardnumber, string playedFrom, string cardposition)
     {
         return new CardData
         {
             cardNumber = cardnumber,
-            playerdFrom = playedfrom,
+            playedFrom = playedFrom,
             cardPosition = cardposition,
         };
     }

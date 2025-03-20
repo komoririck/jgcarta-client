@@ -32,13 +32,13 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        var _SelectionPanel = GameObject.Find("MatchField").transform.Find("SelectionPanel");
-        var _SelectionDetachEnergyPanel = GameObject.Find("MatchField").transform.Find("SelectionDetachEnergyPanel");
-        var _CardPanelInfo = GameObject.Find("MatchField").transform.Find("CardPanel");
-        var _ActivateEffectPanel = GameObject.Find("MatchField").transform.Find("ActivateEffectPanel");
-        var _LogPanel = GameObject.Find("MatchField").transform.Find("LogPanel");
-        var _VictoryPanel = GameObject.Find("MatchField").transform.Find("VictoryPanel");
-        var _LosePanel = GameObject.Find("MatchField").transform.Find("LosePanel");
+        var _SelectionPanel = GameObject.Find("EffectBoxes").transform.Find("SelectionPanel");
+        var _SelectionDetachEnergyPanel = GameObject.Find("EffectBoxes").transform.Find("SelectionDetachEnergyPanel");
+        var _CardPanelInfo = GameObject.Find("EffectBoxes").transform.Find("CardPanel");
+        var _ActivateEffectPanel = GameObject.Find("EffectBoxes").transform.Find("ActivateEffectPanel");
+        var _LogPanel = GameObject.Find("MatchPopups").transform.Find("LogPanel");
+        var _VictoryPanel = GameObject.Find("MatchPopups").transform.Find("VictoryPanel");
+        var _LosePanel = GameObject.Find("MatchPopups").transform.Find("LosePanel");
 
         if (_LosePanel.gameObject.activeInHierarchy || _VictoryPanel.gameObject.activeInHierarchy || _LogPanel.gameObject.activeInHierarchy
             || _ActivateEffectPanel.gameObject.activeInHierarchy || _CardPanelInfo.gameObject.activeInHierarchy
@@ -116,20 +116,6 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
 
             List<Card> Cards = this.transform.parent.GetComponentsInChildren<Card>(true).ToList();
             _DuelfField_CardDetailViewer.SetCardListToBeDisplayed(ref Cards, isViewMode, GetComponent<Card>());
-        }
-    }
-
-    static public void MoveCardsToZone(Transform fromParent, Transform toParent)
-    {
-        var children = new List<Transform>();
-        foreach (Transform child in fromParent)
-        {
-            if (!child.name.Equals("EnergyList"))
-                children.Add(child);
-        }
-        foreach (Transform child in children)
-        {
-            child.SetParent(toParent, false);
         }
     }
 }

@@ -34,9 +34,9 @@ public class PhaseMessage : MonoBehaviour
 
     private void InitPositions()
     {
-        startPosition = new Vector3(-Screen.width, 0, 0); // Off-screen to the left
+        startPosition = new Vector3(-950, 0, 0); // Off-screen to the left
         centerPosition = new Vector3(0, 0, 0);           // Center of the screen
-        endPosition = new Vector3(Screen.width, 0, 0);   // Off-screen to the right
+        endPosition = new Vector3(950, 0, 0);   // Off-screen to the right
     }
 
     private IEnumerator DisplayPhaseMessage(string phaseName)
@@ -61,6 +61,8 @@ public class PhaseMessage : MonoBehaviour
 
         // Reset position for the next message
         messageTransform.anchoredPosition = startPosition;
+
+        gameObject.SetActive(false);
     }
 
     private IEnumerator MoveToPosition(RectTransform rectTransform, Vector3 targetPosition, float speed)

@@ -68,6 +68,7 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
             Card newC = newItem.GetComponent<Card>();
             newC.cardNumber = item.cardNumber;
             newC.cardPosition = item.transform.parent.name;
+            newC.transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
             newC.GetCardInfo();
             newC.attachedEnergy = item.attachedEnergy;
 

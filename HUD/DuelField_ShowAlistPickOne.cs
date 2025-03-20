@@ -51,6 +51,9 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
             newItem.name = InstantiatedObjIndex.ToString();
             Card newC = newItem.GetComponent<Card>();
             newC.cardNumber = item.cardNumber;
+
+            newC.transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
+
             newC.GetCardInfo();
             SelectableItems.Add(newItem);  
 

@@ -3,7 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.VisualScripting;
+using UnityEditor.Rendering;
 using UnityEngine;
+using UnityEngine.AdaptivePerformance;
 using UnityEngine.UI;
 
 [Serializable]
@@ -21,7 +23,7 @@ public class Card : MonoBehaviour
     public int normalDamageRecieved = 0;
     [JsonIgnore]
     public string cardLimit;
-    [JsonIgnore]
+
     public string playedFrom;
     [JsonIgnore]
     public string cardType;
@@ -56,7 +58,7 @@ public class Card : MonoBehaviour
     [JsonIgnore]
     public string cardTag;
     [JsonIgnore]
-    public List<CardEffect> cardEffects  = new List<CardEffect>();
+    public List<CardEffect> cardEffects = new List<CardEffect>();
     [JsonIgnore]
     public List<GameObject> attachedEnergy = new();
     [JsonIgnore]
@@ -83,95 +85,112 @@ public class Card : MonoBehaviour
         SRMaterial = 2,
         URMaterial = 3,
     }
-    public Card(string number, string position = "") {
+    public Card(string number, string position = "")
+    {
         this.cardNumber = number;
-        if(!string.IsNullOrEmpty(position))
+        if (!string.IsNullOrEmpty(position))
             this.cardPosition = position;
-        if(!string.IsNullOrEmpty(cardNumber))
+        if (!string.IsNullOrEmpty(cardNumber))
             GetCardInfo();
     }
 
-    static public Card CreateFromData(CardData _cardData, string number) {
-        Card returnC = new Card(number);
-        returnC.playedFrom = _cardData.playerdFrom;
-        returnC.cardPosition = _cardData.cardPosition;
-        return returnC;
-    }
-
-    public Card GetCardInfo(bool forceUpdate = false) {
+    public Card GetCardInfo(bool forceUpdate = false)
+    {
+        //sometimes we are creating cards without a gameobject, this cause problem with this part
+        try
+        {
+            if (transform.parent != null)
+                if (transform.parent.name.Equals("Life") || transform.parent.name.Equals("CardCheer"))
+                {
+                    transform.Find("Background").transform.localScale = new Vector3(63.7f, 63.7f, 1);
+                    transform.Find("Background").GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("CardImages/001");
+                }
+        }
+        catch (Exception e) {
+            Debug.Log("A card was created without a gameoject :" + e);
+        }
 
         if (!string.IsNullOrEmpty(cardType) && !forceUpdate)
             return null;
 
-        if (cardNumber.Equals("0") || string.IsNullOrEmpty(cardNumber) )
+        if (cardNumber.Equals("0") || string.IsNullOrEmpty(cardNumber))
             return null;
 
         Record record = FileReader.result[cardNumber];
 
-            if (record.CardNumber == cardNumber)
+        if (record.CardNumber == cardNumber)
+        {
+            this.cardNumber = record.CardNumber;
+            cardName = record.Name;
+            cardType = record.CardType;
+            rarity = record.Rarity;
+            product = record.Product;
+            color = record.Color;
+            hp = record.HP;
+            bloomLevel = record.BloomLevel;
+            arts = record.Arts;
+            oshiSkill = record.OshiSkill;
+            spOshiSkill = record.SPOshiSkill;
+            abilityText = record.AbilityText;
+            illustrator = record.Illustrator;
+            life = record.Life;
+            artEffect = record.ArtEffect;
+            cardTag = record.Tag;
+
+            transform.Find("FrontView").GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("CardImages/" + record.CardNumber + "_" + record.Rarity);
+            
+            //try { gameObject.transform.Find("CardImage").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/" + record.CardNumber + "_" + record.Rarity); } catch (Exception e) { Debug.Log($"Sprite Problem: {record.CardNumber}"); }
+
+            List<string> eachArtText = arts.Split(';').ToList();
+            List<string> eachArtEffectText = artEffect.Split(';').ToList();
+            eachArtText.Add("");
+
+            if ((cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン")))
             {
-                this.cardNumber = record.CardNumber;
-                cardName = record.Name;
-                cardType = record.CardType;
-                rarity = record.Rarity;
-                product = record.Product;
-                color = record.Color;
-                hp = record.HP;
-                bloomLevel = record.BloomLevel;
-                arts = record.Arts;
-                oshiSkill = record.OshiSkill;
-                spOshiSkill = record.SPOshiSkill;
-                abilityText = record.AbilityText;
-                illustrator = record.Illustrator;
-                life = record.Life;
-                artEffect = record.ArtEffect;
-                cardTag = record.Tag;
+                if (Arts != null)
+                    Arts.Clear();
+                else
+                    Arts = new();
+                for (int n = 0; n < eachArtText.Count; n++)
+                {
+                    if (string.IsNullOrEmpty(eachArtText[n]))
+                        continue;
 
-                try { gameObject.transform.Find("CardImage").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/" + record.CardNumber + "_" + record.Rarity); } catch (Exception e) { Debug.Log($"Sprite Problem: {record.CardNumber}"); }
-
-                List<string> eachArtText = arts.Split(';').ToList();
-                List<string> eachArtEffectText = artEffect.Split(';').ToList();
-                eachArtText.Add("");
-
-                if ((cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン"))) {
-                    if (Arts != null)
-                        Arts.Clear();
-                    else
-                        Arts = new ();
-                    for (int n = 0; n < eachArtText.Count; n++)
+                    string eachArtEffectTextValidText = "";
+                    if (n >= 0 && n < eachArtEffectText.Count)
                     {
-                        if (string.IsNullOrEmpty(eachArtText[n]))
-                            continue;
-
-                        string eachArtEffectTextValidText = "";
-                        if (n >= 0 && n < eachArtEffectText.Count) {
-                            if (!string.IsNullOrEmpty(eachArtEffectText[n]) || eachArtEffectText != null) 
-                            { 
-                                eachArtEffectTextValidText = eachArtEffectText[n];
-                            }
+                        if (!string.IsNullOrEmpty(eachArtEffectText[n]) || eachArtEffectText != null)
+                        {
+                            eachArtEffectTextValidText = eachArtEffectText[n];
                         }
-                        Arts.Add(Art.ParseArtFromString(eachArtText[n], eachArtEffectTextValidText));
                     }
-                    //adding the retreat to holomemns
-                    Arts.Add(new Art { Name = "Retreat", Cost = new List<(string Color, int Amount)>() { ("無色", 1) }, Effect = "Return this card o the backstage" });
+                    Arts.Add(Art.ParseArtFromString(eachArtText[n], eachArtEffectTextValidText));
                 }
+                //adding the retreat to holomemns
+                Arts.Add(new Art { Name = "Retreat", Cost = new List<(string Color, int Amount)>() { ("無色", 1) }, Effect = "Return this card o the backstage" });
             }
+        }
 
-        if (this.currentHp == 0 && (cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン"))) {
+        if (this.currentHp == 0 && (cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン")))
+        {
             currentHp = int.Parse(hp);
         }
 
         return this;
     }
 
-    public Card SetCardNumber(string numnber) {
+    public Card SetCardNumber(string numnber)
+    {
         this.cardNumber = numnber;
         return this;
     }
 
-    public static bool ContainsCard(List<Card> c, string name) {
-        foreach (Card card in c) {
-            if (card.cardNumber.Equals(name)) {
+    public static bool ContainsCard(List<Card> c, string name)
+    {
+        foreach (Card card in c)
+        {
+            if (card.cardNumber.Equals(name))
+            {
                 return true;
             }
         }

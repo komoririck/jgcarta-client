@@ -141,6 +141,9 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
             Card CurrentDisplayingCard = CardPanel.transform.Find("CardPanelInfo").GetComponent<Card>();
 
             CurrentDisplayingCard.cardNumber = CarditemList[currentIndex].cardNumber;
+
+            CurrentDisplayingCard.transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
+
             CurrentDisplayingCard.GetCardInfo(forceUpdate: true);
 
             GameObject ArtPanel_Content = _DuelField.ArtPanel.transform.Find("Viewport").Find("Content").gameObject;

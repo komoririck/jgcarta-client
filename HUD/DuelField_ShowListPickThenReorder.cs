@@ -66,6 +66,9 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
             newItem.name = clickObjects.ToString();
             Card newC = newItem.GetComponent<Card>();
             newC.cardNumber = item.cardNumber;
+
+            newC.transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
+
             newC.GetCardInfo();
             SelectableItems.Add(newItem);
 

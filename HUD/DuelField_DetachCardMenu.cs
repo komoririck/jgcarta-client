@@ -77,6 +77,9 @@ public class DuelField_DetachCardMenu : MonoBehaviour
                     Card attachedCard = attachedCardItem.GetComponent<Card>();
                     attachedCard.cardPosition = newC.cardPosition;
                     attachedCard.cardNumber = ListToSelectFrom[i].GetComponent<Card>().cardNumber;
+
+                    attachedCard.transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
+
                     attachedCard.GetCardInfo();
 
                     TMP_Text itemText = attachedCardItem.GetComponentInChildren<TMP_Text>();
