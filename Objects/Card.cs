@@ -2,10 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
-using UnityEditor.Rendering;
 using UnityEngine;
-using UnityEngine.AdaptivePerformance;
 using UnityEngine.UI;
 
 [Serializable]
@@ -110,75 +107,102 @@ public class Card : MonoBehaviour
             Debug.Log("A card was created without a gameoject :" + e);
         }
 
+        bool checkCardInfo = true;
+
         if (!string.IsNullOrEmpty(cardType) && !forceUpdate)
-            return null;
+            checkCardInfo = false;
 
         if (cardNumber.Equals("0") || string.IsNullOrEmpty(cardNumber))
-            return null;
+            checkCardInfo = false;
 
-        Record record = FileReader.result[cardNumber];
+        Transform FrontView = transform.Find("FrontView");
+        if (checkCardInfo) {
 
-        if (record.CardNumber == cardNumber)
-        {
-            this.cardNumber = record.CardNumber;
-            cardName = record.Name;
-            cardType = record.CardType;
-            rarity = record.Rarity;
-            product = record.Product;
-            color = record.Color;
-            hp = record.HP;
-            bloomLevel = record.BloomLevel;
-            arts = record.Arts;
-            oshiSkill = record.OshiSkill;
-            spOshiSkill = record.SPOshiSkill;
-            abilityText = record.AbilityText;
-            illustrator = record.Illustrator;
-            life = record.Life;
-            artEffect = record.ArtEffect;
-            cardTag = record.Tag;
+            Record record = FileReader.result[cardNumber];
 
-            transform.Find("FrontView").GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("CardImages/" + record.CardNumber + "_" + record.Rarity);
-            
-            //try { gameObject.transform.Find("CardImage").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/" + record.CardNumber + "_" + record.Rarity); } catch (Exception e) { Debug.Log($"Sprite Problem: {record.CardNumber}"); }
-
-            List<string> eachArtText = arts.Split(';').ToList();
-            List<string> eachArtEffectText = artEffect.Split(';').ToList();
-            eachArtText.Add("");
-
-            if ((cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン")))
+            if (record.CardNumber == cardNumber)
             {
-                if (Arts != null)
-                    Arts.Clear();
-                else
-                    Arts = new();
-                for (int n = 0; n < eachArtText.Count; n++)
-                {
-                    if (string.IsNullOrEmpty(eachArtText[n]))
-                        continue;
+                this.cardNumber = record.CardNumber;
+                cardName = record.Name;
+                cardType = record.CardType;
+                rarity = record.Rarity;
+                product = record.Product;
+                color = record.Color;
+                hp = record.HP;
+                bloomLevel = record.BloomLevel;
+                arts = record.Arts;
+                oshiSkill = record.OshiSkill;
+                spOshiSkill = record.SPOshiSkill;
+                abilityText = record.AbilityText;
+                illustrator = record.Illustrator;
+                life = record.Life;
+                artEffect = record.ArtEffect;
+                cardTag = record.Tag;
 
-                    string eachArtEffectTextValidText = "";
-                    if (n >= 0 && n < eachArtEffectText.Count)
-                    {
-                        if (!string.IsNullOrEmpty(eachArtEffectText[n]) || eachArtEffectText != null)
-                        {
-                            eachArtEffectTextValidText = eachArtEffectText[n];
-                        }
-                    }
-                    Arts.Add(Art.ParseArtFromString(eachArtText[n], eachArtEffectTextValidText));
+                //checking if the card being displayed is a 3d object or a 2d ui
+                if (FrontView != null) {
+                    //3d layout
+                    FrontView.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("CardImages/" + record.CardNumber + "_" + record.Rarity);
                 }
-                //adding the retreat to holomemns
-                Arts.Add(new Art { Name = "Retreat", Cost = new List<(string Color, int Amount)>() { ("無色", 1) }, Effect = "Return this card o the backstage" });
+                else
+                { 
+                    //ui layout
+                try { gameObject.transform.Find("CardImage").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/" + record.CardNumber + "_" + record.Rarity); } catch (Exception e) { Debug.Log($"Sprite Problem: {record.CardNumber}"); }
+                }
+
+                List<string> eachArtText = arts.Split(';').ToList();
+                List<string> eachArtEffectText = artEffect.Split(';').ToList();
+                eachArtText.Add("");
+
+                if ((cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン")))
+                {
+                    if (Arts != null)
+                        Arts.Clear();
+                    else
+                        Arts = new();
+                    for (int n = 0; n < eachArtText.Count; n++)
+                    {
+                        if (string.IsNullOrEmpty(eachArtText[n]))
+                            continue;
+
+                        string eachArtEffectTextValidText = "";
+                        if (n >= 0 && n < eachArtEffectText.Count)
+                        {
+                            if (!string.IsNullOrEmpty(eachArtEffectText[n]) || eachArtEffectText != null)
+                            {
+                                eachArtEffectTextValidText = eachArtEffectText[n];
+                            }
+                        }
+                        Arts.Add(Art.ParseArtFromString(eachArtText[n], eachArtEffectTextValidText));
+                    }
+                    //adding the retreat to holomemns
+                    Arts.Add(new Art { Name = "Retreat", Cost = new List<(string Color, int Amount)>() { ("無色", 1) }, Effect = "Return this card o the backstage" });
+                }
+            }
+
+            if (this.currentHp == 0 && (cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン")))
+            {
+                currentHp = int.Parse(hp);
             }
         }
 
-        if (this.currentHp == 0 && (cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン")))
-        {
-            currentHp = int.Parse(hp);
-        }
+        Flip((FrontView != null));
 
         return this;
     }
+    public void Flip(bool layout3D)
+    {
+        if (string.IsNullOrEmpty(cardName))
+            transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
+        else
+            transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
 
+        if (layout3D)
+            if (string.IsNullOrEmpty(cardName))
+                transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
+            else
+                transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
+    }
     public Card SetCardNumber(string numnber)
     {
         this.cardNumber = numnber;
@@ -201,8 +225,8 @@ public class Card : MonoBehaviour
     {
         if (this.cardNumber.Equals("0"))
         {
-            Destroy(GetComponent<DuelField_HandDragDrop>());
-            Destroy(GetComponent<DuelField_HandClick>());
+            //Destroy(GetComponent<DuelField_HandDragDrop>());
+            //Destroy(GetComponent<DuelField_HandClick>());
         }
     }
 

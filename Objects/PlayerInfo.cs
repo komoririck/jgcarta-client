@@ -1,11 +1,11 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
 public class PlayerInfo : MonoBehaviour
 {
+    public static PlayerInfo INSTANCE;
 
     [SerializeField] public string PlayerID { get; set; }
     public string Password { get; set; }
@@ -27,4 +27,9 @@ public class PlayerInfo : MonoBehaviour
     public List<PlayerItemBox> PlayerItemBox { get; set; } = new List<PlayerItemBox>();
     public List<PlayerMission> PlayerMissionList { get; set; } = new List<PlayerMission>();
     public List<PlayerBadge> Badges { get; set; } = new List<PlayerBadge>();
+
+    private void Start()
+    {
+        INSTANCE = this;
+    }
 }

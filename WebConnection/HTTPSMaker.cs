@@ -14,7 +14,7 @@ public class HTTPSMaker : MonoBehaviour
     public List<object> returnedObjects = new();
 
 
-    string ConnectionUrl = "https://localhost:7047";
+    public string APIConnectionUrl = "https://localhost:7047";
     JsonSerializerSettings jsonSettings;
 
     void Start()
@@ -34,7 +34,7 @@ public class HTTPSMaker : MonoBehaviour
         };
 
         yield return httpManager.MakeRequest(
-            (ConnectionUrl + "/Account/CreateAccount"),
+            (APIConnectionUrl + "/Account/CreateAccount"),
             JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
             onSuccess: (response) =>
             {
@@ -59,7 +59,7 @@ public class HTTPSMaker : MonoBehaviour
         };
 
         yield return httpManager.MakeRequest(
-            ConnectionUrl + "/PlayerInfo/GetFullProfile",
+            APIConnectionUrl + "/PlayerInfo/GetFullProfile",
             JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
             response =>
             {
@@ -155,7 +155,7 @@ public class HTTPSMaker : MonoBehaviour
         };
 
         yield return httpManager.MakeRequest(
-            (ConnectionUrl + "/Account/Login"),
+            (APIConnectionUrl + "/Account/Login"),
             JsonConvert.SerializeObject(playerRequest, jsonSettings),
             onSuccess: (response) =>
             {
@@ -181,7 +181,7 @@ public class HTTPSMaker : MonoBehaviour
     public IEnumerator UpdatePlayerInfo(PlayerInfoData playerinfo)
     {
         yield return httpManager.MakeRequest(
-            (ConnectionUrl + ""),
+            (APIConnectionUrl + ""),
             JsonConvert.SerializeObject(playerinfo, jsonSettings),
             onSuccess: (response) =>
             {
@@ -206,7 +206,7 @@ public class HTTPSMaker : MonoBehaviour
         };
 
         yield return httpManager.MakeRequest(
-            (ConnectionUrl + "/ControlMatchQueue/JoinQueue"),
+            (APIConnectionUrl + "/ControlMatchQueue/JoinQueue"),
             JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
             onSuccess: (response) =>
             {
@@ -229,7 +229,7 @@ public class HTTPSMaker : MonoBehaviour
         };
 
         yield return httpManager.MakeRequest(
-            (ConnectionUrl + "/ControlMatchQueue/JoinLeave"),
+            (APIConnectionUrl + "/ControlMatchQueue/JoinLeave"),
             JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
             onSuccess: (response) =>
             {
@@ -253,7 +253,7 @@ public class HTTPSMaker : MonoBehaviour
         };
 
         yield return httpManager.MakeRequest(
-            (ConnectionUrl + $"/ControlMatchRoom/{type}"),
+            (APIConnectionUrl + $"/ControlMatchRoom/{type}"),
             JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
             onSuccess: (response) =>
             {
@@ -311,18 +311,20 @@ public class HTTPSMaker : MonoBehaviour
         };
 
         yield return httpManager.MakeRequest(
-            (ConnectionUrl + "/DeckInfo/GetDeck"),
+            (APIConnectionUrl + "/DeckInfo/GetDeck"),
             JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
             onSuccess: (response) =>
             {
                 try
                 {
-                    List<DeckData> _DeckData = JsonConvert.DeserializeObject<List<DeckData>>(response);
-                    returnedObjects.AddRange(_DeckData);
+                    DeckData _DeckData = JsonConvert.DeserializeObject<DeckData>(response);
+                    returnedObjects.Add(_DeckData);
                 }
                 catch (Exception e)
                 {
                     Debug.LogError("Error parsing JSON response: " + e.Message);
+                    Debug.LogError("\n\nStack: " + e.StackTrace);
+                    Debug.LogError("\n\nResponse: " + response);
                 }
             },
             onError: (error) =>
@@ -344,7 +346,7 @@ public class HTTPSMaker : MonoBehaviour
         };
 
         yield return httpManager.MakeRequest(
-            (ConnectionUrl + "/DeckInfo/UpdateDeck"),
+            (APIConnectionUrl + "/DeckInfo/UpdateDeck"),
             JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
             onSuccess: (response) =>
             {
@@ -371,7 +373,7 @@ public class HTTPSMaker : MonoBehaviour
         };
 
         yield return httpManager.MakeRequest(
-            (ConnectionUrl + "/DeckInfo/SetDeckAsActive"),
+            (APIConnectionUrl + "/DeckInfo/SetDeckAsActive"),
             JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
             onSuccess: (response) =>
             {

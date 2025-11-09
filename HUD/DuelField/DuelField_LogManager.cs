@@ -1,17 +1,11 @@
 using Newtonsoft.Json;
-using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using static DuelField;
 
 public class DuelField_LogManager : MonoBehaviour
 {
-    [SerializeField] private GameObject LogContent = null;
-    [SerializeField]  private GameObject LogPrefab = null;
-    [SerializeField]  private GameObject LogBar = null;
-    
-    public void AddLog(DuelAction _DuelAction, string type) {
+    public static void AddLog(DuelAction _DuelAction, string type) {
         PlayerInfo _PlayerInfo = FindAnyObjectByType<PlayerInfo>();
         DuelFieldData _DuelFieldData = FindAnyObjectByType<MatchConnection>()._DuelFieldData;
 
@@ -108,12 +102,12 @@ public class DuelField_LogManager : MonoBehaviour
             case "ResolveOnSupportEffect":
                 break;
             case "OnCollabEffect":
-                if (LogContent.transform.GetChild(LogContent.transform.childCount - 1).GetComponent<TMP_Text>().text.Equals($"{whichPlayer} used a support card {_DuelAction.usedCard.cardNumber}"))
+                if (DuelField_UI_MAP.INSTANCE.transform.GetChild(DuelField_UI_MAP.INSTANCE.transform.childCount - 1).GetComponent<TMP_Text>().text.Equals($"{whichPlayer} used a support card {_DuelAction.usedCard.cardNumber}"))
                     return;
                 InstantiateLogObj($"{whichPlayer} used a support card {_DuelAction.usedCard.cardNumber}");
                 break;
             case "OnArtEffect":
-                if (LogContent.transform.GetChild(LogContent.transform.childCount - 1).GetComponent<TMP_Text>().text.Equals($"{whichPlayer} activated a art effect {_DuelAction.usedCard.cardNumber}"))
+                if (DuelField_UI_MAP.INSTANCE.transform.GetChild(DuelField_UI_MAP.INSTANCE.transform.childCount - 1).GetComponent<TMP_Text>().text.Equals($"{whichPlayer} activated a art effect {_DuelAction.usedCard.cardNumber}"))
                     return;
                 InstantiateLogObj($"{whichPlayer} activated a art effect {_DuelAction.usedCard.cardNumber}");
                 break;
@@ -131,10 +125,10 @@ public class DuelField_LogManager : MonoBehaviour
                 break;
         }
         void InstantiateLogObj(string text) {
-            var NewDuelLogObject = Instantiate(LogPrefab, LogContent.transform);
+            var NewDuelLogObject = Instantiate(DuelField_UI_MAP.INSTANCE.LogPrefab, DuelField_UI_MAP.INSTANCE.transform);
             var txt = NewDuelLogObject.GetComponent<TMP_Text>();
             txt.text = text;
-            Instantiate(LogBar, LogContent.transform);
+            Instantiate(DuelField_UI_MAP.INSTANCE.LogBar, DuelField_UI_MAP.INSTANCE.transform);
         }
     }
 }

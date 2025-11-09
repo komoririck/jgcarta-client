@@ -1,15 +1,8 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
-using TMPro;
-using System;
 using System.Collections.Generic;
 using static DuelField;
-using System.Threading.Tasks;
-using System.Collections;
 using System.Linq;
-using Assets.Scripts.Lib;
-using Unity.VisualScripting;
 
 public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
 {
@@ -32,13 +25,13 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        var _SelectionPanel = GameObject.Find("EffectBoxes").transform.Find("SelectionPanel");
-        var _SelectionDetachEnergyPanel = GameObject.Find("EffectBoxes").transform.Find("SelectionDetachEnergyPanel");
-        var _CardPanelInfo = GameObject.Find("EffectBoxes").transform.Find("CardPanel");
-        var _ActivateEffectPanel = GameObject.Find("EffectBoxes").transform.Find("ActivateEffectPanel");
-        var _LogPanel = GameObject.Find("MatchPopups").transform.Find("LogPanel");
-        var _VictoryPanel = GameObject.Find("MatchPopups").transform.Find("VictoryPanel");
-        var _LosePanel = GameObject.Find("MatchPopups").transform.Find("LosePanel");
+        var _SelectionPanel = DuelField_UI_MAP.INSTANCE.SS_EffectBoxes_SelectionPanel;  
+        var _SelectionDetachEnergyPanel = DuelField_UI_MAP.INSTANCE.SS_EffectBoxes_SelectionDetachEnergyPanel;
+        var _CardPanelInfo = DuelField_UI_MAP.INSTANCE.SS_EffectBoxes_CardPanel;
+        var _ActivateEffectPanel = DuelField_UI_MAP.INSTANCE.SS_EffectBoxes_ActivateEffectPanel;
+        var _LogPanel = DuelField_UI_MAP.INSTANCE.SS_LogPanel;
+        var _VictoryPanel = DuelField_UI_MAP.INSTANCE.SS_WinPanel;
+        var _LosePanel = DuelField_UI_MAP.INSTANCE.SS_LosePanel;
 
         if (_LosePanel.gameObject.activeInHierarchy || _VictoryPanel.gameObject.activeInHierarchy || _LogPanel.gameObject.activeInHierarchy
             || _ActivateEffectPanel.gameObject.activeInHierarchy || _CardPanelInfo.gameObject.activeInHierarchy
@@ -47,7 +40,7 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
 
         bool actionDone = false;
 
-        if (isViewMode == false && _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn == _DuelField.PlayerInfo.PlayerID)
+        if (isViewMode == false && MatchConnection.INSTANCE._DuelFieldData.currentPlayerTurn == PlayerInfo.INSTANCE.PlayerID)
         {
             //if no clicling in a dropzone which is assigned to all field zones
             if (transform.parent.TryGetComponent<DropZone>(out var pointedZoneFather))
@@ -64,7 +57,7 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
                     case "BackStage3":
                     case "BackStage4":
                     case "BackStage5":
-                        switch (_DuelField._MatchConnection._DuelFieldData.currentGamePhase)
+                        switch (MatchConnection.INSTANCE._DuelFieldData.currentGamePhase)
                         {
                             case DuelFieldData.GAMEPHASE.MainStep:
 
@@ -77,7 +70,7 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
 
                                     DuelAction duelAction = new()
                                     {
-                                        playerID = _DuelField.PlayerInfo.PlayerID,
+                                        playerID = PlayerInfo.INSTANCE.PlayerID,
                                         usedCard = CardData.CreateCardDataFromCard(this.GetComponent<Card>()),
                                         playedFrom = this.transform.parent.name,
                                         local = "Collaboration",
@@ -92,7 +85,7 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
 
                                 DuelAction duelActionn = new()
                                 {
-                                    playerID = _DuelField.PlayerInfo.PlayerID,
+                                    playerID = PlayerInfo.INSTANCE.PlayerID,
                                     usedCard = CardData.CreateCardDataFromCard(this.GetComponent<Card>()),
                                     playedFrom = this.transform.parent.name,
                                     local = "Stage",
@@ -106,7 +99,7 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
             }
         }
 
-        if (actionDone == false || _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn != _DuelField.PlayerInfo.PlayerID)
+        if (actionDone == false || MatchConnection.INSTANCE._DuelFieldData.currentPlayerTurn != PlayerInfo.INSTANCE.PlayerID)
         {
             //if in the clicked location theres no card number, return since must be a facedown card
             if (string.IsNullOrEmpty(GetComponentInChildren<Card>().cardNumber))

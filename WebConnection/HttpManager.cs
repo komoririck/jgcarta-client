@@ -6,39 +6,6 @@ using static Google.Apis.Requests.BatchRequest;
 
 public class HttpManager : MonoBehaviour
 {
-    [SerializeField] public bool waitingForARequest = false;
-    [SerializeField] private GameObject canvas;
-    [SerializeField] private GameObject alertLoadingPopup;
-    [SerializeField] private GameObject alertLoadingPopupPrefab;
-
-    private void Start()
-    {
-        UpdateCanvas();
-    }
-
-    private void Update()
-    {
-        if (!waitingForARequest)
-        {
-            Destroy(alertLoadingPopupPrefab);
-        }
-        if (waitingForARequest && alertLoadingPopupPrefab == null)
-        {
-            if (canvas == null)
-                UpdateCanvas();
-
-            alertLoadingPopupPrefab =  Instantiate(alertLoadingPopup, Vector3.zero, Quaternion.identity);
-            alertLoadingPopupPrefab.transform.SetParent(canvas.transform, false);
-            alertLoadingPopupPrefab.SetActive(true);
-        }
-
-    }
-
-    private void UpdateCanvas() {
-
-        canvas = GameObject.Find("Canvas");
-    }
-
     public IEnumerator MakeRequest(string url, string jsonData, System.Action<string> onSuccess, System.Action<string> onError, string requestType = "POST")
     {
         using (UnityWebRequest request = new(url, requestType))
@@ -51,7 +18,7 @@ public class HttpManager : MonoBehaviour
 
             Debug.Log($"Raw JSON Response:\n{request.downloadHandler.text}");
 
-            waitingForARequest = true;
+            GameController.INSTANCE.waitingForARequest = true;
 
             yield return request.SendWebRequest();
 
@@ -64,7 +31,7 @@ public class HttpManager : MonoBehaviour
             {
                 onSuccess?.Invoke(request.downloadHandler.text);
             }
-            waitingForARequest = false;
+            GameController.INSTANCE.waitingForARequest = false;
         }
     }
 }

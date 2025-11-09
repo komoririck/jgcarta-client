@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using Assets.Scripts.Lib;
 using System.Threading.Tasks;
 using System.Linq;
-using static DuelField;
 using System;
 
 public class DuelfField_CardDetailViewer : MonoBehaviour
@@ -19,11 +18,9 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
     private Vector2 endTouchPosition;
     private bool isSwipe;
 
-    private DuelField _DuelField;
     static readonly List<GameObject> skillsToDestroy = new();
     bool isViewMode = true;
 
-    EffectController _EffectController;
     DuelField_TargetForAttackMenu _DuelField_TargetForAttackMenu;
 
     [SerializeField] private GameObject ArtPrefab = null;
@@ -31,8 +28,6 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
 
     private void Start()
     {
-        _DuelField = FindAnyObjectByType<DuelField>();
-        _EffectController = FindAnyObjectByType<EffectController>();
         _DuelField_TargetForAttackMenu = FindAnyObjectByType<DuelField_TargetForAttackMenu>();
     }
 
@@ -146,21 +141,21 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
 
             CurrentDisplayingCard.GetCardInfo(forceUpdate: true);
 
-            GameObject ArtPanel_Content = _DuelField.ArtPanel.transform.Find("Viewport").Find("Content").gameObject;
+            GameObject ArtPanel_Content = DuelField.INSTANCE.ArtPanel.transform.Find("Viewport").Find("Content").gameObject;
             // Clear existing items in the ArtPanel
             GameObjectExtensions.DestroyAllChildren(ArtPanel_Content);
 
             if ((CarditemList[currentIndex].cardType.Equals("ホロメン") || CarditemList[currentIndex].cardType.Equals("Buzzホロメン"))
                 && CarditemList[currentIndex].cardPosition.Equals("Collaboration") || CarditemList[currentIndex].cardPosition.Equals("Stage")
-                && _DuelField._MatchConnection._DuelFieldData.currentGamePhase == DuelFieldData.GAMEPHASE.MainStep
-                && _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn.Equals(_DuelField.PlayerInfo.PlayerID)
+                && MatchConnection.INSTANCE._DuelFieldData.currentGamePhase == DuelFieldData.GAMEPHASE.MainStep
+                && MatchConnection.INSTANCE._DuelFieldData.currentPlayerTurn.Equals(PlayerInfo.INSTANCE.PlayerID)
                 && !isViewMode
                 && CarditemList[currentIndex].transform.parent.parent.name.Equals("Player")
                 )
             {
-                _DuelField.ArtPanel.SetActive(true);
-                _DuelField.OshiPowerPanel.SetActive(false);
-                _DuelField.CardEffectPanel.SetActive(false);
+                DuelField.INSTANCE.ArtPanel.SetActive(true);
+                DuelField.INSTANCE.OshiPowerPanel.SetActive(false);
+                DuelField.INSTANCE.CardEffectPanel.SetActive(false);
 
                 Dictionary<string, List<GameObject>> energyAmount = CountCardAvaliableEnergy(thisCard);
 
@@ -191,8 +186,8 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
                     DuelAction duelaction = new() { usedCard = CardData.CreateCardDataFromCard(thisCard) };
                     duelaction.usedCard.cardPosition = thisCard.cardPosition;
                     if (IsCostCovered(currentArt.Cost, energyAmount, CarditemList[currentIndex])
-                        && ((thisCard.cardPosition.Equals("Stage") && !_DuelField.centerStageArtUsed)
-                        || (thisCard.cardPosition.Equals("Collaboration") && !_DuelField.collabStageArtUsed))
+                        && ((thisCard.cardPosition.Equals("Stage") && !DuelField.INSTANCE.centerStageArtUsed)
+                        || (thisCard.cardPosition.Equals("Collaboration") && !DuelField.INSTANCE.collabStageArtUsed))
                         && PassSpecialDeclareAttackCondition(CarditemList[currentIndex], currentArt)
                         )
                     {
@@ -210,17 +205,17 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
             }
             else if (CarditemList[currentIndex].cardType.Equals("推しホロメン") 
                 && !isViewMode 
-                && _DuelField._MatchConnection._DuelFieldData.currentGamePhase == DuelFieldData.GAMEPHASE.MainStep 
-                && _DuelField._MatchConnection._DuelFieldData.currentPlayerTurn.Equals(_DuelField.PlayerInfo.PlayerID))
+                && MatchConnection.INSTANCE._DuelFieldData.currentGamePhase == DuelFieldData.GAMEPHASE.MainStep 
+                && MatchConnection.INSTANCE._DuelFieldData.currentPlayerTurn.Equals(PlayerInfo.INSTANCE.PlayerID))
             {
-                _DuelField.OshiPowerPanel.SetActive(true);
-                _DuelField.CardEffectPanel.SetActive(false);
-                _DuelField.ArtPanel.SetActive(false);
+                DuelField.INSTANCE.OshiPowerPanel.SetActive(true);
+                DuelField.INSTANCE.CardEffectPanel.SetActive(false);
+                DuelField.INSTANCE.ArtPanel.SetActive(false);
 
                 if (CarditemList[currentIndex].transform.parent.parent.name.Equals("Oponente"))
                     return;
 
-                Transform contentHolder = _DuelField.OshiPowerPanel.transform.Find("Viewport").Find("Content");
+                Transform contentHolder = DuelField.INSTANCE.OshiPowerPanel.transform.Find("Viewport").Find("Content");
 
                 string translatedOshiSkill = await GoogleTranslateAPI.TranslateTextHandle(CarditemList[currentIndex].oshiSkill);
                 string translatedSpOshiSkill = await GoogleTranslateAPI.TranslateTextHandle(CarditemList[currentIndex].spOshiSkill);
@@ -233,7 +228,7 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
 
 
 
-                if (!_DuelField.usedOshiSkill && CanActivateOshiSkill(duelaction.usedCard.cardNumber))
+                if (!DuelField.INSTANCE.usedOshiSkill && CanActivateOshiSkill(duelaction.usedCard.cardNumber))
                 {
                     contentHolder.GetChild(0).GetComponent<Button>().onClick.AddListener(() => OnItemClickOshiSkill(duelaction));
                     contentHolder.GetChild(0).transform.Find("ArtButton").GetComponent<Image>().color = Color.white;
@@ -244,7 +239,7 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
                     contentHolder.GetChild(0).transform.Find("ArtButton").GetComponent<Image>().color = new Color32(0x33, 0x33, 0x33, 0xFF);
                 }
 
-                if (!_DuelField.usedSPOshiSkill && CanActivateSPOshiSkill(duelaction.usedCard.cardNumber))
+                if (!DuelField.INSTANCE.usedSPOshiSkill && CanActivateSPOshiSkill(duelaction.usedCard.cardNumber))
                 {
                     contentHolder.GetChild(1).GetComponent<Button>().onClick.AddListener(() => OnItemClickSPOshiSkill(duelaction));
                     contentHolder.GetChild(1).transform.Find("ArtButton").GetComponent<Image>().color = Color.white;
@@ -257,9 +252,9 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
             }
             else
             {
-                _DuelField.ArtPanel.SetActive(false);
-                _DuelField.OshiPowerPanel.SetActive(false);
-                _DuelField.CardEffectPanel.SetActive(true);
+                DuelField.INSTANCE.ArtPanel.SetActive(false);
+                DuelField.INSTANCE.OshiPowerPanel.SetActive(false);
+                DuelField.INSTANCE.CardEffectPanel.SetActive(true);
 
                 CarditemList[currentIndex].GetCardInfo();
 
@@ -299,22 +294,22 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
 
     private void OnItemClickRetrat(DuelAction duelaction)
     {
-        StartCoroutine(_EffectController.RetreatArt(duelaction));
+        StartCoroutine(EffectController.INSTANCE.RetreatArt(duelaction));
         CardPanel.gameObject.SetActive(false);
     }
     private void OnItemClickOshiSkill(DuelAction duelaction)
     {
         CardPanel.SetActive(false);
-        StartCoroutine(_EffectController.OshiSkill(duelaction));
-        GameObject HoloPower = _DuelField.GetZone("HoloPower", TargetPlayer.Player);
+        StartCoroutine(EffectController.INSTANCE.OshiSkill(duelaction));
+        GameObject HoloPower = DuelField.INSTANCE.GetZone("HoloPower", DuelField.TargetPlayer.Player);
         /*for (int n = 0; n < HoloPowerCost(duelaction.usedCard.cardNumber, false); n++)
-            _DuelField.SendCardToZone(HoloPower.transform.GetChild(HoloPower.transform.childCount - 1).gameObject, "Arquive", TargetPlayer.Player);*/
-        _DuelField.usedOshiSkill = true;
+            DuelField.INSTANCE.SendCardToZone(HoloPower.transform.GetChild(HoloPower.transform.childCount - 1).gameObject, "Arquive", DuelField.TargetPlayer.Player);*/
+        DuelField.INSTANCE.usedOshiSkill = true;
     }
     private bool CanActivateOshiSkill(string cardNumber)
     {
-        GameObject HoloPower = _DuelField.GetZone("HoloPower", TargetPlayer.Player);
-        int holoPowerCount = _DuelField.GetZone("HoloPower", TargetPlayer.Player).transform.childCount -1;
+        GameObject HoloPower = DuelField.INSTANCE.GetZone("HoloPower", DuelField.TargetPlayer.Player);
+        int holoPowerCount = DuelField.INSTANCE.GetZone("HoloPower", DuelField.TargetPlayer.Player).transform.childCount -1;
 
         if (holoPowerCount < HoloPowerCost(cardNumber, false))
             return false;
@@ -323,8 +318,8 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
         {
             case "hSD01-001":
                 //check if theres another holomem to replace energy
-                int backstagecount = _DuelField.CountBackStageTotal(false, TargetPlayer.Player);
-                if (_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentInChildren<Card>().attachedEnergy.Count < 1) return false;
+                int backstagecount = DuelField.INSTANCE.CountBackStageTotal(false, DuelField.TargetPlayer.Player);
+                if (DuelField.INSTANCE.GetZone("Stage", DuelField.TargetPlayer.Player).GetComponentInChildren<Card>().attachedEnergy.Count < 1) return false;
                 return (backstagecount > 0);
                 break;
             case "xxx":
@@ -335,15 +330,15 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
     private void OnItemClickSPOshiSkill(DuelAction duelaction)
     {
         CardPanel.SetActive(false);
-        StartCoroutine(_EffectController.SPOshiSkill(duelaction));
-        GameObject HoloPower = _DuelField.GetZone("HoloPower", TargetPlayer.Player);
+        StartCoroutine(EffectController.INSTANCE.SPOshiSkill(duelaction));
+        GameObject HoloPower = DuelField.INSTANCE.GetZone("HoloPower", DuelField.TargetPlayer.Player);
         /*for (int n = 0; n < HoloPowerCost(duelaction.usedCard.cardNumber, true); n++)
-            _DuelField.SendCardToZone(HoloPower.transform.GetChild(HoloPower.transform.childCount - 1).gameObject, "Arquive", TargetPlayer.Player);*/
-        _DuelField.usedSPOshiSkill = true;
+            DuelField.INSTANCE.SendCardToZone(HoloPower.transform.GetChild(HoloPower.transform.childCount - 1).gameObject, "Arquive", DuelField.TargetPlayer.Player);*/
+        DuelField.INSTANCE.usedSPOshiSkill = true;
     }
     private bool CanActivateSPOshiSkill(string cardNumber)
     {
-        int holoPowerCount = _DuelField.GetZone("HoloPower", TargetPlayer.Player).transform.childCount - 1;
+        int holoPowerCount = DuelField.INSTANCE.GetZone("HoloPower", DuelField.TargetPlayer.Player).transform.childCount - 1;
 
         if (holoPowerCount < HoloPowerCost(cardNumber, true))
             return false;
@@ -352,15 +347,15 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
         {
             case "hSD01-001":
                 //check if opponent has another holomem to switch for the center
-                int backstagecount = _DuelField.CountBackStageTotal(true, TargetPlayer.Oponnent);
+                int backstagecount = DuelField.INSTANCE.CountBackStageTotal(true, DuelField.TargetPlayer.Oponnent);
                 return (backstagecount > 0);
             case "hYS01-003":
-                foreach (Card card in _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>())
+                foreach (Card card in DuelField.INSTANCE.GetZone("Arquive", DuelField.TargetPlayer.Player).GetComponentsInChildren<Card>())
                     if (card.cardType.Equals("ホロメン") || card.cardType.Equals("Buzzホロメン"))
                         return true;
                     return false;
             case "hSD01-002":
-                foreach (Card card in _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>())
+                foreach (Card card in DuelField.INSTANCE.GetZone("Arquive", DuelField.TargetPlayer.Player).GetComponentsInChildren<Card>())
                     if (card.cardType.Equals("エール") && new EffectController().GetAreasThatContainsCardWithColorOrTagOrName(color: "緑").Length > 0)
                         return true;
                 return false;
@@ -371,18 +366,18 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
     {
         if (duelaction.usedCard.cardPosition.Equals("Stage"))
         {
-            if (_DuelField.centerStageArtUsed)
+            if (DuelField.INSTANCE.centerStageArtUsed)
                 return;
         }
         else if (duelaction.usedCard.cardPosition.Equals("Collaboration"))
         {
-            if (_DuelField.collabStageArtUsed)
+            if (DuelField.INSTANCE.collabStageArtUsed)
                 return;
         }
 
         duelaction.selectedSkill = thisButton.transform.Find("ArtButton").Find("Name").GetComponent<TMP_Text>().text;
         duelaction.actionType = "doArt";
-        StartCoroutine(_DuelField_TargetForAttackMenu.SetupSelectableItems(duelaction, TargetPlayer.Oponnent));
+        StartCoroutine(_DuelField_TargetForAttackMenu.SetupSelectableItems(duelaction, DuelField.TargetPlayer.Oponnent));
         CardPanel.gameObject.SetActive(false);
     }
     private int HoloPowerCost(string cardNumber, bool SP = false)

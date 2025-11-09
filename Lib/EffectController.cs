@@ -5,16 +5,12 @@ using System.Linq;
 using UnityEngine;
 using Newtonsoft.Json;
 using static DuelField;
-using static UnityEngine.GraphicsBuffer;
-using Unity.VisualScripting;
-using System.Runtime.ConstrainedExecution;
-using UnityEngine.UI;
-using Unity.VisualScripting.Antlr3.Runtime;
 
 namespace Assets.Scripts.Lib
 {
     class EffectController : MonoBehaviour
     {
+        static public EffectController INSTANCE;
 
         private DuelField_ShowListPickThenReorder _DuelField_ShowListPickThenReorder;
         private DuelField_TargetForEffectMenu _DuelField_TargetForEffectMenu;
@@ -37,7 +33,8 @@ namespace Assets.Scripts.Lib
 
         void Start()
         {
-            _DuelField = FindAnyObjectByType<DuelField>();
+            INSTANCE = this;
+
             _DuelField_ShowListPickThenReorder = FindAnyObjectByType<DuelField_ShowListPickThenReorder>();
             _DuelField_TargetForEffectMenu = FindAnyObjectByType<DuelField_TargetForEffectMenu>();
             _DuelField_ShowAlistPickOne = FindAnyObjectByType<DuelField_ShowAlistPickOne>();
@@ -225,7 +222,7 @@ namespace Assets.Scripts.Lib
                 case "hBP01-003":
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (duelAction.cardList.Count == 0)
                         {
                             menuActions.Clear();
@@ -364,7 +361,7 @@ namespace Assets.Scripts.Lib
                             return null;
                         }
 
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         holoPowerList = JsonConvert.DeserializeObject<List<Card>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (holoPowerList.Count == 0)
                         {
@@ -398,7 +395,7 @@ namespace Assets.Scripts.Lib
 
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         holoPowerList = JsonConvert.DeserializeObject<List<Card>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (holoPowerList.Count == 0)
                         {
@@ -488,7 +485,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         diceRoll = GetLastValue<int>(1);
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         List<Card> canSelect = JsonConvert.DeserializeObject<List<Card>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         if (!IsOddNumber(diceRoll) || canSelect.Count == 0)
@@ -578,7 +575,7 @@ namespace Assets.Scripts.Lib
                     //target the card
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player, new string[] { "BackStage1", "BackStage2", "BackStage3", "BackStage4", "BackStage5" });
                     });
                     //inform the server
@@ -743,7 +740,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
@@ -787,7 +784,7 @@ namespace Assets.Scripts.Lib
                     //we recieve the list then callback again to finish the effect
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
@@ -816,7 +813,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         List<Card> filteresList = new();
                         foreach (Card card in duelActionInput.cardList)
@@ -855,7 +852,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         List<Card> filteresList = new();
                         foreach (Card card in duelActionInput.cardList)
@@ -900,7 +897,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
 
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
@@ -936,7 +933,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         //if not oddnumber, we draw a card calling "Draw" at DuelField, so break
                         if (GetLastValue<int>(1) < 3 || duelActionInput.cardList.Count == 0)
@@ -979,7 +976,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         List<Card> filteresList = new();
                         foreach (Card card in duelActionInput.cardList)
@@ -1015,7 +1012,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
@@ -1056,7 +1053,7 @@ namespace Assets.Scripts.Lib
                     //from the list of energy recieved, pick one
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
@@ -1127,7 +1124,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         List<Card> filteresList = new();
                         foreach (Card card in duelActionInput.cardList)
@@ -1162,7 +1159,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         List<Card> filteresList = new();
                         foreach (Card card in duelActionInput.cardList)
@@ -1196,7 +1193,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         List<Card> filteresList = new();
                         foreach (Card card in duelActionInput.cardList)
@@ -1230,7 +1227,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         List<Card> filteresList = new();
                         foreach (Card card in duelActionInput.cardList)
@@ -1352,7 +1349,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         DuelAction _duelaction = GetLastValue<DuelAction>();
-                        DuelAction da = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction da = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         _duelaction.actionObject = da.actionObject;
 
                         _DuelField.GenericActionCallBack(_duelaction, "ResolveOnArtEffect");
@@ -1452,7 +1449,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         List<Card> selectableList = JsonConvert.DeserializeObject<List<Card>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (selectableList.Count == 0)
                         {
@@ -1590,7 +1587,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
@@ -1677,7 +1674,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        DuelAction da = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction da = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         List<Card> canSelect = _DuelField.cardHolderPlayer.GetComponentsInChildren<Card>().ToList();
                         if (da.cardList.Count == 0)
                         {
@@ -1729,7 +1726,7 @@ namespace Assets.Scripts.Lib
                             return null;
                         }
 
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         List<Card> cheerList = JsonConvert.DeserializeObject<List<Card>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         if (cheerList.Count == 0)
@@ -1765,7 +1762,7 @@ namespace Assets.Scripts.Lib
                     //target the card
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player);
                     });
                     //inform the server
@@ -1795,7 +1792,7 @@ namespace Assets.Scripts.Lib
                             return null;
                         }
 
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player, targetZones);
                     });
                     //inform the server
@@ -1828,7 +1825,7 @@ namespace Assets.Scripts.Lib
                             return null;
                         }
 
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player, filteredZones);
                     });
                     //inform the server
@@ -1888,7 +1885,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(_DuelField._MatchConnection.DuelActionList.GetByIndex((_DuelField._MatchConnection.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         List<Card> selectableList = JsonConvert.DeserializeObject<List<Card>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (selectableList.Count == 0)
                         {

@@ -10,33 +10,22 @@ using Newtonsoft.Json;
 
 public class MatchConnection : MonoBehaviour
 {
+    public static MatchConnection INSTANCE;
 
     [SerializeField] public DuelFieldData _DuelFieldData = null;
     [SerializeField] public MultiMap<string, string> DuelActionList = null;
     [SerializeField] public List<string> DuelActionListIndex = null;
-    [SerializeField] private PlayerInfo PlayerInfo = null;
 
     public WebSocket _webSocket;
-    private readonly Uri _uri = new("wss://localhost:7047/ws");
+    public readonly Uri WebSocketConnectionUrl = new("wss://localhost:7047/ws");
 
     [SerializeField] private int _connectionState = 0;
 
     [SerializeField] private PlayerRequest _requestData;
 
-    [Flags]
-    public enum ConnectionState : byte
-    {
-        None = 0,
-        OpenWebSocket = 1,
-        ClosedWebSocket = 2,
-        ErrorWebSocket = 3,
-        JoinPlayersList = 4,
-        WaitingForList = 5
-    }
-
     private async void Start()
     {
-        PlayerInfo = GameObject.Find("PlayerInfo").GetComponent<PlayerInfo>();
+        INSTANCE = this;
 
         _DuelFieldData = new DuelFieldData();
         DuelActionList = new MultiMap<string, string>();
@@ -44,7 +33,7 @@ public class MatchConnection : MonoBehaviour
         _requestData = new PlayerRequest();
         _requestData.type = "";
 
-        _webSocket = new WebSocket(_uri.ToString());
+        _webSocket = new WebSocket(WebSocketConnectionUrl.ToString());
         _webSocket.OnOpen += () =>
         {
             Debug.Log("Connected to server.");
@@ -106,16 +95,14 @@ public class MatchConnection : MonoBehaviour
     {
 
         #if !UNITY_WEBGL || UNITY_EDITOR
-        _webSocket.DispatchMessageQueue();
-#endif
+            _webSocket.DispatchMessageQueue();
+        #endif
 
         if (_webSocket.State == WebSocketState.Open) {
             if (_connectionState == 0)
             {
                 _connectionState = 1;
-                StartCoroutine(TryToRequest("Waitingforopponent", 1, 5000f, SendCallToServer(PlayerInfo.PlayerID, PlayerInfo.Password, "JoinPlayerQueueList"), 2));
-
-
+                StartCoroutine(TryToRequest("Waitingforopponent", 1, 5000f, SendCallToServer(PlayerInfo.INSTANCE.PlayerID, PlayerInfo.INSTANCE.Password, "JoinPlayerQueueList"), 2));
             }
         }
     }
