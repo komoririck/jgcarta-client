@@ -1,77 +1,106 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
+using static UnityEngine.GraphicsBuffer;
 
 public class PhaseMessage : MonoBehaviour
 {
     public RectTransform messageTransform;
     public TMP_Text messageText;
-    public float movementSpeed = 1.0f;
-    public float delayAtCenter = 1.0f;
 
     private Vector3 startPosition;
     private Vector3 centerPosition;
     private Vector3 endPosition;
-    private Coroutine currentAnimationCoroutine;
+
+    private float stateTimer = 0f;
+
+    private bool isRunning = false;
+    private float timer = 0f;
+
+    private enum MoveState { Idle, MoveX, Wait, MoveY, Done }
+    private MoveState state = MoveState.Idle;
 
     void Start()
     {
-        InitPositions();
+        startPosition = new Vector3(-950, 0, 0);
+        centerPosition = new Vector3(0, 0, 0);
+        endPosition = new Vector3(950, 0, 0);
     }
 
+    void Update()
+    {
+        if (!isRunning) return;
+
+        timer += Time.deltaTime;
+
+        if (timer > 4f)
+        {
+            StopStop();
+            return;
+        }
+
+        DuelField.INSTANCE.NeedsOrganize = true;
+
+        switch (state)
+        {
+            case MoveState.MoveX:
+                UpdateMove(startPosition, centerPosition, 1f, MoveState.Wait);
+                break;
+
+            case MoveState.Wait:
+                UpdateWait(1f, MoveState.MoveY);
+                break;
+
+            case MoveState.MoveY:
+                UpdateMove(centerPosition, endPosition, 1f, MoveState.Done);
+                break;
+
+            case MoveState.Done:
+                StopStop();
+                break;
+        }
+    }
     public void StartMessage(string phaseName)
     {
-        // If there's an ongoing animation, stop it
-        if (currentAnimationCoroutine != null)
-        {
-            StopCoroutine(currentAnimationCoroutine);
-            InitPositions();
-        }
+        if (isRunning)
+            StopStop();
+        
+        startPosition = messageTransform.anchoredPosition;
 
-        // Start the new message coroutine
-        currentAnimationCoroutine = StartCoroutine(DisplayPhaseMessage(phaseName));
-    }
+        state = MoveState.MoveX;
+        timer = 0f;
+        isRunning = true;
 
-    private void InitPositions()
-    {
-        startPosition = new Vector3(-950, 0, 0); // Off-screen to the left
-        centerPosition = new Vector3(0, 0, 0);           // Center of the screen
-        endPosition = new Vector3(950, 0, 0);   // Off-screen to the right
-    }
-
-    private IEnumerator DisplayPhaseMessage(string phaseName)
-    {
-        // Reset the message position
-        messageTransform.anchoredPosition = startPosition;
-
-        // Set the phase name
         messageText.text = phaseName;
-
-        // Move from left to center
-        yield return StartCoroutine(MoveToPosition(messageTransform, centerPosition, movementSpeed));
-
-        // Wait at center for a short time
-        yield return new WaitForSeconds(delayAtCenter);
-
-        // Move from center to right
-        yield return StartCoroutine(MoveToPosition(messageTransform, endPosition, movementSpeed));
-
-        // Reset the animation coroutine reference
-        currentAnimationCoroutine = null;
-
-        // Reset position for the next message
-        messageTransform.anchoredPosition = startPosition;
-
-        gameObject.SetActive(false);
     }
-
-    private IEnumerator MoveToPosition(RectTransform rectTransform, Vector3 targetPosition, float speed)
+    private void UpdateMove(Vector2 from, Vector2 to, float duration, MoveState next)
     {
-        while (Vector3.Distance(rectTransform.anchoredPosition, targetPosition) > 0.1f)
+        stateTimer += Time.deltaTime;
+        float t = Mathf.Clamp01(stateTimer / duration);
+        messageTransform.anchoredPosition = Vector2.Lerp(from, to, t);
+
+        if (t >= 1f)
         {
-            rectTransform.anchoredPosition = Vector3.MoveTowards(rectTransform.anchoredPosition, targetPosition, speed * Time.deltaTime);
-            yield return null;
+            state = next;
+            stateTimer = 0f;
         }
-        rectTransform.anchoredPosition = targetPosition;
+    }
+    private void UpdateWait(float duration, MoveState next)
+    {
+        stateTimer += Time.deltaTime;
+        if (stateTimer >= duration)
+        {
+            state = next;
+            stateTimer = 0f;
+        }
+    }
+    private void StopStop()
+    {
+        isRunning = false;
+        state = MoveState.Idle;
+        stateTimer = 0f;
+        timer = 0f;
+        messageTransform.anchoredPosition = new Vector3(-950, 0, 0);
+        DuelField.INSTANCE.NeedsOrganize = false;
     }
 }

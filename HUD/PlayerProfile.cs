@@ -161,7 +161,7 @@ public class PlayerProfile : MonoBehaviour
             playerItemBox = new List<HTTPSMaker.PlayerItemBoxData>(),
             playerMessageBox = new List<HTTPSMaker.PlayerMessageBoxData>(),
             playerMissionList = new List<HTTPSMaker.PlayerMissionData>(),
-            requestData = new PlayerRequest { type = "UpdateName", description = "", requestObject = "" }
+            requestData = new Request { type = "UpdateName", description = "", duelAction = null }
         };
 
         yield return StartCoroutine(_HTTPSMaker.UpdatePlayerInfo(playerinfoupdate));
@@ -189,7 +189,7 @@ public class PlayerProfile : MonoBehaviour
             playerItemBox = new List<HTTPSMaker.PlayerItemBoxData>(),
             playerMessageBox = new List<HTTPSMaker.PlayerMessageBoxData>(),
             playerMissionList = new List<HTTPSMaker.PlayerMissionData>(),
-            requestData = new PlayerRequest { type = "UpdateProfilePicture", description = "", requestObject = "" }
+            requestData = new Request { type = "UpdateProfilePicture", description = "", duelAction = null }
         };
 
         yield return StartCoroutine(_HTTPSMaker.UpdatePlayerInfo(playerinfoupdate));

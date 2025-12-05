@@ -1,16 +1,22 @@
-using Newtonsoft.Json.Linq;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
-using static Google.Apis.Requests.BatchRequest;
+using Newtonsoft.Json;
 
 public class HttpManager : MonoBehaviour
 {
-    public IEnumerator MakeRequest(string url, string jsonData, System.Action<string> onSuccess, System.Action<string> onError, string requestType = "POST")
+    public IEnumerator MakeRequest(string url, Request jsonData, System.Action<string> onSuccess, System.Action<string> onError, string requestType = "POST")
     {
+
+        var settings = new JsonSerializerSettings
+        {
+            DefaultValueHandling = DefaultValueHandling.Ignore,
+            Formatting = Formatting.Indented,
+        };
+
         using (UnityWebRequest request = new(url, requestType))
         {
-            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
+            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(jsonData, settings));
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");

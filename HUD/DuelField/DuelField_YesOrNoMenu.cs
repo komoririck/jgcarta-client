@@ -1,13 +1,7 @@
-using Assets.Scripts.Lib;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq.Expressions;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
-using static DuelField;
-using static UnityEngine.GraphicsBuffer;
 
 public class DuelField_YesOrNoMenu : MonoBehaviour
 {
@@ -42,12 +36,12 @@ public class DuelField_YesOrNoMenu : MonoBehaviour
 
     public void YesButton() 
     {
-        effectController.EffectInformation.Add("Yes");
+        effectController.EffectInformation.Add(new DuelAction { yesOrNo = true });
         FinishSelection();
     }
     public void NoButton()
     {
-        effectController.EffectInformation.Add("No");
+        effectController.EffectInformation.Add( new DuelAction { yesOrNo = false }  );
         FinishSelection();
     }
 

@@ -94,7 +94,7 @@ public class FileReader : MonoBehaviour
             };
 
             try {
-                result.Add(parts[12], record);
+                result.TryAdd(parts[12], record);
             } 
             catch (Exception e) 
             { 

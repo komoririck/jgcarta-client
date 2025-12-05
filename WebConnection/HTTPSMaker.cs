@@ -28,17 +28,17 @@ public class HTTPSMaker : MonoBehaviour
     }
     public IEnumerator CreateAccount()
     {
-        PlayerRequest _PlayerRequest = new() { 
+        Request _PlayerRequest = new() { 
             playerID = "",
             password =  "",
         };
 
         yield return httpManager.MakeRequest(
             (APIConnectionUrl + "/Account/CreateAccount"),
-            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
+            _PlayerRequest,
             onSuccess: (response) =>
             {
-                PlayerRequest responseData = JsonUtility.FromJson<PlayerRequest>(response);
+                Request responseData = JsonUtility.FromJson<Request>(response);
                 PlayerPrefs.SetString("Password", responseData.password);
                 PlayerPrefs.SetString("PlayerID", responseData.playerID);
                 PlayerPrefs.Save();
@@ -53,14 +53,14 @@ public class HTTPSMaker : MonoBehaviour
     public IEnumerator GetPlayerInfo(string playerID, string password)
     {
 
-        PlayerRequest _PlayerRequest = new() {
+        Request _PlayerRequest = new() {
             playerID = playerID.ToString(),
             password = password,
         };
 
         yield return httpManager.MakeRequest(
             APIConnectionUrl + "/PlayerInfo/GetFullProfile",
-            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
+            _PlayerRequest,
             response =>
             {
                 PlayerInfoData responseData = JsonUtility.FromJson<PlayerInfoData>(response);
@@ -148,7 +148,7 @@ public class HTTPSMaker : MonoBehaviour
     public IEnumerator LoginAccount(string email, string password)
     {
 
-        PlayerRequest playerRequest = new PlayerRequest()
+        Request playerRequest = new Request()
         {
             password = password,
             email = email
@@ -156,10 +156,10 @@ public class HTTPSMaker : MonoBehaviour
 
         yield return httpManager.MakeRequest(
             (APIConnectionUrl + "/Account/Login"),
-            JsonConvert.SerializeObject(playerRequest, jsonSettings),
+            playerRequest,
             onSuccess: (response) =>
             {
-                PlayerRequest responseData = JsonUtility.FromJson<PlayerRequest>(response);
+                Request responseData = JsonUtility.FromJson<Request>(response);
 
                 if (responseData != null)
                 {
@@ -180,9 +180,11 @@ public class HTTPSMaker : MonoBehaviour
     }
     public IEnumerator UpdatePlayerInfo(PlayerInfoData playerinfo)
     {
+        Request pa = new Request(); //TODO
+
         yield return httpManager.MakeRequest(
             (APIConnectionUrl + ""),
-            JsonConvert.SerializeObject(playerinfo, jsonSettings),
+            pa,
             onSuccess: (response) =>
             {
                 returnMessage = ("success");
@@ -198,7 +200,7 @@ public class HTTPSMaker : MonoBehaviour
     public IEnumerator JoinMatchQueue(string playerID, string password, string type)
     {
 
-        PlayerRequest _PlayerRequest = new() {
+        Request _PlayerRequest = new() {
             playerID = playerID.ToString(),
             password = password,
             type = "JoinQueue",
@@ -207,7 +209,7 @@ public class HTTPSMaker : MonoBehaviour
 
         yield return httpManager.MakeRequest(
             (APIConnectionUrl + "/ControlMatchQueue/JoinQueue"),
-            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
+            _PlayerRequest,
             onSuccess: (response) =>
             {
                 returnMessage = "success";
@@ -222,7 +224,7 @@ public class HTTPSMaker : MonoBehaviour
     }
     public IEnumerator CancelMatchQueue(string playerID, string password)
     {
-        PlayerRequest _PlayerRequest = new() {
+        Request _PlayerRequest = new() {
             playerID = playerID.ToString(),
             password = password,
             description = "Cancel"
@@ -230,7 +232,7 @@ public class HTTPSMaker : MonoBehaviour
 
         yield return httpManager.MakeRequest(
             (APIConnectionUrl + "/ControlMatchQueue/JoinLeave"),
-            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
+            _PlayerRequest,
             onSuccess: (response) =>
             {
                 returnMessage = ("success");
@@ -245,7 +247,7 @@ public class HTTPSMaker : MonoBehaviour
     }
     public IEnumerator JoinRoom(string playerID, string password, string type, string code)
     {
-        PlayerRequest _PlayerRequest = new()
+        Request _PlayerRequest = new()
         {
             playerID = playerID.ToString(),
             password = password,
@@ -254,7 +256,7 @@ public class HTTPSMaker : MonoBehaviour
 
         yield return httpManager.MakeRequest(
             (APIConnectionUrl + $"/ControlMatchRoom/{type}"),
-            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
+            _PlayerRequest,
             onSuccess: (response) =>
             {
                
@@ -304,7 +306,7 @@ public class HTTPSMaker : MonoBehaviour
     public IEnumerator GetDeckRequest()
     {
         PlayerInfo playerInfo = FindAnyObjectByType<PlayerInfo>();
-        PlayerRequest _PlayerRequest = new()
+        Request _PlayerRequest = new()
         {
             playerID = playerInfo.PlayerID,
             password = playerInfo.Password,
@@ -312,7 +314,7 @@ public class HTTPSMaker : MonoBehaviour
 
         yield return httpManager.MakeRequest(
             (APIConnectionUrl + "/DeckInfo/GetDeck"),
-            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
+            _PlayerRequest,
             onSuccess: (response) =>
             {
                 try
@@ -338,7 +340,7 @@ public class HTTPSMaker : MonoBehaviour
     public IEnumerator UpdateDeckRequest(DeckData deckData)
     {
         PlayerInfo playerInfo = FindAnyObjectByType<PlayerInfo>();
-        PlayerRequest _PlayerRequest = new()
+        Request _PlayerRequest = new()
         {
             playerID = playerInfo.PlayerID,
             password = playerInfo.Password,
@@ -347,7 +349,7 @@ public class HTTPSMaker : MonoBehaviour
 
         yield return httpManager.MakeRequest(
             (APIConnectionUrl + "/DeckInfo/UpdateDeck"),
-            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
+            _PlayerRequest,
             onSuccess: (response) =>
             {
                 returnMessage = ("success");
@@ -365,7 +367,7 @@ public class HTTPSMaker : MonoBehaviour
     {
         DeckData deckDataId = new() { deckId = deckData.deckId };
         PlayerInfo playerInfo = FindAnyObjectByType<PlayerInfo>();
-        PlayerRequest _PlayerRequest = new()
+        Request _PlayerRequest = new()
         {
             playerID = playerInfo.PlayerID,
             password = playerInfo.Password,
@@ -374,7 +376,7 @@ public class HTTPSMaker : MonoBehaviour
 
         yield return httpManager.MakeRequest(
             (APIConnectionUrl + "/DeckInfo/SetDeckAsActive"),
-            JsonConvert.SerializeObject(_PlayerRequest, jsonSettings),
+            _PlayerRequest,
             onSuccess: (response) =>
             {
                 returnMessage = ("success");
@@ -436,7 +438,7 @@ public class HTTPSMaker : MonoBehaviour
         public List<PlayerMissionData> playerMissionList;
         public List<PlayerBadgeData> badges;
 
-        public PlayerRequest requestData;
+        public Request requestData;
     }
     [Serializable]
     public class PlayerBadgeData

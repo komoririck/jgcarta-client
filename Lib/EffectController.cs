@@ -5,9 +5,8 @@ using System.Linq;
 using UnityEngine;
 using Newtonsoft.Json;
 using static DuelField;
+using Unity.VisualScripting;
 
-namespace Assets.Scripts.Lib
-{
     class EffectController : MonoBehaviour
     {
         static public EffectController INSTANCE;
@@ -19,10 +18,9 @@ namespace Assets.Scripts.Lib
         private DuelField_YesOrNoMenu _DuelField_YesOrNoMenu;
         private DuelField_ShowANumberList _DuelField_ShowANumberList;
 
-        private DuelField _DuelField;
         private List<Func<IEnumerator>> menuActions = new List<Func<IEnumerator>>();
 
-        public List<object> EffectInformation;
+        public List<DuelAction> EffectInformation = new();
         private object lastRetrievedValue;
 
         public DuelAction duelActionOutput;
@@ -41,11 +39,10 @@ namespace Assets.Scripts.Lib
             _DuelField_DetachEnergyOrEquipMenu = FindAnyObjectByType<DuelField_DetachCardMenu>();
             _DuelField_YesOrNoMenu = FindAnyObjectByType<DuelField_YesOrNoMenu>();
             _DuelField_ShowANumberList = FindAnyObjectByType<DuelField_ShowANumberList>();
-            EffectInformation = new List<object>();
         }
         public IEnumerator OshiSkill(DuelAction _DuelActionFirstAction)
         {
-            List<Card> holoPowerList;
+            List<CardData> holoPowerList;
             List<string> serverReturn;
             string cheerNumber;
 
@@ -54,15 +51,15 @@ namespace Assets.Scripts.Lib
                 case "hBP01-006":
                     menuActions.Add(() =>
                     {
-                        List<Card> canSelect = new();
-                        foreach (Card card in _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>())
-                            if (card.cardType.Equals("ホロメン") || card.cardType.Equals("Buzzホロメン"))
+                        List<CardData> canSelect = new();
+                        foreach (CardData card in DuelField.INSTANCE.GetZone(Lib.GameZone.Arquive, TargetPlayer.Player).GetComponentsInChildren<Card>().ToList().Select(item => item.ToCardData()).ToList())
+                        if (card.cardType.Equals("ホロメン") || card.cardType.Equals("Buzzホロメン"))
                                 canSelect.Add(card);
 
                         if (canSelect.Count == 0 || canSelect.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionFirstAction, canSelect, canSelect);
                     });
@@ -70,29 +67,27 @@ namespace Assets.Scripts.Lib
                     {
                         List<string> cardnumber = GetLastValue<List<string>>();
                         _DuelActionFirstAction.actionObject = cardnumber[0];
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hSD01-001":
                     menuActions.Add(() =>
                     {
-                        var zonesThatPlayerCanSelect = new string[] { "Stage" };
+                        var zonesThatPlayerCanSelect = new Lib.GameZone[] { Lib.GameZone.Stage};
                         return _DuelField_DetachEnergyOrEquipMenu.SetupSelectableItems(_DuelActionFirstAction, AddCostToEffectInformation: true, zonesThatPlayerCanSelect: zonesThatPlayerCanSelect);
                     });
                     menuActions.Add(() =>
                     {
-                        var zonesThatPlayerCanSelect = new string[] { "BackStage1", "BackStage2", "BackStage3", "BackStage4", "BackStage5", "Collaboration" };
+                        var zonesThatPlayerCanSelect = new Lib.GameZone[] { Lib.GameZone.BackStage1, Lib.GameZone.BackStage2, Lib.GameZone.BackStage3, Lib.GameZone.BackStage4, Lib.GameZone.BackStage5, Lib.GameZone.Collaboration };
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction, target: TargetPlayer.Player, zonesThatPlayerCanSelect: zonesThatPlayerCanSelect);
                     });
                     menuActions.Add(() =>
                     {
-                        Card X = (Card)EffectInformation[0];
-                        CardData cardData = CardData.CreateCardDataFromCard(X.cardNumber, X.playedFrom, X.cardPosition);
                         duelActionOutput = (DuelAction)EffectInformation[1];
-                        duelActionOutput.actionObject = JsonConvert.SerializeObject(cardData, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionOutput.actionObject = JsonConvert.SerializeObject(EffectInformation[0].usedCard, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         duelActionOutput.cheerCostCard = null;
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnOshiEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnOshiEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -104,7 +99,7 @@ namespace Assets.Scripts.Lib
                 case "hBP01-001":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -116,7 +111,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         _DuelActionFirstAction.actionObject = GetLastValue<string>();
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiSPEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiSPEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -129,7 +124,7 @@ namespace Assets.Scripts.Lib
         public IEnumerator SPOshiSkill(DuelAction _DuelActionFirstAction)
         {
             menuActions = new List<Func<IEnumerator>>();
-            List<Card> holoPowerList;
+            List<CardData> holoPowerList;
             EffectInformation.Clear();
 
             List<string> serverReturn;
@@ -144,10 +139,10 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        var list = _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>();
+                        var list = DuelField.INSTANCE.GetZone(Lib.GameZone.Arquive, TargetPlayer.Player).GetComponentsInChildren<Card>().ToList().Select(item => item.ToCardData()).ToList();
 
-                        List<Card> canSelect = null;
-                        foreach (Card card in list)
+                        List<CardData> canSelect = null;
+                        foreach (CardData card in list)
                             if (card.cardType.Equals("エール"))
                                 canSelect.Add(card);
 
@@ -155,7 +150,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(GetLastValue<DuelAction>(), "ResolveOnOshiSPEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(GetLastValue<DuelAction>(), "ResolveOnOshiSPEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -163,42 +158,42 @@ namespace Assets.Scripts.Lib
                     //select the card to return to back
                     menuActions.Add(() =>
                     {
-                        var zonesThatPlayerCanSelect = new string[] { "BackStage1", "BackStage2", "BackStage3", "BackStage4", "BackStage5" };
+                        var zonesThatPlayerCanSelect = new Lib.GameZone[] { Lib.GameZone.BackStage1, Lib.GameZone.BackStage2, Lib.GameZone.BackStage3, Lib.GameZone.BackStage4, Lib.GameZone.BackStage5 };
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction, target: TargetPlayer.Oponnent, zonesThatPlayerCanSelect: zonesThatPlayerCanSelect);
                     });
                     //send both cost and targer(color) to the server
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnOshiSPEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnOshiSPEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-001":
                     menuActions.Add(() =>
                     {
-                        var zonesThatPlayerCanSelect = new string[] { "Stage", "Collaboration" };
+                        var zonesThatPlayerCanSelect = new Lib.GameZone[] { Lib.GameZone.Stage, Lib.GameZone.Collaboration };
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction, target: TargetPlayer.Oponnent, zonesThatPlayerCanSelect: zonesThatPlayerCanSelect);
                     });
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnOshiSPEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnOshiSPEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hYS01-003":
                     menuActions.Add(() =>
                     {
-                        List<Card> canSelect = new();
-                        foreach (Card card in _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>())
+                        List<CardData> canSelect = new();
+                        foreach (Card card in DuelField.INSTANCE.GetZone(Lib.GameZone.Arquive, TargetPlayer.Player).GetComponentsInChildren<Card>())
                             if (card.cardType.Equals("ホロメン") || card.cardType.Equals("Buzzホロメン"))
-                                canSelect.Add(card);
+                                canSelect.Add(card.ToCardData());
 
                         if (canSelect.Count == 0 || canSelect.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionFirstAction, canSelect, canSelect);
                     });
@@ -206,7 +201,7 @@ namespace Assets.Scripts.Lib
                     {
                         List<string> cardnumber = GetLastValue<List<string>>();
                         _DuelActionFirstAction.actionObject = cardnumber[0];
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiSPEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiSPEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -215,18 +210,18 @@ namespace Assets.Scripts.Lib
                 case "hBP01-006":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiSPEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnOshiSPEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-003":
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
                         if (duelAction.cardList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionFirstAction, duelAction.cardList, duelAction.cardList);
                     });
@@ -239,7 +234,7 @@ namespace Assets.Scripts.Lib
                         DuelAction duelAction = GetLastValue<DuelAction>();
                         List<string> cardnumber = GetLastValue<List<string>>(1);
                         duelAction.actionObject = cardnumber[0];
-                        _DuelField.GenericActionCallBack(duelAction, "ResolveOnOshiSPEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelAction, "ResolveOnOshiSPEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -251,7 +246,7 @@ namespace Assets.Scripts.Lib
         public void ResolveOnCollabEffect(DuelAction _DuelActionR)
         {
             menuActions = new List<Func<IEnumerator>>();
-            List<Card> holoPowerList;
+            List<CardData> holoPowerList;
 
             List<string> serverReturn;
             string cheerNumber;
@@ -268,7 +263,7 @@ namespace Assets.Scripts.Lib
                 case "hBP01-015":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -282,26 +277,26 @@ namespace Assets.Scripts.Lib
                     {
                         string WillActivate = GetLastValue<string>();
 
-                        if (!_DuelField.GetZone("Favorite", TargetPlayer.Player).GetComponentInChildren<Card>().cardName.Equals("星街すいせい") || !WillActivate.Equals("Yes") || _DuelField.GetZone(_DuelActionR.usedCard.cardPosition, TargetPlayer.Player).GetComponentInChildren<Card>().attachedEnergy.Count == 0)
+                        if (!DuelField.INSTANCE.GetZone(Lib.GameZone.Favourite, TargetPlayer.Player).GetComponentInChildren<Card>().cardName.Equals("星街すいせい") || !WillActivate.Equals("Yes") || DuelField.INSTANCE.GetZone(_DuelActionR.usedCard.curZone, TargetPlayer.Player).GetComponentInChildren<Card>().attachedEnergy.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_DetachEnergyOrEquipMenu.SetupSelectableItems(_DuelActionR);
                     });
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(GetLastValue<DuelAction>(), "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(GetLastValue<DuelAction>(), "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-071":
                     menuActions.Add(() =>
                     {
-                        var list = _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>();
+                        var list = DuelField.INSTANCE.GetZone(Lib.GameZone.Arquive, TargetPlayer.Player).GetComponentsInChildren<Card>().ToList().Select(item => item.ToCardData()).ToList();
 
-                        List<Card> canSelect = null;
-                        foreach (Card card in list)
+                        List<CardData> canSelect = null;
+                        foreach (CardData card in list)
                             if (card.cardName.Equals("座員"))
                                 canSelect.Add(card);
 
@@ -309,17 +304,17 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(GetLastValue<DuelAction>(), "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(GetLastValue<DuelAction>(), "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-100":
                     menuActions.Add(() =>
                     {
-                        var list = _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>();
+                        var list = DuelField.INSTANCE.GetZone(Lib.GameZone.Arquive, TargetPlayer.Player).GetComponentsInChildren<Card>().ToList().Select(item => item.ToCardData()).ToList();
 
-                        List<Card> canSelect = null;
-                        foreach (Card card in list)
+                        List<CardData> canSelect = null;
+                        foreach (CardData card in list)
                             if (card.cardType.Equals("エール"))
                                 canSelect.Add(card);
 
@@ -327,22 +322,22 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(GetLastValue<DuelAction>(), "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(GetLastValue<DuelAction>(), "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hSD01-012":
-                    string WillActivate = "";
+                    DuelAction WillActivate;
                     //select if active
                     menuActions.Add(() =>
                     {
-                        if (_DuelField.GetZone("CardCheer", TargetPlayer.Player).gameObject.transform.childCount - 1 < 1)
+                        if (DuelField.INSTANCE.GetZone(Lib.GameZone.CardCheer, TargetPlayer.Player).gameObject.transform.childCount - 1 < 1)
                         {
                             menuActions.Clear();
                             return dummy();
                         }
 
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
 
@@ -353,35 +348,33 @@ namespace Assets.Scripts.Lib
 
                     menuActions.Add(() =>
                     {
-                        WillActivate = (string)EffectInformation[0];
+                        WillActivate = EffectInformation[0];
 
                         if (!WillActivate.Equals("Yes"))
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
 
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        holoPowerList = JsonConvert.DeserializeObject<List<Card>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        holoPowerList = JsonConvert.DeserializeObject<List<CardData>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (holoPowerList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionR, holoPowerList, holoPowerList);
                     });
                     menuActions.Add(() =>
                     {
-                        List<string> cardnumber = (List<string>)EffectInformation[1];
-                        _DuelActionR.usedCard = new CardData() { cardNumber = cardnumber[0] };
-                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionR, TargetPlayer.Player, new string[] { "Stage" });
+                        _DuelActionR.usedCard = EffectInformation[1].usedCard;
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionR, TargetPlayer.Player, new Lib.GameZone[] { Lib.GameZone.Stage });
                     });
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[2];
-                        duelActionOutput.actionObject = WillActivate;
 
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnCollabEffect");
                         return dummy();
                     });
                     break;
@@ -389,18 +382,18 @@ namespace Assets.Scripts.Lib
                     //we get the powerlist from the server
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
 
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        holoPowerList = JsonConvert.DeserializeObject<List<Card>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        holoPowerList = JsonConvert.DeserializeObject<List<CardData>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (holoPowerList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionR, holoPowerList, holoPowerList);
                     });
@@ -410,15 +403,14 @@ namespace Assets.Scripts.Lib
                     {
                         isSelectionCompleted = false;
                         //fetch player hand
-                        List<Card> secondList = GameObject.Find("MatchField").transform.Find("PlayersHands/PlayerHand").GetComponentsInChildren<Card>().ToList();
+                        EffectInformation[0].cardList = GameObject.Find("MatchField").transform.Find("PlayerHand").GetComponentsInChildren<Card>().Select(item => item.ToCardData()).ToList();
 
-                        List<string> pickedFromHoloPower = (List<string>)EffectInformation[0];
-                        secondList.Add(new Card(pickedFromHoloPower[0]));
+                        List<CardData> secondList = (EffectInformation[0].cardList);
 
                         if (secondList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
 
                         // Setup the second menu
@@ -428,20 +420,14 @@ namespace Assets.Scripts.Lib
 
                     menuActions.Add(() =>
                     {
-                        List<string> returnList = (List<string>)EffectInformation[0];
-                        returnList.AddRange((List<string>)EffectInformation[1]);
-                        duelActionOutput = new DuelAction()
-                        {
-                            actionObject = JsonConvert.SerializeObject(returnList),
-                        };
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(EffectInformation[0], "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-099":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
@@ -452,16 +438,16 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         int diceRoll = GetLastValue<int>(1);
-                        if (!IsOddNumber(diceRoll) && _DuelField.CountBackStageTotal(onlyBackstage:true, TargetPlayer.Oponnent) == 0)
+                        if (!IsOddNumber(diceRoll) && DuelField.INSTANCE.CountBackStageTotal(onlyBackstage:true, TargetPlayer.Oponnent) == 0)
                         {
                             menuActions.Clear();
                             return dummy();
                         }
-                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionR, TargetPlayer.Oponnent, new[] {"BackStage5", "BackStage4", "BackStage3", "BackStage2", "BackStage1"});
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionR, TargetPlayer.Oponnent, new[] {Lib.GameZone.BackStage5, Lib.GameZone.BackStage4, Lib.GameZone.BackStage3, Lib.GameZone.BackStage2, Lib.GameZone.BackStage1});
                     });
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(GetLastValue<DuelAction>(), "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(GetLastValue<DuelAction>(), "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -469,7 +455,7 @@ namespace Assets.Scripts.Lib
                     int diceRoll = 0;
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
@@ -479,14 +465,14 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
                         diceRoll = GetLastValue<int>(1);
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        List<Card> canSelect = JsonConvert.DeserializeObject<List<Card>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        List<CardData> canSelect = JsonConvert.DeserializeObject<List<CardData>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         if (!IsOddNumber(diceRoll) || canSelect.Count == 0)
                         {
@@ -498,7 +484,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         _DuelActionR.actionObject = GetLastValue<List<string>>()[0];
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -506,7 +492,7 @@ namespace Assets.Scripts.Lib
                     diceRoll = 0;
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
@@ -529,7 +515,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         DuelAction duelaction = GetLastValue<DuelAction>();
-                        _DuelField.GenericActionCallBack(duelaction, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelaction, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -541,7 +527,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         DuelAction duelaction = GetLastValue<DuelAction>();
-                        _DuelField.GenericActionCallBack(duelaction, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelaction, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -549,7 +535,7 @@ namespace Assets.Scripts.Lib
                     diceRoll = 0;
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
 
@@ -569,14 +555,14 @@ namespace Assets.Scripts.Lib
                             return dummy();
                         }
 
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     //target the card
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player, new string[] { "BackStage1", "BackStage2", "BackStage3", "BackStage4", "BackStage5" });
+                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player, new Lib.GameZone[] { Lib.GameZone.BackStage1, Lib.GameZone.BackStage2, Lib.GameZone.BackStage3, Lib.GameZone.BackStage4, Lib.GameZone.BackStage5 });
                     });
                     //inform the server
                     menuActions.Add(() =>
@@ -584,7 +570,7 @@ namespace Assets.Scripts.Lib
                         duelActionOutput = GetLastValue<DuelAction>();
                         duelActionOutput.actionType = "AskAttachTopCheerEnergyToBack";
 
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnCollabEffect");
 
                         return WaitForServerResponse();
 
@@ -599,7 +585,7 @@ namespace Assets.Scripts.Lib
                         }
                         else
                         {
-                            EffectInformation.Add("No");
+                            EffectInformation.Add(new DuelAction { yesOrNo = false });
                         }
                         return dummy();
                     });
@@ -607,7 +593,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         duelActionOutput.actionObject = GetLastValue<string>();
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
 
                     });
@@ -615,10 +601,10 @@ namespace Assets.Scripts.Lib
                 case "hBP01-098":
                     menuActions.Add(() =>
                     {
-                        Card[] _cardList = _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>();
+                        CardData[] _cardList = DuelField.INSTANCE.GetZone(Lib.GameZone.Arquive, TargetPlayer.Player).GetComponentsInChildren<Card>().ToList().Select(item => item.ToCardData()).ToArray();
 
-                        List<Card> selectable = new();
-                        foreach (Card card in _cardList)
+                        List<CardData> selectable = new();
+                        foreach (CardData card in _cardList)
                         {
                             if ((card.cardType.Equals("エール")))
                             {
@@ -629,7 +615,7 @@ namespace Assets.Scripts.Lib
                         if (selectable.Count < 1)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
 
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionR, selectable, selectable);
@@ -637,20 +623,20 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         _DuelActionR.actionObject = GetLastValue<List<string>>()[0];
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hSD01-020":
                     menuActions.Add(() =>
                     {
-                        if (!_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentInChildren<Card>().cardTag.Contains("#ID"))
+                        if (!DuelField.INSTANCE.GetZone(Lib.GameZone.Stage, TargetPlayer.Player).GetComponentInChildren<Card>().cardTag.Contains("#ID"))
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
 
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
@@ -660,12 +646,12 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
-                        if (GetLastValue<int>(1) < 3 || _DuelField.GetZone("CheerDeck", TargetPlayer.Player).GetComponentsInChildren<Card>().Count() == 0)
+                        if (GetLastValue<int>(1) < 3 || DuelField.INSTANCE.GetZone(Lib.GameZone.CardCheer, TargetPlayer.Player).GetComponentsInChildren<Card>().Count() == 0)
                         {
                             menuActions.Clear();
                             return dummy();
@@ -682,20 +668,20 @@ namespace Assets.Scripts.Lib
                             actionObject = tempaction.actionObject,
                         };
 
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-039":
                     menuActions.Add(() =>
                     {
-                        if (!_DuelField.GetZone("Favourite", TargetPlayer.Player).GetComponentInChildren<Card>().cardName.Equals("兎田ぺこら"))
+                        if (!DuelField.INSTANCE.GetZone(Lib.GameZone.Favourite, TargetPlayer.Player).GetComponentInChildren<Card>().cardName.Equals("兎田ぺこら"))
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
 
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
@@ -705,12 +691,12 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
-                        if (IsOddNumber(GetLastValue<int>(1)) || _DuelField.GetZone("CheerDeck", TargetPlayer.Player).GetComponentsInChildren<Card>().Count() == 0)
+                        if (IsOddNumber(GetLastValue<int>(1)) || DuelField.INSTANCE.GetZone(Lib.GameZone.CardCheer, TargetPlayer.Player).GetComponentsInChildren<Card>().Count() == 0)
                         {
                             menuActions.Clear();
                             return dummy();
@@ -727,7 +713,7 @@ namespace Assets.Scripts.Lib
                             actionObject = tempaction.actionObject,
                         };
 
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -735,23 +721,23 @@ namespace Assets.Scripts.Lib
                 case "hSD01-019":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = DuelField.INSTANCE.curResDA;
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(duelActionInput, duelActionInput.cardList, duelActionInput.cardList);
                     });
                     menuActions.Add(() =>
                     {
                         duelActionOutput.actionObject = GetLastValue<List<string>>()[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnCollabEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnCollabEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -761,7 +747,7 @@ namespace Assets.Scripts.Lib
         }
         public void ResolveSuportEffect(DuelAction _DuelActionFirstAction)
         {
-            List<Card> energyList;
+            List<CardData> energyList;
 
             List<string> serverReturn;
             string cheerNumber;
@@ -778,47 +764,45 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     //we recieve the list then callback again to finish the effect
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = DuelField.INSTANCE.curResDA;
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(duelActionInput, duelActionInput.cardList, duelActionInput.cardList);
                     });
                     //inform the server
                     menuActions.Add(() =>
                     {
-                        var selected = (List<string>)EffectInformation[1];
-                        duelActionOutput.actionObject = selected[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        //selected[0] = EffectInformation[1][0]
+                        DuelField.INSTANCE.GenericActionCallBack(EffectInformation[1], "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-102":
 
-                    if (_DuelField.cardsPlayer.Count > 6)
+                    if (DuelField.INSTANCE.cardHolderPlayer.childCount > 6)
                         break;
 
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = DuelField.INSTANCE.curResDA;
 
-                        List<Card> filteresList = new();
-                        foreach (Card card in duelActionInput.cardList)
+                        List<CardData> filteresList = new();
+                        foreach (CardData card in duelActionInput.cardList)
                         {
-                            card.GetCardInfo();
                             if (card.cardTag.Contains($"#歌"))
                             {
                                 filteresList.Add(card);
@@ -831,7 +815,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -839,7 +823,7 @@ namespace Assets.Scripts.Lib
                 case "hSD01-017":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
                         return dummy();
                     });
                     break;
@@ -847,17 +831,16 @@ namespace Assets.Scripts.Lib
 
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = DuelField.INSTANCE.curResDA;
 
-                        List<Card> filteresList = new();
-                        foreach (Card card in duelActionInput.cardList)
+                        List<CardData> filteresList = new();
+                        foreach (CardData card in duelActionInput.cardList)
                         {
-                            card.GetCardInfo();
                             if (card.cardType.Equals("サポート・アイテム・LIMITED") || card.cardType.Equals("サポート・イベント・LIMITED") || card.cardType.Equals("サポート・スタッフ・LIMITED"))
                             {
                                 filteresList.Add(card);
@@ -867,7 +850,7 @@ namespace Assets.Scripts.Lib
                         if (duelActionInput.cardList.Count == 0 || filteresList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowListPickThenReorder.SetupSelectableItems(duelActionInput, duelActionInput.cardList, filteresList, true, 1);
                     });
@@ -876,7 +859,7 @@ namespace Assets.Scripts.Lib
                     {
 
                         duelActionOutput = (DuelAction)EffectInformation[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -890,27 +873,26 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     //we recieve the list then callback again to finish the effect
                     menuActions.Add(() =>
                     {
 
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = DuelField.INSTANCE.curResDA;
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(duelActionInput, duelActionInput.cardList, duelActionInput.cardList);
                     });
                     //inform the server
                     menuActions.Add(() =>
                     {
-                        var selected = (List<string>)EffectInformation[1];
-                        duelActionOutput.actionObject = selected[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                       // var selected[0] = (List<string>);
+                        DuelField.INSTANCE.GenericActionCallBack(EffectInformation[1], "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -918,7 +900,7 @@ namespace Assets.Scripts.Lib
 
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
@@ -928,12 +910,12 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = DuelField.INSTANCE.curResDA;
 
                         //if not oddnumber, we draw a card calling "Draw" at DuelField, so break
                         if (GetLastValue<int>(1) < 3 || duelActionInput.cardList.Count == 0)
@@ -963,7 +945,7 @@ namespace Assets.Scripts.Lib
                             actionObject = tempaction.actionObject,
                         };
 
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -971,17 +953,16 @@ namespace Assets.Scripts.Lib
 
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = DuelField.INSTANCE.curResDA;
 
-                        List<Card> filteresList = new();
-                        foreach (Card card in duelActionInput.cardList)
+                        List<CardData> filteresList = new();
+                        foreach (CardData card in duelActionInput.cardList)
                         {
-                            card.GetCardInfo();
                             if (card.cardName.Equals("ときのそら") || card.cardName.Equals("AZKi") || card.cardName.Equals("SorAZ"))
                             {
                                 filteresList.Add(card);
@@ -991,7 +972,7 @@ namespace Assets.Scripts.Lib
                         if (duelActionInput.cardList.Count == 0 || filteresList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowListPickThenReorder.SetupSelectableItems(duelActionInput, duelActionInput.cardList, filteresList, true, -1);
                     });
@@ -999,7 +980,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -1007,25 +988,23 @@ namespace Assets.Scripts.Lib
 
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = DuelField.INSTANCE.curResDA;
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(duelActionInput, duelActionInput.cardList, duelActionInput.cardList);
                     });
                     //inform the server
                     menuActions.Add(() =>
                     {
-                        List<string> cardnumber = (List<string>)EffectInformation[0];
-                        _DuelActionFirstAction.actionObject = cardnumber[0];
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(EffectInformation[0], "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -1040,32 +1019,30 @@ namespace Assets.Scripts.Lib
                     //add the targert to action with the cost
                     menuActions.Add(() =>
                     {
-                        duelActionOutput = (DuelAction)EffectInformation[0];
-                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelActionOutput);
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(EffectInformation[0]);
                     });
                     //send both cost and targer(color) to the server
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[1];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     //from the list of energy recieved, pick one
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = DuelField.INSTANCE.curResDA;
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(duelActionInput, duelActionInput.cardList, duelActionInput.cardList);
                     });
                     menuActions.Add(() =>
                     {
-                        List<string> cardnumber = (List<string>)EffectInformation[2];
-                        duelActionInput.actionObject = cardnumber[0];
-                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelActionInput);
+                       // --duelActionInput.actionObject = cardnumber[0];
+                        return _DuelField_TargetForEffectMenu.SetupSelectableItems(EffectInformation[2]);
                     });
                     menuActions.Add(() =>
                     {
@@ -1075,7 +1052,7 @@ namespace Assets.Scripts.Lib
                             targetCard = ((DuelAction)EffectInformation[3]).targetCard,
                             actionObject = ((DuelAction)EffectInformation[3]).actionObject,
                         };
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -1084,14 +1061,14 @@ namespace Assets.Scripts.Lib
                     //select the card to return to back
                     menuActions.Add(() =>
                     {
-                        var zonesThatPlayerCanSelect = new string[] { "BackStage1", "BackStage2", "BackStage3", "BackStage4", "BackStage5" };
+                        var zonesThatPlayerCanSelect = new Lib.GameZone[] { Lib.GameZone.BackStage1, Lib.GameZone.BackStage2, Lib.GameZone.BackStage3, Lib.GameZone.BackStage4, Lib.GameZone.BackStage5 };
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction, zonesThatPlayerCanSelect: zonesThatPlayerCanSelect);
                     });
                     //send both cost and targer(color) to the server
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -1100,36 +1077,35 @@ namespace Assets.Scripts.Lib
                     //select the card to return to back
                     menuActions.Add(() =>
                     {
-                        var zonesThatPlayerCanSelect = new string[] { "BackStage1", "BackStage2", "BackStage3", "BackStage4", "BackStage5" };
+                        var zonesThatPlayerCanSelect = new Lib.GameZone[] { Lib.GameZone.BackStage1, Lib.GameZone.BackStage2, Lib.GameZone.BackStage3, Lib.GameZone.BackStage4, Lib.GameZone.BackStage5 };
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction, target: TargetPlayer.Oponnent, zonesThatPlayerCanSelect: zonesThatPlayerCanSelect);
                     });
                     //send both cost and targer(color) to the server
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-109":
 
-                    if (_DuelField.cardsPlayer.Count > 6)
+                    if (DuelField.INSTANCE.cardHolderPlayer.childCount > 6)
                         break;
 
 
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = DuelField.INSTANCE.curResDA;
 
-                        List<Card> filteresList = new();
-                        foreach (Card card in duelActionInput.cardList)
+                        List<CardData> filteresList = new();
+                        foreach (CardData card in duelActionInput.cardList)
                         {
-                            card.GetCardInfo();
                             if (card.cardName.Equals("兎田ぺこら") || card.cardName.Equals("ムーナ・ホシノヴァ"))
                             {
                                 filteresList.Add(card);
@@ -1142,29 +1118,28 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-111":
 
-                    if (_DuelField.cardsPlayer.Count > 6)
+                    if (DuelField.INSTANCE.cardHolderPlayer.childCount > 6)
                         break;
 
 
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = DuelField.INSTANCE.curResDA;
 
-                        List<Card> filteresList = new();
-                        foreach (Card card in duelActionInput.cardList)
+                        List<CardData> filteresList = new();
+                        foreach (CardData card in duelActionInput.cardList)
                         {
-                            card.GetCardInfo();
                             if (card.cardTag.Contains($"#ID３期生"))
                             {
                                 filteresList.Add(card);
@@ -1177,28 +1152,27 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-113":
-                    if (_DuelField.cardsPlayer.Count > 6)
+                    if (DuelField.INSTANCE.cardHolderPlayer.childCount > 6)
                         break;
 
 
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = DuelField.INSTANCE.curResDA;
 
-                        List<Card> filteresList = new();
-                        foreach (Card card in duelActionInput.cardList)
+                        List<CardData> filteresList = new();
+                        foreach (CardData card in duelActionInput.cardList)
                         {
-                            card.GetCardInfo();
                             if (card.cardTag.Contains($"#Promise"))
                             {
                                 filteresList.Add(card);
@@ -1210,29 +1184,28 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-107":
 
-                    if (_DuelField.cardsPlayer.Count > 6)
+                    if (DuelField.INSTANCE.cardHolderPlayer.childCount > 6)
                         break;
 
 
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = DuelField.INSTANCE.curResDA;
 
-                        List<Card> filteresList = new();
-                        foreach (Card card in duelActionInput.cardList)
+                        List<CardData> filteresList = new();
+                        foreach (CardData card in duelActionInput.cardList)
                         {
-                            card.GetCardInfo();
                             if (card.cardNumber.Equals("hY04-001") || card.cardNumber.Equals("hY02-001") || card.cardNumber.Equals("hY03-001") || card.cardNumber.Equals("hY01-001"))
                             {
                                 filteresList.Add(card);
@@ -1245,7 +1218,7 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -1254,7 +1227,7 @@ namespace Assets.Scripts.Lib
                     string diceRoll = "-1";
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
@@ -1266,7 +1239,7 @@ namespace Assets.Scripts.Lib
                     {
                         if (GetLastValue<int>(1) > 3)
                         {
-                            var zonesThatPlayerCanSelect = new string[] { "BackStage1", "BackStage2", "BackStage3", "BackStage4", "BackStage5" };
+                            var zonesThatPlayerCanSelect = new Lib.GameZone[] { Lib.GameZone.BackStage1, Lib.GameZone.BackStage2, Lib.GameZone.BackStage3, Lib.GameZone.BackStage4, Lib.GameZone.BackStage5 };
                             return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction, target: TargetPlayer.Oponnent, zonesThatPlayerCanSelect: zonesThatPlayerCanSelect);
                         }
                         else
@@ -1281,7 +1254,7 @@ namespace Assets.Scripts.Lib
                             return dummy();
 
                         duelActionOutput = GetLastValue<DuelAction>();
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnSupportEffect");
                         return WaitForServerResponse();
                     });
 
@@ -1292,7 +1265,7 @@ namespace Assets.Scripts.Lib
         }
         public void ResolveOnArtEffect(DuelAction _DuelActionR)
         {
-            List<Card> energyList;
+            List<CardData> energyList;
 
             switch (_DuelActionR.usedCard.cardNumber + "-" + _DuelActionR.selectedSkill)
             {
@@ -1305,7 +1278,7 @@ namespace Assets.Scripts.Lib
                 case "hSD01-006-SorAZ シンパシー":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -1314,7 +1287,7 @@ namespace Assets.Scripts.Lib
                 case "hSD01-011-デスティニーソング":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
@@ -1324,20 +1297,20 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hSD01-011-SorAZ グラビティ":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
                         return WaitForServerResponse();
                     });
                     //target the card
                     menuActions.Add(() =>
                     {
-                        if (!_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentInChildren<Card>().name.Equals("ときのそら") || !_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentInChildren<Card>().name.Equals("SorAZ"))
+                        if (!DuelField.INSTANCE.GetZone(Lib.GameZone.Stage, TargetPlayer.Player).GetComponentInChildren<Card>().name.Equals("ときのそら") || !DuelField.INSTANCE.GetZone(Lib.GameZone.Stage, TargetPlayer.Player).GetComponentInChildren<Card>().name.Equals("SorAZ"))
                         {
                             menuActions.Clear();
                             return dummy();
@@ -1349,17 +1322,17 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         DuelAction _duelaction = GetLastValue<DuelAction>();
-                        DuelAction da = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction da = DuelField.INSTANCE.curResDA;
                         _duelaction.actionObject = da.actionObject;
 
-                        _DuelField.GenericActionCallBack(_duelaction, "ResolveOnArtEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_duelaction, "ResolveOnArtEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-072-WAZZUP!!":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
@@ -1373,11 +1346,11 @@ namespace Assets.Scripts.Lib
 
                         bool hasRedEnergy = false;
 
-                        Card thisCard = _DuelActionR.usedCard.cardPosition.Equals("Stage") ? _DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentInChildren<Card>() : _DuelField.GetZone("Collaboration", TargetPlayer.Player).GetComponentInChildren<Card>();
+                        Card thisCard = _DuelActionR.usedCard.curZone.Equals(Lib.GameZone.Stage) ? DuelField.INSTANCE.GetZone(Lib.GameZone.Stage, TargetPlayer.Player).GetComponentInChildren<Card>() : DuelField.INSTANCE.GetZone(Lib.GameZone.Collaboration, TargetPlayer.Player).GetComponentInChildren<Card>();
 
                         foreach (GameObject cardObj in thisCard.attachedEnergy)
                         {
-                            Card card = cardObj.GetComponent<Card>();
+                            CardData card = cardObj.GetComponent<Card>().ToCardData();
                             if (card.color.Equals("赤"))
                                 hasRedEnergy = true;
                         }
@@ -1388,14 +1361,14 @@ namespace Assets.Scripts.Lib
                             return dummy();
                         }
 
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hSD01-013-越えたい未来":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
@@ -1405,7 +1378,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -1416,14 +1389,14 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        string WillActivate = (string)EffectInformation[0];
+                        var WillActivate = EffectInformation[0].yesOrNo;
 
-                        List<Card> canSelect = _DuelField.cardHolderPlayer.GetComponentsInChildren<Card>().ToList();
+                        List<CardData> canSelect = DuelField.INSTANCE.cardHolderPlayer.GetComponentsInChildren<Card>().ToList().Select(item => item.ToCardData()).ToList();
 
-                        if (!WillActivate.Equals("Yes") || _DuelField.cardsPlayer.Count > 0 || canSelect.Count == 0)
+                        if (!WillActivate || DuelField.INSTANCE.cardHolderPlayer.childCount > 0 || canSelect.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
 
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionR, canSelect, canSelect);
@@ -1432,29 +1405,29 @@ namespace Assets.Scripts.Lib
                     {
                         List<string> cardnumber = GetLastValue<List<string>>();
                         _DuelActionR.actionObject = cardnumber[0];
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnArtEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-020-みんな一緒に":
                     menuActions.Add(() =>
                     {
-                        if (_DuelField.GetZone("CardCheer", TargetPlayer.Player).gameObject.transform.childCount - 1 < 1)
+                        if (DuelField.INSTANCE.GetZone(Lib.GameZone.CardCheer, TargetPlayer.Player).gameObject.transform.childCount - 1 < 1)
                         {
                             menuActions.Clear();
                             return dummy();
                         }
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        List<Card> selectableList = JsonConvert.DeserializeObject<List<Card>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        List<CardData> selectableList = JsonConvert.DeserializeObject<List<CardData>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (selectableList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionR, selectableList, selectableList);
                     });
@@ -1467,14 +1440,14 @@ namespace Assets.Scripts.Lib
                     {
                         DuelAction da = GetLastValue<DuelAction>();
                         da.actionObject = GetLastValue<List<string>>(1)[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 default:
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionR, "resolveArt");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "resolveArt");
                         return dummy();
                     });
                     break;
@@ -1493,7 +1466,7 @@ namespace Assets.Scripts.Lib
                     actionObject = "false"
                 };
 
-                _DuelField.GenericActionCallBack(_response, "AskServerToResolveDamageToHolomem");
+                DuelField.INSTANCE.GenericActionCallBack(_response, "AskServerToResolveDamageToHolomem");
                 return;
             }
 
@@ -1506,7 +1479,7 @@ namespace Assets.Scripts.Lib
         }
         internal void ResolveOnAttachEffect(DuelAction _DuelActionR)
         {
-            List<Card> energyList;
+            List<CardData> energyList;
 
             switch (_DuelActionR.usedCard.cardNumber)
             {
@@ -1517,14 +1490,14 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        string WillActivate = (string)EffectInformation[0];
+                        var WillActivate = EffectInformation[0].yesOrNo;
 
-                        List<Card> canSelect = _DuelField.cardHolderPlayer.GetComponentsInChildren<Card>().ToList();
+                        List<CardData> canSelect = DuelField.INSTANCE.cardHolderPlayer.GetComponentsInChildren<Card>().ToList().Select(item => item.ToCardData()).ToList();
 
-                        if (!WillActivate.Equals("Yes") || _DuelField.cardsPlayer.Count > 0 || canSelect.Count == 0)
+                        if (!WillActivate || DuelField.INSTANCE.cardHolderPlayer.childCount > 0 || canSelect.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionR, canSelect, canSelect);
                     });
@@ -1532,7 +1505,7 @@ namespace Assets.Scripts.Lib
                     {
                         List<string> cardnumber = GetLastValue<List<string>>();
                         _DuelActionR.actionObject = cardnumber[0];
-                        _DuelField.GenericActionCallBack(_DuelActionR, "ResolveOnAttachEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionR, "ResolveOnAttachEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -1549,16 +1522,16 @@ namespace Assets.Scripts.Lib
                 case "hBP01-074":
                     menuActions.Add(() =>
                     {
-                        if (!_DuelField.GetZone(_DuelActionFirstAction.usedCard.cardPosition, TargetPlayer.Player).GetComponentInChildren<Card>().bloomChild.Last().GetComponent<Card>().bloomLevel.Equals("Debut"))
+                        if (!DuelField.INSTANCE.GetZone(_DuelActionFirstAction.usedCard.curZone, TargetPlayer.Player).GetComponentInChildren<Card>().bloomChild.Last().GetComponent<Card>().bloomLevel.Equals("Debut"))
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
 
-                        Card[] _cardList = _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>();
+                        var _cardList = DuelField.INSTANCE.GetZone(Lib.GameZone.Arquive, TargetPlayer.Player).GetComponentsInChildren<Card>().ToList().Select(item => item.ToCardData());
 
-                        List<Card> selectable = new();
-                        foreach (Card card in _cardList)
+                        List<CardData> selectable = new();
+                        foreach (CardData card in _cardList)
                         {
                                 if ((card.bloomLevel.Equals("Debut") || card.bloomLevel.Equals("1st")))
                             {
@@ -1568,37 +1541,37 @@ namespace Assets.Scripts.Lib
                         if (selectable.Count < 1)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionFirstAction, selectable, selectable);
                     });
                     menuActions.Add(() =>
                     {
                         _DuelActionFirstAction.actionObject = GetLastValue<List<string>>()[0];
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-070":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        duelActionInput = DuelField.INSTANCE.curResDA;
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(duelActionInput, duelActionInput.cardList, duelActionInput.cardList);
                     });
                     menuActions.Add(() =>
                     {
                         duelActionOutput.actionObject = GetLastValue<List<string>>()[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -1610,7 +1583,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -1619,18 +1592,18 @@ namespace Assets.Scripts.Lib
                 case "hBP01-030":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-060":
                     menuActions.Add(() =>
                     {
-                        List<Card> canSelect = _DuelField.cardHolderPlayer.GetComponentsInChildren<Card>().ToList();
+                        List<CardData> canSelect = DuelField.INSTANCE.cardHolderPlayer.GetComponentsInChildren<Card>().ToList().Select(item => item.ToCardData()).ToList();
                         if (canSelect.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionFirstAction, canSelect, canSelect);
                     });
@@ -1638,7 +1611,7 @@ namespace Assets.Scripts.Lib
                     {
                         List<string> cardnumber = GetLastValue<List<string>>();
                         _DuelActionFirstAction.actionObject = cardnumber[0];
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -1649,15 +1622,15 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        string WillActivate = (string)EffectInformation[0];
+                        var WillActivate = EffectInformation[0].yesOrNo;
 
-                        if (!WillActivate.Equals("Yes") || _DuelField.cardsPlayer.Count > 0)
+                        if (!WillActivate || DuelField.INSTANCE.cardHolderPlayer.childCount > 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
-                        _DuelActionFirstAction.actionObject = WillActivate;
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        _DuelActionFirstAction.yesOrNo = WillActivate;
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
@@ -1666,7 +1639,7 @@ namespace Assets.Scripts.Lib
                         if (diceRoll > 3)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
 
                         RollDiceTilNotAbleOrDontWantTo(_DuelActionFirstAction);
@@ -1674,12 +1647,12 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        DuelAction da = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        List<Card> canSelect = _DuelField.cardHolderPlayer.GetComponentsInChildren<Card>().ToList();
+                        DuelAction da = DuelField.INSTANCE.curResDA;
+                        List<CardData> canSelect = DuelField.INSTANCE.cardHolderPlayer.GetComponentsInChildren<Card>().ToList().Select(item => item.ToCardData()).ToList();
                         if (da.cardList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(da, da.cardList, da.cardList);
                     });
@@ -1692,7 +1665,7 @@ namespace Assets.Scripts.Lib
                         DuelAction duelaction = GetLastValue<DuelAction>();
                         List<string> cardnumber = GetLastValue<List<string>>(1);
                         duelaction.actionObject = cardnumber[0];
-                        _DuelField.GenericActionCallBack(duelaction, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelaction, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -1701,13 +1674,13 @@ namespace Assets.Scripts.Lib
                     //select if active
                     menuActions.Add(() =>
                     {
-                        if (_DuelField.GetZone("CardCheer", TargetPlayer.Player).gameObject.transform.childCount - 1 < 1)
+                        if (DuelField.INSTANCE.GetZone(Lib.GameZone.CardCheer, TargetPlayer.Player).gameObject.transform.childCount - 1 < 1)
                         {
                             menuActions.Clear();
                             return dummy();
                         }
 
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
 
@@ -1718,21 +1691,21 @@ namespace Assets.Scripts.Lib
 
                     menuActions.Add(() =>
                     {
-                        WillActivate = (string)EffectInformation[0];
+                        var WillActivate = EffectInformation[0].yesOrNo;
 
-                        if (!WillActivate.Equals("Yes"))
+                        if (!WillActivate)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
 
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        List<Card> cheerList = JsonConvert.DeserializeObject<List<Card>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        List<CardData> cheerList = JsonConvert.DeserializeObject<List<CardData>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         if (cheerList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
 
                         //show the list to the player, player pick 1
@@ -1740,8 +1713,7 @@ namespace Assets.Scripts.Lib
                     });
                     menuActions.Add(() =>
                     {
-                        List<string> cardnumber = (List<string>)EffectInformation[1];
-                        _DuelActionFirstAction.usedCard = new CardData() { cardNumber = cardnumber[0] };
+                        _DuelActionFirstAction.usedCard = EffectInformation[1].usedCard;
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionFirstAction, TargetPlayer.Player);
                     });
                     menuActions.Add(() =>
@@ -1749,27 +1721,27 @@ namespace Assets.Scripts.Lib
                         duelActionOutput = (DuelAction)EffectInformation[2];
                         duelActionOutput.actionObject = WillActivate;
 
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
                         return dummy();
                     });
                     break;
                 case "hBP01-037":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     //target the card
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player);
                     });
                     //inform the server
                     menuActions.Add(() =>
                     {
                         duelActionOutput = GetLastValue<DuelAction>();
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
 
                         return WaitForServerResponse();
 
@@ -1778,28 +1750,28 @@ namespace Assets.Scripts.Lib
                 case "hBP01-081":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     //target the card
                     menuActions.Add(() =>
                     {
-                        string[] targetZones = GetAreasThatContainsCardWithColorOrTagOrName(color: "青");
+                        Lib.GameZone[] targetZones = GetAreasThatContainsCardWithColorOrTagOrName(color: "青");
 
                         if (targetZones.Length < 1)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
 
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player, targetZones);
                     });
                     //inform the server
                     menuActions.Add(() =>
                     {
                         duelActionOutput = GetLastValue<DuelAction>();
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
 
                         return WaitForServerResponse();
 
@@ -1808,31 +1780,31 @@ namespace Assets.Scripts.Lib
                 case "hBP01-054":
                     menuActions.Add(() =>
                     {
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     //target the card
                     menuActions.Add(() =>
                     {
-                        string[] targetZones = GetAreasThatContainsCardWithColorOrTagOrName(tag: "#ID");
-                        string[] removeZones = GetAreasThatContainsCardWithColorOrTagOrName(name: "アイラニ・イオフィフティーン");
+                        Lib.GameZone[] targetZones = GetAreasThatContainsCardWithColorOrTagOrName(tag: "#ID");
+                        Lib.GameZone[] removeZones = GetAreasThatContainsCardWithColorOrTagOrName(name: "アイラニ・イオフィフティーン");
 
-                        string[] filteredZones = targetZones.Except(removeZones).ToArray();
+                        Lib.GameZone[] filteredZones = targetZones.Except(removeZones).ToArray();
 
                         if (targetZones.Length < 1)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
 
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player, filteredZones);
                     });
                     //inform the server
                     menuActions.Add(() =>
                     {
                         duelActionOutput = GetLastValue<DuelAction>();
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
 
                         return WaitForServerResponse();
 
@@ -1841,18 +1813,18 @@ namespace Assets.Scripts.Lib
                 case "hBP01-035":
                     menuActions.Add(() =>
                     {
-                        Card[] _cardList = _DuelField.GetZone("Arquive", TargetPlayer.Player).GetComponentsInChildren<Card>();
+                        var _cardList = DuelField.INSTANCE.GetZone(Lib.GameZone.Arquive, TargetPlayer.Player).GetComponentsInChildren<Card>();
 
-                        List<Card> selectable = new();
-                        List<Card> allequipe = new();
+                        List<CardData> selectable = new();
+                        List<CardData> allequipe = new();
                         foreach (Card card in _cardList)
                         {
                             if ((card.cardType.Equals("サポート・ツール") || card.cardType.Equals("サポート・マスコット") || card.cardType.Equals("サポート・ファン")))
                             {
-                                allequipe.Add(card);
-                                if (!_DuelField.HasRestrictionsToPlayEquipCheckField(card))
+                                allequipe.Add(card.ToCardData());
+                                if (!DuelField.INSTANCE.HasRestrictionsToPlayEquipCheckField(card))
                                 {
-                                    selectable.Add(card);
+                                    selectable.Add(card.ToCardData());
                                 }
                             }
                         }
@@ -1860,7 +1832,7 @@ namespace Assets.Scripts.Lib
                         if (selectable.Count < 1)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
 
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionFirstAction, allequipe, selectable);
@@ -1868,29 +1840,29 @@ namespace Assets.Scripts.Lib
                     menuActions.Add(() =>
                     {
                         _DuelActionFirstAction.actionObject = GetLastValue<List<string>>()[0];
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     break;
                 case "hBP01-094":
                     menuActions.Add(() =>
                     {
-                        if (_DuelField.GetZone("CardCheer", TargetPlayer.Player).gameObject.transform.childCount - 1 < 1)
+                        if (DuelField.INSTANCE.GetZone(Lib.GameZone.CardCheer, TargetPlayer.Player).gameObject.transform.childCount - 1 < 1)
                         {
                             menuActions.Clear();
                             return dummy();
                         }
-                        _DuelField.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(_DuelActionFirstAction, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = JsonConvert.DeserializeObject<DuelAction>(MatchConnection.INSTANCE.DuelActionList.GetByIndex((MatchConnection.INSTANCE.DuelActionList.Count() - 1)), new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                        List<Card> selectableList = JsonConvert.DeserializeObject<List<Card>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        List<CardData> selectableList = JsonConvert.DeserializeObject<List<CardData>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (selectableList.Count == 0)
                         {
                             menuActions.Clear();
-                            return null;
+                            return EmptyCoroutine();
                         }
                         return _DuelField_ShowAlistPickOne.SetupSelectableItems(_DuelActionFirstAction, selectableList, selectableList);
                     });
@@ -1902,7 +1874,7 @@ namespace Assets.Scripts.Lib
                     {
                         DuelAction da = GetLastValue<DuelAction>();
                         da.actionObject = GetLastValue<List<string>>(1)[0];
-                        _DuelField.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
+                        DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
                         return WaitForServerResponse();
                     });
                     break;
@@ -1914,20 +1886,20 @@ namespace Assets.Scripts.Lib
             menuActions.Add(() =>
             {
 
-                var zonesThatPlayerCanSelect = new string[] { _DuelActionR.usedCard.cardPosition };
+                var zonesThatPlayerCanSelect = new Lib.GameZone[] { _DuelActionR.usedCard.curZone };
                 return _DuelField_DetachEnergyOrEquipMenu.SetupSelectableItems(_DuelActionR, AddCostToEffectInformation: true, zonesThatPlayerCanSelect);
             });
             //select the card to return to back
             menuActions.Add(() =>
             {
-                var zonesThatPlayerCanSelect = new string[] { "BackStage1", "BackStage2", "BackStage3", "BackStage4", "BackStage5" };
+                var zonesThatPlayerCanSelect = new Lib.GameZone[] { Lib.GameZone.BackStage1, Lib.GameZone.BackStage2, Lib.GameZone.BackStage3, Lib.GameZone.BackStage4, Lib.GameZone.BackStage5 };
                 return _DuelField_TargetForEffectMenu.SetupSelectableItems(_DuelActionR, zonesThatPlayerCanSelect: zonesThatPlayerCanSelect);
             });
             //send both cost and targer(color) to the server
             menuActions.Add(() =>
             {
                 duelActionOutput = (DuelAction)EffectInformation[1];
-                _DuelField.GenericActionCallBack(duelActionOutput, "Retreat");
+                DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "Retreat");
                 return dummy();
             });
             StartCoroutine(StartMenuSequenceCoroutine());
@@ -1941,18 +1913,18 @@ namespace Assets.Scripts.Lib
             else
                 return true;
         }
-        public string[] GetAreasThatContainsCardWithColorOrTagOrName(string color = "", string tag = "", string name = "")
+        public Lib.GameZone[] GetAreasThatContainsCardWithColorOrTagOrName(string color = "", string tag = "", string name = "")
         {
             List<Card> allAttachments = new();
             List<string> list = new();
 
-            allAttachments.AddRange(_DuelField.GetZone("BackStage1", TargetPlayer.Player).GetComponentsInChildren<Card>());
-            allAttachments.AddRange(_DuelField.GetZone("BackStage2", TargetPlayer.Player).GetComponentsInChildren<Card>());
-            allAttachments.AddRange(_DuelField.GetZone("BackStage3", TargetPlayer.Player).GetComponentsInChildren<Card>());
-            allAttachments.AddRange(_DuelField.GetZone("BackStage4", TargetPlayer.Player).GetComponentsInChildren<Card>());
-            allAttachments.AddRange(_DuelField.GetZone("BackStage5", TargetPlayer.Player).GetComponentsInChildren<Card>());
-            allAttachments.AddRange(_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentsInChildren<Card>());
-            allAttachments.AddRange(_DuelField.GetZone("Collaboration", TargetPlayer.Player).GetComponentsInChildren<Card>());
+            allAttachments.AddRange(DuelField.INSTANCE.GetZone(Lib.GameZone.BackStage1, TargetPlayer.Player).GetComponentsInChildren<Card>());
+            allAttachments.AddRange(DuelField.INSTANCE.GetZone(Lib.GameZone.BackStage2, TargetPlayer.Player).GetComponentsInChildren<Card>());
+            allAttachments.AddRange(DuelField.INSTANCE.GetZone(Lib.GameZone.BackStage3, TargetPlayer.Player).GetComponentsInChildren<Card>());
+            allAttachments.AddRange(DuelField.INSTANCE.GetZone(Lib.GameZone.BackStage4, TargetPlayer.Player).GetComponentsInChildren<Card>());
+            allAttachments.AddRange(DuelField.INSTANCE.GetZone(Lib.GameZone.BackStage5, TargetPlayer.Player).GetComponentsInChildren<Card>());
+            allAttachments.AddRange(DuelField.INSTANCE.GetZone(Lib.GameZone.Stage, TargetPlayer.Player).GetComponentsInChildren<Card>());
+            allAttachments.AddRange(DuelField.INSTANCE.GetZone(Lib.GameZone.Collaboration, TargetPlayer.Player).GetComponentsInChildren<Card>());
 
             if (!string.IsNullOrEmpty(color))
             {
@@ -1973,7 +1945,7 @@ namespace Assets.Scripts.Lib
                         list.Add(card.gameObject.transform.parent.name);
             }
 
-            return list.ToArray();
+            return list.Select(x => DuelField.INSTANCE.GetZoneByString(x)).ToArray();
         }
         public IEnumerator StartMenuSequenceCoroutine()
         {
@@ -2003,6 +1975,10 @@ namespace Assets.Scripts.Lib
         {
             yield return new WaitUntil(() => true);
         }
+        private IEnumerator EmptyCoroutine()
+        {
+            yield break;
+        }
         public IEnumerator WaitForServerResponse()
         {
             yield return new WaitUntil(() => isServerResponseArrive);
@@ -2013,14 +1989,23 @@ namespace Assets.Scripts.Lib
         }
         public static bool CheckForDetachableEnergy()
         {
-            List<Card> cardList = new();
+            List<CardData> cardList = new();
 
-            cardList.AddRange(GameObject.Find("Collaboration").GetComponentsInChildren<Card>(true));
-            cardList.AddRange(GameObject.Find("Stage").GetComponentsInChildren<Card>(true));
-            cardList.AddRange(GameObject.Find("CardCheer").GetComponentsInChildren<Card>(true));
+        try
+        {
+            cardList.AddRange(GameObject.Find(Lib.GameZone.Collaboration.ToString()).GetComponentsInChildren<Card>(true).Select(item => item.ToCardData()));
+            cardList.AddRange(GameObject.Find(Lib.GameZone.Stage.ToString()).GetComponentsInChildren<Card>(true).Select(item => item.ToCardData()));
+            cardList.AddRange(GameObject.Find(Lib.GameZone.CardCheer.ToString()).GetComponentsInChildren<Card>(true).Select(item => item.ToCardData()));
+        }
+        catch (Exception e) {
+            Console.WriteLine("olhar saporra dps");
+        }
 
-            foreach (Card c in cardList)
+            foreach (CardData c in cardList)
             {
+            if (c.GetCardInfo().cardType == null)
+                return false;
+
                 if (c.cardType.Equals("エール"))
                     return true;
             }
@@ -2031,24 +2016,24 @@ namespace Assets.Scripts.Lib
         {
             return false;
         }
-        private List<Card> CanReRollDice()
+        private List<CardData> CanReRollDice()
         {
             List<Card> allAttachments = new();
-            HashSet<Card> uniqueParents = new HashSet<Card>();
+            HashSet<CardData> uniqueParents = new HashSet<CardData>();
 
-            allAttachments.AddRange(_DuelField.GetZone("BackStage1", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
-            allAttachments.AddRange(_DuelField.GetZone("BackStage2", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
-            allAttachments.AddRange(_DuelField.GetZone("BackStage3", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
-            allAttachments.AddRange(_DuelField.GetZone("BackStage4", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
-            allAttachments.AddRange(_DuelField.GetZone("BackStage5", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
-            allAttachments.AddRange(_DuelField.GetZone("Stage", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
-            allAttachments.AddRange(_DuelField.GetZone("Collaboration", TargetPlayer.Player).GetComponentsInChildren<Card>(true));
+            allAttachments.AddRange(DuelField.INSTANCE.GetZone(Lib.GameZone.BackStage1, TargetPlayer.Player).GetComponentsInChildren<Card>(true));
+            allAttachments.AddRange(DuelField.INSTANCE.GetZone(Lib.GameZone.BackStage2, TargetPlayer.Player).GetComponentsInChildren<Card>(true));
+            allAttachments.AddRange(DuelField.INSTANCE.GetZone(Lib.GameZone.BackStage3, TargetPlayer.Player).GetComponentsInChildren<Card>(true));
+            allAttachments.AddRange(DuelField.INSTANCE.GetZone(Lib.GameZone.BackStage4, TargetPlayer.Player).GetComponentsInChildren<Card>(true));
+            allAttachments.AddRange(DuelField.INSTANCE.GetZone(Lib.GameZone.BackStage5, TargetPlayer.Player).GetComponentsInChildren<Card>(true));
+            allAttachments.AddRange(DuelField.INSTANCE.GetZone(Lib.GameZone.Stage, TargetPlayer.Player).GetComponentsInChildren<Card>(true));
+            allAttachments.AddRange(DuelField.INSTANCE.GetZone(Lib.GameZone.Collaboration, TargetPlayer.Player).GetComponentsInChildren<Card>(true));
 
             foreach (Card card in allAttachments)
             {
                 if (card.cardNumber.Equals("hBP01-123"))
                 {
-                    Card parentCard = card.transform.parent.GetComponent<Card>();
+                    CardData parentCard = card.transform.parent.GetComponent<Card>().ToCardData();
                     uniqueParents.Add(parentCard);
                 }
             }
@@ -2057,7 +2042,7 @@ namespace Assets.Scripts.Lib
         }
         private IEnumerator RollDiceTilNotAbleOrDontWantTo(DuelAction _DuelAction)
         {
-            List<Card> allAttachments = CanReRollDice();
+            List<CardData> allAttachments = CanReRollDice();
             // Check if the player can reroll based on game rules.
             if (allAttachments.Count > 0)
             {
@@ -2082,7 +2067,7 @@ namespace Assets.Scripts.Lib
                         {
                             DuelAction da = GetLastValue<DuelAction>();
                             EffectInformation.RemoveAt(EffectInformation.Count - 1);
-                            _DuelField.GenericActionCallBack(da, "ResolveRerollEffect");
+                            DuelField.INSTANCE.GenericActionCallBack(da, "ResolveRerollEffect");
                             return WaitForServerResponse();
                         });
                         menuActions.Insert(2, () =>
@@ -2096,7 +2081,7 @@ namespace Assets.Scripts.Lib
             }
             else
             {
-                EffectInformation.Add("No");
+                EffectInformation.Add(new DuelAction { yesOrNo = false });
                 return dummy();
             }
             return dummy();
@@ -2124,8 +2109,7 @@ namespace Assets.Scripts.Lib
         {
             return lastRetrievedValue;
         }
-        internal void ResolveOnRecoveryEffect(Card targetedCard)
+        internal void ResolveOnRecoveryEffect(CardData targetedCard)
         {
         }
     }
-}

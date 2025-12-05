@@ -18,13 +18,4 @@ public class DropZone : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         isHovered = false; // When pointer (dragged item) exits this zone
     }
-
-    static public GameObject GetZoneByName(string name, DropZone[] zones) {
-        foreach (DropZone zone in zones) {
-            if (zone.gameObject.name.Equals(name)) {
-                return zone.gameObject;
-            }
-        }
-        return null;
-    }
 }

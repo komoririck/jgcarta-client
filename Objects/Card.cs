@@ -9,62 +9,34 @@ using UnityEngine.UI;
 public class Card : MonoBehaviour
 {
     public string cardNumber;
-    public string cardPosition;
+    public Lib.GameZone lastZone = 0;
+    public Lib.GameZone curZone = 0;
     public string cardName;
-
-    [JsonIgnore]
-    public int currentHp = 0;
-    [JsonIgnore]
-    public int effectDamageRecieved = 0;
-    [JsonIgnore]
-    public int normalDamageRecieved = 0;
-    [JsonIgnore]
     public string cardLimit;
-
-    public string playedFrom;
-    [JsonIgnore]
     public string cardType;
-    [JsonIgnore]
     public string rarity;
-    [JsonIgnore]
     public string product;
-    [JsonIgnore]
     public string color;
-    [JsonIgnore]
     public string hp;
-    [JsonIgnore]
     public string bloomLevel;
-    [JsonIgnore]
     public string arts;
-    [JsonIgnore]
     public string oshiSkill;
-    [JsonIgnore]
     public string spOshiSkill;
-    [JsonIgnore]
     public string abilityText;
-    [JsonIgnore]
     public string illustrator;
-    [JsonIgnore]
     public string life;
-    [JsonIgnore]
     public string artEffect;
-    [JsonIgnore]
-    public bool playedThisTurn = false;
-    [JsonIgnore]
-    public bool suspended = false;
-    [JsonIgnore]
     public string cardTag;
-    [JsonIgnore]
-    public List<CardEffect> cardEffects = new List<CardEffect>();
-    [JsonIgnore]
-    public List<GameObject> attachedEnergy = new();
-    [JsonIgnore]
-    public List<GameObject> attachedEquipe = new();
-    [JsonIgnore]
-    public List<GameObject> bloomChild = new List<GameObject>();
-    [JsonIgnore]
     public List<Art> Arts = new List<Art>();
-
+    public bool playedThisTurn = false;
+    public bool suspended = false;
+    public int currentHp = 0;
+    public int effectDamageRecieved = 0;
+    public int normalDamageRecieved = 0;
+    public List<CardEffect> cardEffects = new();
+    public List<GameObject> attachedEnergy = new();
+    public List<GameObject> attachedEquipe = new();
+    public List<GameObject> bloomChild = new();
 
     [Flags]
     public enum CardFoil : byte
@@ -73,7 +45,6 @@ public class Card : MonoBehaviour
         Glossy = 1,
         Prismatic = 2,
     }
-
     [Flags]
     public enum CardRarity : byte
     {
@@ -82,115 +53,110 @@ public class Card : MonoBehaviour
         SRMaterial = 2,
         URMaterial = 3,
     }
-    public Card(string number, string position = "")
+
+    public Card Init(CardData data)
     {
-        this.cardNumber = number;
-        if (!string.IsNullOrEmpty(position))
-            this.cardPosition = position;
-        if (!string.IsNullOrEmpty(cardNumber))
-            GetCardInfo();
-    }
+        if (data == null)
+            throw new ArgumentNullException(nameof(data));
 
-    public Card GetCardInfo(bool forceUpdate = false)
-    {
-        //sometimes we are creating cards without a gameobject, this cause problem with this part
-        try
-        {
-            if (transform.parent != null)
-                if (transform.parent.name.Equals("Life") || transform.parent.name.Equals("CardCheer"))
-                {
-                    transform.Find("Background").transform.localScale = new Vector3(63.7f, 63.7f, 1);
-                    transform.Find("Background").GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("CardImages/001");
-                }
-        }
-        catch (Exception e) {
-            Debug.Log("A card was created without a gameoject :" + e);
-        }
+        data.GetCardInfo();
 
-        bool checkCardInfo = true;
+        this.cardNumber = data.cardNumber;
+        this.curZone = data.curZone;
+        this.lastZone = data.lastZone;
 
-        if (!string.IsNullOrEmpty(cardType) && !forceUpdate)
-            checkCardInfo = false;
+        this.cardName = data.cardName;
+        this.cardLimit = data.cardLimit;
+        this.cardType = data.cardType;
+        this.rarity = data.rarity;
+        this.product = data.product;
+        this.color = data.color;
+        this.hp = data.hp;
+        this.bloomLevel = data.bloomLevel;
+        this.arts = data.arts;
+        this.oshiSkill = data.oshiSkill;
+        this.spOshiSkill = data.spOshiSkill;
+        this.abilityText = data.abilityText;
+        this.illustrator = data.illustrator;
+        this.life = data.life;
+        this.artEffect = data.artEffect;
+        this.cardTag = data.cardTag;
 
-        if (cardNumber.Equals("0") || string.IsNullOrEmpty(cardNumber))
-            checkCardInfo = false;
+        this.Arts = data.Arts != null ? new List<Art>(data.Arts) : new List<Art>();
 
-        Transform FrontView = transform.Find("FrontView");
-        if (checkCardInfo) {
+        SetCardArt();
 
-            Record record = FileReader.result[cardNumber];
-
-            if (record.CardNumber == cardNumber)
-            {
-                this.cardNumber = record.CardNumber;
-                cardName = record.Name;
-                cardType = record.CardType;
-                rarity = record.Rarity;
-                product = record.Product;
-                color = record.Color;
-                hp = record.HP;
-                bloomLevel = record.BloomLevel;
-                arts = record.Arts;
-                oshiSkill = record.OshiSkill;
-                spOshiSkill = record.SPOshiSkill;
-                abilityText = record.AbilityText;
-                illustrator = record.Illustrator;
-                life = record.Life;
-                artEffect = record.ArtEffect;
-                cardTag = record.Tag;
-
-                //checking if the card being displayed is a 3d object or a 2d ui
-                if (FrontView != null) {
-                    //3d layout
-                    FrontView.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("CardImages/" + record.CardNumber + "_" + record.Rarity);
-                }
-                else
-                { 
-                    //ui layout
-                try { gameObject.transform.Find("CardImage").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/" + record.CardNumber + "_" + record.Rarity); } catch (Exception e) { Debug.Log($"Sprite Problem: {record.CardNumber}"); }
-                }
-
-                List<string> eachArtText = arts.Split(';').ToList();
-                List<string> eachArtEffectText = artEffect.Split(';').ToList();
-                eachArtText.Add("");
-
-                if ((cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン")))
-                {
-                    if (Arts != null)
-                        Arts.Clear();
-                    else
-                        Arts = new();
-                    for (int n = 0; n < eachArtText.Count; n++)
-                    {
-                        if (string.IsNullOrEmpty(eachArtText[n]))
-                            continue;
-
-                        string eachArtEffectTextValidText = "";
-                        if (n >= 0 && n < eachArtEffectText.Count)
-                        {
-                            if (!string.IsNullOrEmpty(eachArtEffectText[n]) || eachArtEffectText != null)
-                            {
-                                eachArtEffectTextValidText = eachArtEffectText[n];
-                            }
-                        }
-                        Arts.Add(Art.ParseArtFromString(eachArtText[n], eachArtEffectTextValidText));
-                    }
-                    //adding the retreat to holomemns
-                    Arts.Add(new Art { Name = "Retreat", Cost = new List<(string Color, int Amount)>() { ("無色", 1) }, Effect = "Return this card o the backstage" });
-                }
-            }
-
+        if (cardType != null)
             if (this.currentHp == 0 && (cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン")))
-            {
                 currentHp = int.Parse(hp);
-            }
-        }
-
-        Flip((FrontView != null));
 
         return this;
     }
-    public void Flip(bool layout3D)
+
+    public void SetCardArt(Lib.GameZone zone = 0)
+    {
+        try
+        {
+            Transform FrontView = transform.Find("FrontView");
+            //3d layout
+            if (FrontView != null)
+            {
+                if (string.IsNullOrEmpty(cardNumber))
+                {
+                    if (zone.Equals(Lib.GameZone.CardCheer))
+                    {
+                        transform.Find("Background").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/001");
+                    }
+                    else
+                    {
+                        transform.Find("Background").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/000");
+
+                    }
+                }
+                else
+                {
+                    FrontView.GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/" + cardNumber + "_" + rarity);
+                }
+            }
+            //ui layout
+            else
+            {
+                if (string.IsNullOrEmpty(cardNumber))
+                {
+                    transform.Find("CardImage").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/000");
+                }
+                else
+                {
+                    transform.Find("CardImage").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/" + cardNumber + "_" + rarity);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.Log("Error loading image :" + e);
+        }
+    }
+
+    public Card ScaleToFather()
+    {
+        if (transform.parent == null)
+        {
+            Debug.LogWarning("Card has no parent to scale to.");
+            return this;
+        }
+        transform.localScale = new Vector3(1f, 1f, 1f);
+        RectTransform rt = GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector3(ScaleXFromY(rt.sizeDelta.y), rt.sizeDelta.y, 1f);
+        return this;
+    }
+    float ScaleXFromY(float newY)
+    {
+        float origX = 53f;
+        float origY = 75f;
+        return origX * (newY / origY);
+    }
+
+    public Card Flip(bool layout3D = true)
     {
         if (string.IsNullOrEmpty(cardName))
             transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
@@ -202,6 +168,8 @@ public class Card : MonoBehaviour
                 transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
             else
                 transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
+
+        return this;
     }
     public Card SetCardNumber(string numnber)
     {
@@ -209,50 +177,17 @@ public class Card : MonoBehaviour
         return this;
     }
 
-    public static bool ContainsCard(List<Card> c, string name)
+    internal CardData ToCardData()
     {
-        foreach (Card card in c)
+        return new CardData
         {
-            if (card.cardNumber.Equals(name))
-            {
-                return true;
-            }
-        }
-        return false;
+            cardNumber = this.cardNumber,
+            curZone = this.curZone,
+            lastZone = this.lastZone,
+        };
     }
-
-    private void Start()
-    {
-        if (this.cardNumber.Equals("0"))
-        {
-            //Destroy(GetComponent<DuelField_HandDragDrop>());
-            //Destroy(GetComponent<DuelField_HandClick>());
-        }
-    }
-
-    public List<Card> StringListToCardList(List<string> cards)
-    {
-        List<Card> returnCards = new();
-        foreach (string s in cards)
-        {
-            Card card = new(s);
-            returnCards.Add(card);
-        }
-        return returnCards;
-    }
-
-    public List<string> CardListToStringList(List<Card> cards)
-    {
-        List<string> returnCards = new();
-        foreach (Card c in cards)
-        {
-            returnCards.Add(c.cardNumber);
-        }
-        return returnCards;
-    }
-
-
 }
+
 [Serializable]
 public class CardEffect
 {
@@ -260,7 +195,7 @@ public class CardEffect
     public string text { get; set; } = "";
     public int usageLimit { get; set; } = 0;
 
-    [JsonIgnore] // Ignore this during serialization
+    // Ignore this during serialization
     public Card target { get; set; }
 
     public int continuousEffect { get; set; } = 0;

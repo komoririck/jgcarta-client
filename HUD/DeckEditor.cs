@@ -109,9 +109,7 @@ public class DeckEditor : MonoBehaviour
                 continue;
 
             newCardGameObject.transform.SetParent(CardViewContent.transform, false);
-            Card newCard = newCardGameObject.GetComponent<Card>();
-            newCard.cardNumber = record.CardNumber;
-            newCard.GetCardInfo();
+            Card newCard = newCardGameObject.GetComponent<Card>().Init(newCardGameObject.GetComponent<Card>().ToCardData());
 
             // Set up button listener for each card to add it to the deck
             Button button = newCardGameObject.GetComponent<Button>() ?? newCardGameObject.AddComponent<Button>();
@@ -191,7 +189,6 @@ public class DeckEditor : MonoBehaviour
         button.onClick.AddListener(() => HandleCardClick(newCard));
 
         CardToAdd.cardNumber = ClickedCard.cardNumber;
-        CardToAdd.GetCardInfo();
         //determine which list it belongs
         if (CardToAdd.cardType.Equals("エール"))
         {
@@ -210,7 +207,6 @@ public class DeckEditor : MonoBehaviour
         {
             OshiCard.cardNumber = CardToAdd.cardNumber;
             Destroy(newCard);
-            OshiCard.GetCardInfo();
         }
         else
         {
@@ -244,7 +240,7 @@ public class DeckEditor : MonoBehaviour
     void OpenCardDetailMenu()
     {
         CardDetailPanel.SetActive(true);
-        Card card = CardDetailPanel.transform.Find("CardPanelInfo").GetComponent<Card>().SetCardNumber(clickedCard.cardNumber).GetCardInfo(true);
+        Card card = CardDetailPanel.transform.Find("CardPanelInfo").GetComponent<Card>().SetCardNumber(clickedCard.cardNumber);
     }
 
     public void ImportDeckFromClipBoard()
@@ -303,7 +299,6 @@ public class DeckEditor : MonoBehaviour
                     break;
                 case "#main":
                     CardToAdd.cardNumber = line.Trim();
-                    CardToAdd.GetCardInfo();
                     if (DeckCardList.Count > 49 && !string.IsNullOrEmpty(CardToAdd.name))
                         Destroy(newCardGameObject);
                     else
@@ -311,7 +306,6 @@ public class DeckEditor : MonoBehaviour
                     break;
                 case "#energy":
                     CardToAdd.cardNumber = line.Trim();
-                    CardToAdd.GetCardInfo();
 
                     CardToAdd.transform.SetParent(EnergyContent.transform);
                     if (EnergyCardList.Count > 19 && !string.IsNullOrEmpty(CardToAdd.name))
@@ -322,7 +316,6 @@ public class DeckEditor : MonoBehaviour
                 case "#oshi":
                     OshiCard.cardNumber = line.Trim();
                     Destroy(newCardGameObject);
-                    OshiCard.GetCardInfo();
                     break;
             }
         }
@@ -422,12 +415,10 @@ public class DeckEditor : MonoBehaviour
             Card CardToAdd = null;
             GameObject newCardGameObject = null;
             newCardGameObject = Instantiate(cardPrefab, DeckContent.transform);
-            CardToAdd = newCardGameObject.GetComponent<Card>();
+            CardToAdd = newCardGameObject.GetComponent<Card>().Init(new CardData {cardNumber = card });
             Button button = newCardGameObject.AddComponent<Button>();
             button.onClick.AddListener(() => HandleCardClick(newCardGameObject));
 
-            CardToAdd.cardNumber = card;
-            CardToAdd.GetCardInfo();
             if (DeckCardList.Count > 49 && !string.IsNullOrEmpty(CardToAdd.name))
                 Destroy(newCardGameObject);
             else
@@ -440,20 +431,15 @@ public class DeckEditor : MonoBehaviour
             Card CardToAdd = null;
             GameObject newCardGameObject = null;
             newCardGameObject = Instantiate(cardPrefab, EnergyContent.transform);
-            CardToAdd = newCardGameObject.GetComponent<Card>();
+            CardToAdd = newCardGameObject.GetComponent<Card>().Init(newCardGameObject.GetComponent<Card>().ToCardData());
             Button button = newCardGameObject.AddComponent<Button>();
             button.onClick.AddListener(() => HandleCardClick(newCardGameObject));
 
-            CardToAdd.cardNumber = card;
-            CardToAdd.GetCardInfo();
             if (EnergyCardList.Count > 19 && !string.IsNullOrEmpty(CardToAdd.name))
                 Destroy(newCardGameObject);
             else
                 EnergyCardList.Add(CardToAdd);
         }
-
         OshiCard.cardNumber = _DeckData.oshi;
-        OshiCard.GetCardInfo();
-
     }
 }

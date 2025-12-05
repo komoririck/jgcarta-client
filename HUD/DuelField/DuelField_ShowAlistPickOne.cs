@@ -1,8 +1,5 @@
-using Assets.Scripts.Lib;
-using Newtonsoft.Json;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,7 +10,7 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
     [SerializeField] private Transform contentPanel;
     [SerializeField] private GameObject itemPrefab;
     private List<GameObject> SelectableItems = new();
-    public List<string> selectedItems = new ();
+    public List<CardData> selectedItems = new ();
     private int InstantiatedObjIndex = 1;
     int MustClickCounter = 1;
     int MaxClickCounter = 1;
@@ -21,7 +18,7 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
     DuelAction _DuelAction;
     private EffectController effectController;
 
-    public IEnumerator SetupSelectableItems(DuelAction da, List<Card> SelectableCards, List<Card> avaliableForSelect)
+    public IEnumerator SetupSelectableItems(DuelAction da, List<CardData> SelectableCards, List<CardData> avaliableForSelect)
     {
 
         confirmButton.onClick.RemoveAllListeners();
@@ -44,21 +41,17 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
         
 
 
-        foreach (Card item in SelectableCards)
+        foreach (CardData item in SelectableCards)
         {
             bool canSelect = false;
             GameObject newItem = Instantiate(itemPrefab, contentPanel);
             newItem.name = InstantiatedObjIndex.ToString();
-            Card newC = newItem.GetComponent<Card>();
-            newC.cardNumber = item.cardNumber;
+            Card newC = newItem.GetComponent<Card>().Init(item);
 
-            newC.transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
-
-            newC.GetCardInfo();
             SelectableItems.Add(newItem);  
 
             // Check if this card is selectable
-            foreach (Card availableCard in avaliableForSelect)
+            foreach (CardData availableCard in avaliableForSelect)
             {
                 if (availableCard.cardNumber.Equals(newC.cardNumber))
                     canSelect = true;
@@ -86,8 +79,7 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
         if (ClickedCounter >= MaxClickCounter)
             return;
 
-        string cardNumber = itemObject.GetComponent<Card>().cardNumber;
-        selectedItems.Add(cardNumber);
+        selectedItems.Add(itemObject.GetComponent<Card>().ToCardData());
 
         TMP_Text orderText = itemObject.transform.Find("OrderText").GetComponent<TMP_Text>();
         orderText.text = (ClickedCounter + 1).ToString();  
@@ -107,7 +99,7 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
             return;
 
         // Prepare information to send to the server
-        effectController.EffectInformation.Add(new List<string>(selectedItems));
+        effectController.EffectInformation.Add(new DuelAction {cardList = selectedItems });
 
         // Clear selection list
         InstantiatedObjIndex = 1;

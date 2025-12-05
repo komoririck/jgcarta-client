@@ -1,9 +1,7 @@
-using Assets.Scripts.Lib;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq.Expressions;
+using System.Linq;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 using static DuelField;
@@ -17,30 +15,29 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
     private GameObject selectedItem;
     private int clickObjects = 1;
     private DuelField _DuelField;
-    List<Card> SelectableCards = new();
-    Card usedCard;
+    List<CardData> SelectableCards = new();
+    CardData usedCard;
     DuelAction duelAction;
     private EffectController effectController;
 
     List<GameObject> instantiatedItem = new();
 
-    public IEnumerator SetupSelectableItems(DuelAction da, TargetPlayer target = TargetPlayer.Player, string[] zonesThatPlayerCanSelect = null)
+    public IEnumerator SetupSelectableItems(DuelAction da, TargetPlayer target = TargetPlayer.Player, Lib.GameZone[] zonesThatPlayerCanSelect = null)
     {
         effectController.isSelectionCompleted = false;
 
         duelAction = da;
-        usedCard = new Card(duelAction.usedCard.cardNumber);
-        usedCard.GetCardInfo();
+        usedCard = duelAction.usedCard;
 
         //assign the positions where we need to get the cards for selection, if stars null, we pass the values bellow
         if (zonesThatPlayerCanSelect == null)
-            zonesThatPlayerCanSelect = new string[] { "Stage", "Collaboration", "BackStage1", "BackStage2", "BackStage3", "BackStage4", "BackStage5" };
+            zonesThatPlayerCanSelect = new Lib.GameZone[] { Lib.GameZone.Stage, Lib.GameZone.Collaboration, Lib.GameZone.BackStage1, Lib.GameZone.BackStage2, Lib.GameZone.BackStage3, Lib.GameZone.BackStage4, Lib.GameZone.BackStage5 };
 
         //we call PopulateSelectableCards to clear the recycable menu and add to  SelectableCards the last card in each position 
         _DuelField.PopulateSelectableCards(target, zonesThatPlayerCanSelect, CardListContent.gameObject, SelectableCards);
 
         int x = 0;  // Variable to track order
-        foreach (Card item in SelectableCards)
+        foreach (CardData item in SelectableCards)
         {
             bool canSelect = true;
 
@@ -51,12 +48,7 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
 
             Card newC = newItem.GetComponent<Card>();
             newC.cardNumber = item.cardNumber;
-            newC.cardPosition = item.transform.parent.name;
-
-            newC.transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
-            newC.GetCardInfo();
-            newC.attachedEnergy = item.attachedEnergy;
-
+            newC.curZone = DuelField.INSTANCE.GetZoneByString(CardAttachItemHolder.transform.parent.name);
 
             TMP_Text itemText = newItem.GetComponentInChildren<TMP_Text>();
             itemText.text = "";
@@ -70,13 +62,7 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
                 GameObject attachedCardItem = Instantiate(AttachedCardItem, newItem.GetComponentInChildren<GridLayoutGroup>().transform);
                 Destroy(attachedCardItem.GetComponent<DuelField_HandClick>());
                 Card attachedCard = attachedCardItem.GetComponent<Card>();
-                attachedCard.cardPosition = newC.cardPosition;
-                attachedCard.cardNumber = newC.attachedEnergy[i].GetComponent<Card>().cardNumber;
-
-                attachedCard.transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
-
-                attachedCard.GetCardInfo();
-
+                attachedCard.Init(attachedCard.ToCardData());
             }
             int subclickObjects = clickObjects;
             clickObjects++;
@@ -118,8 +104,8 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
         if (returnCard == null)
             return;
 
-        duelAction.targetCard = CardData.CreateCardDataFromCard(returnCard);
-        duelAction.usedCard.cardPosition = duelAction.usedCard.cardPosition;
+        duelAction.targetCard = returnCard.ToCardData();
+        duelAction.usedCard.curZone = duelAction.usedCard.curZone;
 
         effectController.EffectInformation.Add(duelAction);
 

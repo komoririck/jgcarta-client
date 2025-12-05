@@ -1,9 +1,7 @@
-using Assets.Scripts.Lib;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq.Expressions;
+using System.Linq;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 using static DuelField;
@@ -17,8 +15,8 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
     private GameObject selectedItem;
     private int clickObjects = 1;
     private DuelField _DuelField;
-    List<Card> SelectableCards = new();
-    Card usedCard = new("");
+	List<CardData> SelectableCards = new();
+	CardData usedCard = new();
     DuelAction duelAction;
 
     List<GameObject> instantiatedItem = new();
@@ -30,33 +28,33 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
 
         duelAction = _DuelAction;
         this.usedCard.cardNumber = _DuelAction.usedCard.cardNumber;
-        usedCard.GetCardInfo();
 
-
-        _DuelField.PopulateSelectableCards(target, new string[] { "Stage", "Collaboration" }, CardListContent.gameObject, SelectableCards);
+        _DuelField.PopulateSelectableCards(target, new Lib.GameZone[] { Lib.GameZone.Stage, Lib.GameZone.Collaboration }, CardListContent.gameObject, SelectableCards);
 
         //some cards have limitations for target
         switch (_DuelAction.usedCard.cardNumber)
         {
             case "hBP01-009":
-                if (_DuelField.GetZone("Stage", TargetPlayer.Oponnent).GetComponentInChildren<Card>() == null) { 
+                if (_DuelField.GetZone(Lib.GameZone.Stage, TargetPlayer.Oponnent).GetComponentInChildren<Card>() == null) { 
                     CardListContent.transform.parent.parent.parent.gameObject.SetActive(false);
                     yield return null;
                 }
 
-                _DuelField.PopulateSelectableCards(target, new string[] { "Stage" }, CardListContent.gameObject, SelectableCards);
+                _DuelField.PopulateSelectableCards(target, new Lib.GameZone[] { Lib.GameZone.Stage }, CardListContent.gameObject, SelectableCards);
                 break;
                 default:
-                _DuelField.PopulateSelectableCards(target, new string[] { "Stage", "Collaboration" }, CardListContent.gameObject, SelectableCards);
+                _DuelField.PopulateSelectableCards(target, new Lib.GameZone[] { Lib.GameZone.Stage, Lib.GameZone.Collaboration }, CardListContent.gameObject, SelectableCards);
                 break;
         }
-        if (_DuelField.GetZone("Collaboration", TargetPlayer.Oponnent).GetComponentInChildren<Card>().cardNumber.Equals("hBP01-050")) {
+
+        var card = _DuelField.GetZone(Lib.GameZone.Collaboration, TargetPlayer.Oponnent).GetComponent<Card>();
+        if (card != null && card.cardNumber.Equals("hBP01-050")) {
         //GIFT: Bodyguard
-            _DuelField.PopulateSelectableCards(target, new string[] {"Collaboration"}, CardListContent.gameObject, SelectableCards);
+            _DuelField.PopulateSelectableCards(target, new Lib.GameZone[] {Lib.GameZone.Collaboration}, CardListContent.gameObject, SelectableCards);
         }
 
         int x = 0;  // Variable to track order
-        foreach (Card item in SelectableCards)
+        foreach (CardData item in SelectableCards)
         {
             bool canSelect = true;
 
@@ -66,14 +64,10 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
             instantiatedItem.Add(newItem);
 
             Card newC = newItem.GetComponent<Card>();
-            newC.cardNumber = item.cardNumber;
-            newC.cardPosition = item.transform.parent.name;
-            newC.transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
-            newC.GetCardInfo();
-            newC.attachedEnergy = item.attachedEnergy;
+            newC.Init(item);
+			newC.curZone = DuelField.INSTANCE.GetZoneByString(CardAttachItemHolder.transform.parent.name);
 
-
-            TMP_Text itemText = newItem.GetComponentInChildren<TMP_Text>();
+			TMP_Text itemText = newItem.GetComponentInChildren<TMP_Text>();
             itemText.text = "";
 
             Button itemButton = newItem.GetComponent<Button>();
@@ -113,15 +107,14 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
         if (selectedItem == null)
             return;
 
-        string pos = duelAction.usedCard.cardPosition;
+        var pos = duelAction.usedCard.curZone;
         Card returnCard = selectedItem.GetComponent<Card>();
 
-        duelAction.targetCard = CardData.CreateCardDataFromCard(returnCard);
+        duelAction.targetCard = returnCard.ToCardData();
 
-        Card card = new(duelAction.usedCard.cardNumber);
-        card.GetCardInfo();
+        CardData card = duelAction.usedCard;
 
-        duelAction.usedCard.cardPosition = pos;
+        duelAction.usedCard.curZone = pos;
         if (duelAction.actionType.Equals("doArt")) {
             _DuelField.GenericActionCallBack(duelAction, "doArt");
         }

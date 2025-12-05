@@ -1,13 +1,10 @@
-using Assets.Scripts.Lib;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq.Expressions;
+using System.Linq;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 using static DuelField;
-using static UnityEngine.GraphicsBuffer;
 
 public class DuelField_DetachCardMenu : MonoBehaviour
 {
@@ -18,8 +15,8 @@ public class DuelField_DetachCardMenu : MonoBehaviour
     private GameObject selectedItem;
     private int clickObjects = 1;
     private DuelField _DuelField;
-    List<Card> SelectableCards = new();
-    Card usedCard = new("");
+    List<CardData> SelectableCards = new();
+	CardData usedCard = new();
     DuelAction duelAction;
     DuelField_TargetForEffectMenu _DuelField_TargetForEffectMenu;
     List<GameObject> instantiatedItem = new();
@@ -30,23 +27,22 @@ public class DuelField_DetachCardMenu : MonoBehaviour
 
     bool CHEER = true;
 
-    public IEnumerator SetupSelectableItems(DuelAction _DuelAction, bool AddCostToEffectInformation = false, string[] zonesThatPlayerCanSelect = null, bool IsACheer = true)
+    public IEnumerator SetupSelectableItems(DuelAction _DuelAction, bool AddCostToEffectInformation = false, Lib.GameZone[] zonesThatPlayerCanSelect = null, bool IsACheer = true)
     {
         _AddOnlyCostToEffectInformation = AddCostToEffectInformation;
         CHEER = IsACheer;
 
         duelAction = _DuelAction;
         this.usedCard.cardNumber = _DuelAction.usedCard.cardNumber;
-        usedCard.GetCardInfo();
 
         //assign the positions where we need to get the cards for selection, if stars null, we pass the values bellow
         if (zonesThatPlayerCanSelect == null)
-            zonesThatPlayerCanSelect = new string[] { "Stage", "Collaboration", "BackStage1", "BackStage2", "BackStage3", "BackStage4", "BackStage5" };
+            zonesThatPlayerCanSelect = new Lib.GameZone[] { Lib.GameZone.Stage, Lib.GameZone.Collaboration, Lib.GameZone.BackStage1, Lib.GameZone.BackStage2, Lib.GameZone.BackStage3, Lib.GameZone.BackStage4, Lib.GameZone.BackStage5 };
 
         _DuelField.PopulateSelectableCards(TargetPlayer.Player, zonesThatPlayerCanSelect, CardListContent.gameObject, SelectableCards);
 
         int x = 0;  // Variable to track order
-        foreach (Card item in SelectableCards)
+        foreach (CardData item in SelectableCards)
         {
             bool canSelect = true;
 
@@ -55,32 +51,23 @@ public class DuelField_DetachCardMenu : MonoBehaviour
             newItem.name = clickObjects.ToString();
             instantiatedItem.Add(newItem);
 
-            Card newC = newItem.GetComponent<Card>().SetCardNumber(item.cardNumber).GetCardInfo();
-            newC.cardPosition = item.transform.parent.name;
-            newC.attachedEnergy = item.attachedEnergy;
-            newC.attachedEquipe = item.attachedEquipe;
+            Card newC = newItem.GetComponent<Card>().SetCardNumber(item.cardNumber);
+            newC.curZone = DuelField.INSTANCE.GetZoneByString(CardAttachItemHolder.transform.parent.name);
 
-            List<GameObject> ListToSelectFrom = new();
+			List<GameObject> ListToSelectFrom = new();
             if (IsACheer)
-            {
                 ListToSelectFrom = newC.attachedEnergy;
-            }
             else
-            {
                 ListToSelectFrom = newC.attachedEquipe;
-            }
+            
 
             if (ListToSelectFrom.Count > 0)
                 for (int i = 0; i < ListToSelectFrom.Count; i++) {
                     GameObject attachedCardItem = Instantiate(AttachedCardItem, newItem.GetComponentInChildren<GridLayoutGroup>().transform);
                     Destroy(attachedCardItem.GetComponent<DuelField_HandClick>());
                     Card attachedCard = attachedCardItem.GetComponent<Card>();
-                    attachedCard.cardPosition = newC.cardPosition;
+                    attachedCard.curZone = newC.curZone;
                     attachedCard.cardNumber = ListToSelectFrom[i].GetComponent<Card>().cardNumber;
-
-                    attachedCard.transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
-
-                    attachedCard.GetCardInfo();
 
                     TMP_Text itemText = attachedCardItem.GetComponentInChildren<TMP_Text>();
                     itemText.text = "";
@@ -124,11 +111,11 @@ public class DuelField_DetachCardMenu : MonoBehaviour
 
         Card returnCard = selectedItem.GetComponent<Card>();
 
-        duelAction.cheerCostCard = CardData.CreateCardDataFromCard(returnCard);
-        duelAction.usedCard.cardPosition = duelAction.cheerCostCard.cardPosition;
-        duelAction.local = duelAction.cheerCostCard.cardPosition;
+        duelAction.cheerCostCard = returnCard.ToCardData();
+        duelAction.usedCard.curZone = duelAction.cheerCostCard.curZone;
+        duelAction.activationZone = duelAction.cheerCostCard.curZone;
 
-        GameObject fatherObj = _DuelField.GetZone(duelAction.local, DuelField.TargetPlayer.Player);
+        GameObject fatherObj = _DuelField.GetZone(duelAction.activationZone, DuelField.TargetPlayer.Player);
         Card FatherCard = fatherObj.transform.GetChild(fatherObj.transform.childCount - 1).GetComponent<Card>();
 
         List<GameObject> DetachbleList = null;
@@ -153,7 +140,7 @@ public class DuelField_DetachCardMenu : MonoBehaviour
 
         if (_AddOnlyCostToEffectInformation)
         {
-            effectController.EffectInformation.Add(new Card(returnCard.cardNumber, returnCard.cardPosition));
+            effectController.EffectInformation.Add(new DuelAction {usedCard = returnCard.ToCardData() });
         }
         else
         {

@@ -1,6 +1,3 @@
-using Assets.Scripts.Lib;
-using JetBrains.Annotations;
-using Newtonsoft.Json;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -32,7 +29,7 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
 
     private EffectController effectController;
 
-    public IEnumerator SetupSelectableItems(DuelAction DuelAction, List<Card> SelectableCards, List<Card> avaliableForSelect, bool doubleselect = false, int MaximumCanPick = -1)
+    public IEnumerator SetupSelectableItems(DuelAction DuelAction, List<CardData> SelectableCards, List<CardData> avaliableForSelect, bool doubleselect = false, int MaximumCanPick = -1)
     {
         effectController.isSelectionCompleted = false;
         contentPanel.transform.parent.parent.parent.gameObject.SetActive(true);
@@ -40,7 +37,7 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
         yield return new WaitUntil(() => effectController.isSelectionCompleted);
         effectController.isSelectionCompleted = false;
     }
-    public void FillMenu(DuelAction DuelAction, List<Card> SelectableCards, List<Card> avaliableForSelect, bool doubleselect = false, int MaximumCanPick = -1)
+    public void FillMenu(DuelAction DuelAction, List<CardData> SelectableCards, List<CardData> avaliableForSelect, bool doubleselect = false, int MaximumCanPick = -1)
     {
         confirmButton.onClick.RemoveAllListeners();
         confirmButton.onClick.AddListener(FinishSelection);
@@ -59,20 +56,16 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
         }
 
         int x = 0;  // Variable to track order
-        foreach (Card item in SelectableCards)
+        foreach (CardData item in SelectableCards)
         {
             bool canSelect = false;
             GameObject newItem = Instantiate(itemPrefab, contentPanel);
             newItem.name = clickObjects.ToString();
-            Card newC = newItem.GetComponent<Card>();
-            newC.cardNumber = item.cardNumber;
+            Card newC = newItem.GetComponent<Card>().Init(item) ;
 
-            newC.transform.localRotation = Quaternion.Euler(0f, -180f, 0f);
-
-            newC.GetCardInfo();
             SelectableItems.Add(newItem);
 
-            foreach (Card avalibleCard in avaliableForSelect)
+            foreach (CardData avalibleCard in avaliableForSelect)
             {
                 if (avalibleCard.cardNumber.Equals(newC.cardNumber))
                     canSelect = true;
@@ -135,10 +128,10 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
                 if (!selectedItems.Contains(item))
                     notSelectedItems.Add(item);
             }
-            List<Card> SecondSelectableItemsCard = new();
+            List<CardData> SecondSelectableItemsCard = new();
             foreach (GameObject item in notSelectedItems)
             {
-                SecondSelectableItemsCard.Add(item.GetComponent<Card>());
+                SecondSelectableItemsCard.Add(item.GetComponent<Card>().ToCardData());
             }
             foreach (GameObject gm in SelectableItems)
             {

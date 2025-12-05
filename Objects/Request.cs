@@ -1,8 +1,7 @@
 using System;
-using System.Collections.Generic;
 
 [Serializable]
-public class PlayerRequest
+public class Request
 {
     public string playerID;
     public string password;
@@ -10,5 +9,5 @@ public class PlayerRequest
     public string type;
     public string description;
     public object jsonObject;
-    public string requestObject;
+    public DuelAction duelAction;
 }

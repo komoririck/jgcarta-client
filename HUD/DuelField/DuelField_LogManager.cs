@@ -7,7 +7,7 @@ public class DuelField_LogManager : MonoBehaviour
 {
     public static void AddLog(DuelAction _DuelAction, string type) {
         PlayerInfo _PlayerInfo = FindAnyObjectByType<PlayerInfo>();
-        DuelFieldData _DuelFieldData = FindAnyObjectByType<MatchConnection>()._DuelFieldData;
+        DuelFieldData _DuelFieldData = DuelField.INSTANCE.duelFieldData;
 
         string whichPlayer = "";
         if(_DuelAction == null || string.IsNullOrEmpty(_DuelAction.playerID))
@@ -42,7 +42,7 @@ public class DuelField_LogManager : MonoBehaviour
                 break;
             case "ResetStep":
                 var textValue = $"New turn started for {whichPlayer}\n";
-                if (!string.IsNullOrEmpty(_DuelAction.usedCard.cardNumber)) {
+                if (_DuelAction.usedCard != null) {
                     textValue += $"Collab holomember {_DuelAction.usedCard.cardNumber} send to backstage suspended\n";
                 }
                 InstantiateLogObj(textValue);
@@ -63,14 +63,14 @@ public class DuelField_LogManager : MonoBehaviour
                 break;
             case "HolomemDefatedSoGainCheer":
                 textValue = $"{whichPlayer} gained {_DuelAction.cardList.Count} because holomember has defeated\n";
-                foreach (Card card in _DuelAction.cardList) {
+                foreach (CardData card in _DuelAction.cardList) {
                     textValue += $"{card.cardNumber}\n";
                 }
                 InstantiateLogObj(textValue);
                 break;
             case "CheerStepEnd":
             case "CheerStepEndDefeatedHolomem":
-                InstantiateLogObj($"{whichPlayer} assigned cheer {_DuelAction.usedCard.cardNumber} to {_DuelAction.targetCard.cardNumber} at {_DuelAction.targetCard.cardPosition}");
+                InstantiateLogObj($"{whichPlayer} assigned cheer {_DuelAction.usedCard.cardNumber} to {_DuelAction.targetCard.cardNumber} at {_DuelAction.targetCard.curZone}");
                 break;
             case "CheerStep":
                 InstantiateLogObj($"{whichPlayer} gained a energy for turn {_DuelAction.cardList[0].cardNumber}");
@@ -82,10 +82,10 @@ public class DuelField_LogManager : MonoBehaviour
                 InstantiateLogObj($"{whichPlayer} started the main phase");
                 break;
             case "PlayHolomem":
-                InstantiateLogObj($"{whichPlayer} played a {_DuelAction.usedCard.cardNumber} at {_DuelAction.usedCard.cardPosition}");
+                InstantiateLogObj($"{whichPlayer} played a {_DuelAction.usedCard.cardNumber} at {_DuelAction.usedCard.curZone}");
                 break;
             case "BloomHolomem":
-                InstantiateLogObj($"{whichPlayer} bloomed his {_DuelAction.targetCard.cardNumber} to {_DuelAction.usedCard.cardNumber} at {_DuelAction.usedCard.cardPosition}");
+                InstantiateLogObj($"{whichPlayer} bloomed his {_DuelAction.targetCard.cardNumber} to {_DuelAction.usedCard.cardNumber} at {_DuelAction.usedCard.curZone}");
                 break;
             case "DoCollab":
                 InstantiateLogObj($"{whichPlayer} collabed using his {_DuelAction.usedCard.cardNumber}");
@@ -94,7 +94,7 @@ public class DuelField_LogManager : MonoBehaviour
                 InstantiateLogObj($"{whichPlayer} ended his collab his {_DuelAction.usedCard.cardNumber}");
                 break;
             case "AttachEnergyResponse":
-                InstantiateLogObj($"{whichPlayer} attached a cheer {_DuelAction.usedCard.cardNumber} to {_DuelAction.targetCard.cardNumber} at {_DuelAction.targetCard.cardPosition}");
+                InstantiateLogObj($"{whichPlayer} attached a cheer {_DuelAction.usedCard.cardNumber} to {_DuelAction.targetCard.cardNumber} at {_DuelAction.targetCard.curZone}");
                 break;
             case "DisposeUsedSupport":
                 InstantiateLogObj($"{whichPlayer} used a support card {_DuelAction.usedCard.cardNumber}");

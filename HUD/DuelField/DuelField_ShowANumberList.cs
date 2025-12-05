@@ -1,9 +1,8 @@
-using Assets.Scripts.Lib;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
+
 
 public class DuelField_ShowANumberList : MonoBehaviour
 {
@@ -37,7 +36,7 @@ public class DuelField_ShowANumberList : MonoBehaviour
     public void FinishSelection()
     {
         NumberPanel.gameObject.SetActive(false);
-        effectController.EffectInformation.Add(dropdown.options[dropdown.value].text);
+        effectController.EffectInformation.Add(new DuelAction{ yesOrNo = dropdown.options[dropdown.value].text.Equals("Yes") ? true: false });
         effectController.isSelectionCompleted = true;
     }
 

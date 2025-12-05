@@ -2,30 +2,14 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 
+[Serializable]
 public class DuelFieldData
 {
-    public List<Card> playerAArquive;
-    public List<Card> playerAHoloPower;
-    public List<Card> playerABackPosition;
-    public Card playerAFavourite;
-    public Card playerAStage;
-    public Card playerACollaboration;
-    public List<Card> playerALife;
-    public List<Card> playerBArquive;
-    public List<Card> playerBHoloPower;
-    public List<Card> playerBBackPosition;
-    public Card playerBFavourite;
-    public Card playerBStage;
-    public Card playerBCollaboration;
-    public List<Card> playerBLife;
-
-    public string currentPlayerTurn;
     [JsonIgnore]
     public GAMEPHASE currentGamePhase = GAMEPHASE.StartDuel;
-    public string firstPlayer;
-    public string secondPlayer;
     [JsonIgnore]
     public List<Card> playerLimiteCardPlayed = new();
     [Flags]
@@ -54,38 +38,68 @@ public class DuelFieldData
     }
 
 
+    public List<CardData> playerABackPosition { get; set; } = new List<CardData>();
+    public CardData playerAFavourite { get; set; } 
+    public CardData playerAStage { get; set; }
+    public CardData playerACollaboration { get; set; }
+    public List<CardData> playerALife { get; set; } = new List<CardData>();
+    public List<CardData> playerBBackPosition { get; set; } = new List<CardData>();
+    public CardData playerBFavourite { get; set; }
+    public CardData playerBStage { get; set; }
+    public CardData playerBCollaboration { get; set; }
+    public List<CardData> playerBLife { get; set; } = new List<CardData>();
+    public List<CardData> playerBArquive { get; set; } = new List<CardData>();
+    public List<CardData> playerBHoloPower { get; set; } = new List<CardData>();
+    public List<CardData> playerAArquive { get; set; } = new List<CardData>();
+    public List<CardData> playerAHoloPower { get; set; } = new List<CardData>();
+    public List<CardData> playerACardCheer { get; set; }
+    public List<CardData> playerBCardCheer { get; set; }
 
-    [Serializable]
-    public class DuelFieldDataSerializable
-    {
-        public List<CardData> playerABackPosition { get; set; } = new List<CardData>();
-        public CardData playerAFavourite { get; set; } = new CardData();
-        public CardData playerAStage { get; set; } = new CardData();
-        public CardData playerACollaboration { get; set; } = new CardData();
-        public List<CardData> playerALife { get; set; } = new List<CardData>();
-        public List<CardData> playerBBackPosition { get; set; } = new List<CardData>();
-        public CardData playerBFavourite { get; set; } = new CardData();
-        public CardData playerBStage { get; set; } = new CardData();
-        public CardData playerBCollaboration { get; set; } = new CardData();
-        public List<CardData> playerBLife { get; set; } = new List<CardData>();
-    }
+    public string currentPlayerTurn;
+    public string firstPlayer;
+    public string secondPlayer;
 
-    public static DuelFieldDataSerializable ConvertToSerializable(DuelFieldData data)
+    public static DuelFieldData MapDuelFieldData(List<GameObject> field)
     {
-        return new DuelFieldDataSerializable
+        DuelFieldData duelFieldData = DuelField.INSTANCE.duelFieldData;
+
+        if (!duelFieldData.firstPlayer.Equals(PlayerInfo.INSTANCE.PlayerID))
         {
-            playerABackPosition = data.playerABackPosition.Select(CardData.CreateCardDataFromCard).ToList(),
-            playerAFavourite = CardData.CreateCardDataFromCard(data.playerAFavourite),
-            playerAStage = CardData.CreateCardDataFromCard(data.playerAStage),
-            playerACollaboration = CardData.CreateCardDataFromCard(data.playerACollaboration),
-            playerALife = data.playerALife.Select(CardData.CreateCardDataFromCard).ToList(),
+            duelFieldData.playerBArquive = field[0].GetComponentsInChildren<Card>()?.ToList().Select(item => item.ToCardData()).ToList();
+            duelFieldData.playerBHoloPower = field[2].GetComponentsInChildren<Card>()?.ToList().Select(item => item.ToCardData()).ToList();
+            duelFieldData.playerBBackPosition = field[3].GetComponentsInChildren<Card>()?.ToList().Select(item => item.ToCardData()).ToList();
+            duelFieldData.playerBFavourite = field[4].GetComponentInChildren<Card>()?.ToCardData();
+            duelFieldData.playerBStage = field[6].GetComponentInChildren<Card>()?.ToCardData();
+            duelFieldData.playerBCollaboration = field[5].GetComponentInChildren<Card>()?.ToCardData();
+            duelFieldData.playerBLife = field[8].GetComponentsInChildren<Card>()?.ToList().Select(item => item.ToCardData()).ToList();
 
-            playerBBackPosition = data.playerBBackPosition.Select(CardData.CreateCardDataFromCard).ToList(),
-            playerBFavourite = CardData.CreateCardDataFromCard(data.playerBFavourite),
-            playerBStage = CardData.CreateCardDataFromCard(data.playerBStage),
-            playerBCollaboration = CardData.CreateCardDataFromCard(data.playerBCollaboration),
-            playerBLife = data.playerBLife.Select(CardData.CreateCardDataFromCard).ToList(),
+            duelFieldData.playerAArquive = field[9].GetComponentsInChildren<Card>()?.Select(item => item.ToCardData()).ToList();
+            duelFieldData.playerAHoloPower = field[11].GetComponentsInChildren<Card>()?.Select(item => item.ToCardData()).ToList();
+            duelFieldData.playerABackPosition = field[12].GetComponentsInChildren<Card>()?.ToList().Select(item => item.ToCardData()).ToList();
+            duelFieldData.playerAFavourite = field[13].GetComponentInChildren<Card>()?.ToCardData();
+            duelFieldData.playerAStage = field[15].GetComponentInChildren<Card>()?.ToCardData();
+            duelFieldData.playerACollaboration = field[14].GetComponentInChildren<Card>()?.ToCardData();
+            duelFieldData.playerALife = field[17].GetComponentsInChildren<Card>()?.ToList().Select(item => item.ToCardData()).ToList();
 
-        };
+            return duelFieldData;
+        }
+
+        duelFieldData.playerAArquive = field[0].GetComponentsInChildren<Card>()?.ToList().Select(item => item.ToCardData()).ToList();
+        duelFieldData.playerAHoloPower = field[2].GetComponentsInChildren<Card>()?.ToList().Select(item => item.ToCardData()).ToList();
+        duelFieldData.playerABackPosition = field[3].GetComponentsInChildren<Card>()?.ToList().Select(item => item.ToCardData()).ToList();
+        duelFieldData.playerAFavourite = field[4].GetComponentInChildren<Card>()?.ToCardData();
+        duelFieldData.playerAStage = field[6].GetComponentInChildren<Card>()?.ToCardData() ;
+        duelFieldData.playerACollaboration = field[5].GetComponentInChildren<Card>()?.ToCardData();
+        duelFieldData.playerALife = field[8].GetComponentsInChildren<Card>().ToList()?.Select(item => item.ToCardData()).ToList();
+
+        duelFieldData.playerBArquive = field[9].GetComponentsInChildren<Card>()?.ToList().Select(item => item.ToCardData()).ToList();
+        duelFieldData.playerBHoloPower = field[11].GetComponentsInChildren<Card>()?.ToList().Select(item => item.ToCardData()).ToList();
+        duelFieldData.playerBBackPosition = field[12].GetComponentsInChildren<Card>()?.ToList().Select(item => item.ToCardData()).ToList();
+        duelFieldData.playerBFavourite = field[13].GetComponentInChildren<Card>()?.ToCardData() ;
+        duelFieldData.playerBStage = field[15].GetComponentInChildren<Card>()?.ToCardData();
+        duelFieldData.playerBCollaboration = field[14].GetComponentInChildren<Card>()?.ToCardData();
+        duelFieldData.playerBLife = field[17].GetComponentsInChildren<Card>().ToList()?.Select(item => item.ToCardData()).ToList();
+
+        return duelFieldData;
     }
 }
