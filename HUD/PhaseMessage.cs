@@ -5,102 +5,44 @@ using static UnityEngine.GraphicsBuffer;
 
 public class PhaseMessage : MonoBehaviour
 {
-    public RectTransform messageTransform;
-    public TMP_Text messageText;
+    public static RectTransform messageTransform;
+    public static TMP_Text messageText;
 
-    private Vector3 startPosition;
-    private Vector3 centerPosition;
-    private Vector3 endPosition;
+    private static Vector3 startPosition = new Vector3(-950, 0, 0);
+    private static Vector3 centerPosition = new Vector3(0, 0, 0);
+    private static Vector3 endPosition = new Vector3(950, 0, 0);
 
-    private float stateTimer = 0f;
-
-    private bool isRunning = false;
-    private float timer = 0f;
-
-    private enum MoveState { Idle, MoveX, Wait, MoveY, Done }
-    private MoveState state = MoveState.Idle;
-
-    void Start()
+    private void Awake()
     {
-        startPosition = new Vector3(-950, 0, 0);
-        centerPosition = new Vector3(0, 0, 0);
-        endPosition = new Vector3(950, 0, 0);
+        messageTransform = GetComponent<RectTransform>();
+        messageText = GetComponent<TMP_Text>();
     }
-
-    void Update()
+    static public IEnumerator ShowMessage(string phaseName, float moveDuration = 1f, float waitDuration = 1f)
     {
-        if (!isRunning) return;
-
-        timer += Time.deltaTime;
-
-        if (timer > 4f)
-        {
-            StopStop();
-            return;
-        }
-
-        DuelField.INSTANCE.NeedsOrganize = true;
-
-        switch (state)
-        {
-            case MoveState.MoveX:
-                UpdateMove(startPosition, centerPosition, 1f, MoveState.Wait);
-                break;
-
-            case MoveState.Wait:
-                UpdateWait(1f, MoveState.MoveY);
-                break;
-
-            case MoveState.MoveY:
-                UpdateMove(centerPosition, endPosition, 1f, MoveState.Done);
-                break;
-
-            case MoveState.Done:
-                StopStop();
-                break;
-        }
-    }
-    public void StartMessage(string phaseName)
-    {
-        if (isRunning)
-            StopStop();
-        
-        startPosition = messageTransform.anchoredPosition;
-
-        state = MoveState.MoveX;
-        timer = 0f;
-        isRunning = true;
+        messageTransform.anchoredPosition = startPosition;
 
         messageText.text = phaseName;
-    }
-    private void UpdateMove(Vector2 from, Vector2 to, float duration, MoveState next)
-    {
-        stateTimer += Time.deltaTime;
-        float t = Mathf.Clamp01(stateTimer / duration);
-        messageTransform.anchoredPosition = Vector2.Lerp(from, to, t);
+        messageText.gameObject.SetActive(true);
 
-        if (t >= 1f)
-        {
-            state = next;
-            stateTimer = 0f;
-        }
+        yield return MoveRect(messageTransform, startPosition, centerPosition, moveDuration);
+
+        yield return new WaitForSeconds(waitDuration);
+
+        yield return MoveRect(messageTransform, centerPosition, endPosition, moveDuration);
+
+        messageText.gameObject.SetActive(false);
+        messageTransform.anchoredPosition = startPosition;
     }
-    private void UpdateWait(float duration, MoveState next)
+    private static IEnumerator MoveRect(RectTransform rect, Vector3 from, Vector3 to, float duration)
     {
-        stateTimer += Time.deltaTime;
-        if (stateTimer >= duration)
+        float timer = 0f;
+        while (timer < duration)
         {
-            state = next;
-            stateTimer = 0f;
+            timer += Time.deltaTime;
+            float t = Mathf.Clamp01(timer / duration);
+            rect.anchoredPosition = Vector3.Lerp(from, to, t);
+            yield return null;
         }
-    }
-    private void StopStop()
-    {
-        isRunning = false;
-        state = MoveState.Idle;
-        stateTimer = 0f;
-        timer = 0f;
-        messageTransform.anchoredPosition = new Vector3(-950, 0, 0);
-        DuelField.INSTANCE.NeedsOrganize = false;
+        rect.anchoredPosition = to;
     }
 }

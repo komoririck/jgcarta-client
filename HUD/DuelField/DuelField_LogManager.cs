@@ -7,7 +7,7 @@ public class DuelField_LogManager : MonoBehaviour
 {
     public static void AddLog(DuelAction _DuelAction, string type) {
         PlayerInfo _PlayerInfo = FindAnyObjectByType<PlayerInfo>();
-        DuelFieldData _DuelFieldData = DuelField.INSTANCE.duelFieldData;
+        DuelFieldData _DuelFieldData = DuelField.INSTANCE.DUELFIELDDATA;
 
         string whichPlayer = "";
         if(_DuelAction == null || string.IsNullOrEmpty(_DuelAction.playerID))
@@ -32,7 +32,7 @@ public class DuelField_LogManager : MonoBehaviour
                 break;
             case "PBMulliganF":
             case "PAMulliganF":
-                if (_DuelAction.actionObject.Equals("True"))
+                if (_DuelAction.yesOrNo)
                     InstantiateLogObj($"{whichPlayer} have not playable cards in hand\nForced to mulligan drawing {_DuelAction.cardList.Count}");
                 else
                     InstantiateLogObj($"No need to force {whichPlayer} to mulligan");
@@ -119,8 +119,7 @@ public class DuelField_LogManager : MonoBehaviour
                 InstantiateLogObj($"{whichPlayer} drew {_DuelAction.cardList.Count} by card effect");
                 break;
             case "RollDice":
-                List<string> serverReturn = JsonConvert.DeserializeObject<List<string>>(_DuelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-                string diceRoll = serverReturn[0];
+                int diceRoll = _DuelAction.diceRoll[0];
                 InstantiateLogObj($"{whichPlayer} rolled a dice {diceRoll}");
                 break;
         }

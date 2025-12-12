@@ -42,7 +42,6 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
             bool canSelect = true;
 
             GameObject newItem = Instantiate(CardAttachItemHolder, CardListContent);
-            Destroy(newItem.GetComponent<DuelField_HandClick>());
             newItem.name = clickObjects.ToString();
             instantiatedItem.Add(newItem);
 
@@ -60,7 +59,6 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
 
             for (int i = 0; i <  newC.attachedEnergy.Count; i++) {
                 GameObject attachedCardItem = Instantiate(AttachedCardItem, newItem.GetComponentInChildren<GridLayoutGroup>().transform);
-                Destroy(attachedCardItem.GetComponent<DuelField_HandClick>());
                 Card attachedCard = attachedCardItem.GetComponent<Card>();
                 attachedCard.Init(attachedCard.ToCardData());
             }

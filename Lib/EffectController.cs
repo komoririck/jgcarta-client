@@ -217,7 +217,7 @@ using Unity.VisualScripting;
                 case "hBP01-003":
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        DuelAction duelAction = DuelField.INSTANCE.CUR_DA;
                         if (duelAction.cardList.Count == 0)
                         {
                             menuActions.Clear();
@@ -356,7 +356,7 @@ using Unity.VisualScripting;
                             return EmptyCoroutine();
                         }
 
-                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        DuelAction duelAction = DuelField.INSTANCE.CUR_DA;
                         holoPowerList = JsonConvert.DeserializeObject<List<CardData>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (holoPowerList.Count == 0)
                         {
@@ -388,7 +388,7 @@ using Unity.VisualScripting;
 
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        DuelAction duelAction = DuelField.INSTANCE.CUR_DA;
                         holoPowerList = JsonConvert.DeserializeObject<List<CardData>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (holoPowerList.Count == 0)
                         {
@@ -471,7 +471,7 @@ using Unity.VisualScripting;
                     menuActions.Add(() =>
                     {
                         diceRoll = GetLastValue<int>(1);
-                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        DuelAction duelAction = DuelField.INSTANCE.CUR_DA;
                         List<CardData> canSelect = JsonConvert.DeserializeObject<List<CardData>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         if (!IsOddNumber(diceRoll) || canSelect.Count == 0)
@@ -561,7 +561,7 @@ using Unity.VisualScripting;
                     //target the card
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        DuelAction duelAction = DuelField.INSTANCE.CUR_DA;
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player, new Lib.GameZone[] { Lib.GameZone.BackStage1, Lib.GameZone.BackStage2, Lib.GameZone.BackStage3, Lib.GameZone.BackStage4, Lib.GameZone.BackStage5 });
                     });
                     //inform the server
@@ -726,7 +726,7 @@ using Unity.VisualScripting;
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = DuelField.INSTANCE.curResDA;
+                        duelActionInput = DuelField.INSTANCE.CUR_DA;
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
@@ -770,7 +770,7 @@ using Unity.VisualScripting;
                     //we recieve the list then callback again to finish the effect
                     menuActions.Add(() =>
                     {
-                        duelActionInput = DuelField.INSTANCE.curResDA;
+                        duelActionInput = DuelField.INSTANCE.CUR_DA;
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
@@ -798,7 +798,7 @@ using Unity.VisualScripting;
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = DuelField.INSTANCE.curResDA;
+                        duelActionInput = DuelField.INSTANCE.CUR_DA;
 
                         List<CardData> filteresList = new();
                         foreach (CardData card in duelActionInput.cardList)
@@ -836,7 +836,7 @@ using Unity.VisualScripting;
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = DuelField.INSTANCE.curResDA;
+                        duelActionInput = DuelField.INSTANCE.CUR_DA;
 
                         List<CardData> filteresList = new();
                         foreach (CardData card in duelActionInput.cardList)
@@ -880,7 +880,7 @@ using Unity.VisualScripting;
                     menuActions.Add(() =>
                     {
 
-                        duelActionInput = DuelField.INSTANCE.curResDA;
+                        duelActionInput = DuelField.INSTANCE.CUR_DA;
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
@@ -915,7 +915,7 @@ using Unity.VisualScripting;
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = DuelField.INSTANCE.curResDA;
+                        duelActionInput = DuelField.INSTANCE.CUR_DA;
 
                         //if not oddnumber, we draw a card calling "Draw" at DuelField, so break
                         if (GetLastValue<int>(1) < 3 || duelActionInput.cardList.Count == 0)
@@ -958,7 +958,7 @@ using Unity.VisualScripting;
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = DuelField.INSTANCE.curResDA;
+                        duelActionInput = DuelField.INSTANCE.CUR_DA;
 
                         List<CardData> filteresList = new();
                         foreach (CardData card in duelActionInput.cardList)
@@ -993,7 +993,7 @@ using Unity.VisualScripting;
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = DuelField.INSTANCE.curResDA;
+                        duelActionInput = DuelField.INSTANCE.CUR_DA;
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
@@ -1031,7 +1031,7 @@ using Unity.VisualScripting;
                     //from the list of energy recieved, pick one
                     menuActions.Add(() =>
                     {
-                        duelActionInput = DuelField.INSTANCE.curResDA;
+                        duelActionInput = DuelField.INSTANCE.CUR_DA;
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
@@ -1101,7 +1101,7 @@ using Unity.VisualScripting;
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = DuelField.INSTANCE.curResDA;
+                        duelActionInput = DuelField.INSTANCE.CUR_DA;
 
                         List<CardData> filteresList = new();
                         foreach (CardData card in duelActionInput.cardList)
@@ -1135,7 +1135,7 @@ using Unity.VisualScripting;
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = DuelField.INSTANCE.curResDA;
+                        duelActionInput = DuelField.INSTANCE.CUR_DA;
 
                         List<CardData> filteresList = new();
                         foreach (CardData card in duelActionInput.cardList)
@@ -1168,7 +1168,7 @@ using Unity.VisualScripting;
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = DuelField.INSTANCE.curResDA;
+                        duelActionInput = DuelField.INSTANCE.CUR_DA;
 
                         List<CardData> filteresList = new();
                         foreach (CardData card in duelActionInput.cardList)
@@ -1201,7 +1201,7 @@ using Unity.VisualScripting;
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = DuelField.INSTANCE.curResDA;
+                        duelActionInput = DuelField.INSTANCE.CUR_DA;
 
                         List<CardData> filteresList = new();
                         foreach (CardData card in duelActionInput.cardList)
@@ -1322,7 +1322,7 @@ using Unity.VisualScripting;
                     menuActions.Add(() =>
                     {
                         DuelAction _duelaction = GetLastValue<DuelAction>();
-                        DuelAction da = DuelField.INSTANCE.curResDA;
+                        DuelAction da = DuelField.INSTANCE.CUR_DA;
                         _duelaction.actionObject = da.actionObject;
 
                         DuelField.INSTANCE.GenericActionCallBack(_duelaction, "ResolveOnArtEffect");
@@ -1422,7 +1422,7 @@ using Unity.VisualScripting;
                     });
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        DuelAction duelAction = DuelField.INSTANCE.CUR_DA;
                         List<CardData> selectableList = JsonConvert.DeserializeObject<List<CardData>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (selectableList.Count == 0)
                         {
@@ -1560,7 +1560,7 @@ using Unity.VisualScripting;
                     });
                     menuActions.Add(() =>
                     {
-                        duelActionInput = DuelField.INSTANCE.curResDA;
+                        duelActionInput = DuelField.INSTANCE.CUR_DA;
                         if (duelActionInput.cardList.Count == 0)
                         {
                             menuActions.Clear();
@@ -1647,7 +1647,7 @@ using Unity.VisualScripting;
                     });
                     menuActions.Add(() =>
                     {
-                        DuelAction da = DuelField.INSTANCE.curResDA;
+                        DuelAction da = DuelField.INSTANCE.CUR_DA;
                         List<CardData> canSelect = DuelField.INSTANCE.cardHolderPlayer.GetComponentsInChildren<Card>().ToList().Select(item => item.ToCardData()).ToList();
                         if (da.cardList.Count == 0)
                         {
@@ -1699,7 +1699,7 @@ using Unity.VisualScripting;
                             return EmptyCoroutine();
                         }
 
-                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        DuelAction duelAction = DuelField.INSTANCE.CUR_DA;
                         List<CardData> cheerList = JsonConvert.DeserializeObject<List<CardData>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
                         if (cheerList.Count == 0)
@@ -1719,7 +1719,7 @@ using Unity.VisualScripting;
                     menuActions.Add(() =>
                     {
                         duelActionOutput = (DuelAction)EffectInformation[2];
-                        duelActionOutput.actionObject = WillActivate;
+                        duelActionOutput.yesOrNo = WillActivate.Equals("Yes")? true : false;
 
                         DuelField.INSTANCE.GenericActionCallBack(duelActionOutput, "ResolveOnBloomEffect");
                         return dummy();
@@ -1734,7 +1734,7 @@ using Unity.VisualScripting;
                     //target the card
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        DuelAction duelAction = DuelField.INSTANCE.CUR_DA;
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player);
                     });
                     //inform the server
@@ -1764,7 +1764,7 @@ using Unity.VisualScripting;
                             return EmptyCoroutine();
                         }
 
-                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        DuelAction duelAction = DuelField.INSTANCE.CUR_DA;
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player, targetZones);
                     });
                     //inform the server
@@ -1797,7 +1797,7 @@ using Unity.VisualScripting;
                             return EmptyCoroutine();
                         }
 
-                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        DuelAction duelAction = DuelField.INSTANCE.CUR_DA;
                         return _DuelField_TargetForEffectMenu.SetupSelectableItems(duelAction, TargetPlayer.Player, filteredZones);
                     });
                     //inform the server
@@ -1857,7 +1857,7 @@ using Unity.VisualScripting;
                     });
                     menuActions.Add(() =>
                     {
-                        DuelAction duelAction = DuelField.INSTANCE.curResDA;
+                        DuelAction duelAction = DuelField.INSTANCE.CUR_DA;
                         List<CardData> selectableList = JsonConvert.DeserializeObject<List<CardData>>(duelAction.actionObject, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
                         if (selectableList.Count == 0)
                         {
@@ -2003,7 +2003,7 @@ using Unity.VisualScripting;
 
             foreach (CardData c in cardList)
             {
-            if (c.GetCardInfo().cardType == null)
+            if (c.GetCardInfo()?.cardType == null)
                 return false;
 
                 if (c.cardType.Equals("エール"))

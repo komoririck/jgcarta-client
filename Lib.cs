@@ -20,7 +20,6 @@ public class Lib : MonoBehaviour
         BackStage5 = 11,
         Collaboration = 12,
         Favourite = 13,
-        lifehand = 14,
-        HoloPower = 15,
+        HoloPower = 18,
     }
 }

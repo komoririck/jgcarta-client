@@ -18,14 +18,10 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
     [SerializeField] public RectTransformData defaultValues;
     DuelField_HandClick handClick;
 
-    private int originalSiblingIndex;
-
     private Vector3 screenPoint;
     private Vector3 offset;
 
     private Camera mainCamera;
-
-    private RaycastHit hit;
 
     public const bool TESTEMODE = false;
 
@@ -48,7 +44,6 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
         InitializeHandlers();
 
     }
-
     private void OnEnable()
     {
         try {
@@ -107,7 +102,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
             if (targetZone != null) { 
                 if (DoAction())
                 {
-                    StartCoroutine(DuelField.INSTANCE.OrganizeGameZone());
+                    DuelField.INSTANCE.visualActionQueue.Enqueue(new("OrganizeGameZone", DuelField_ActionLibrary.OrganizeGameZone()));
                     this.transform.SetParent(GameObject.Find("HUD").transform);
                     this.gameObject.SetActive(false);
                     Destroy(this.gameObject);
@@ -170,7 +165,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
         targetCard = targetZone.GetComponentInChildren<Card>();
         TargetZoneEnum = DuelField.INSTANCE.GetZoneByString(targetZone.name);
 
-        var phase = DuelField.INSTANCE.duelFieldData.currentGamePhase;
+        var phase = DuelField.INSTANCE.DUELFIELDDATA.currentGamePhase;
         string cardType = thisCard?.cardType ?? "UNKNOWN";
 
         if (!handlers.TryGetValue(phase, out var cardTypeMap))
@@ -187,31 +182,34 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
     }
     private bool Handle_SettingUpBoard()
     {
-        StartCoroutine(handle());
-        IEnumerator handle()
+        if (targetCard != null)
+            return false;
+
+        var allowedZones = new[]
         {
-            if (targetCard != null)
-                yield break;
+            Lib.GameZone.Stage,
+            Lib.GameZone.BackStage1,
+            Lib.GameZone.BackStage2,
+            Lib.GameZone.BackStage3,
+            Lib.GameZone.BackStage4,
+            Lib.GameZone.BackStage5
+        };
 
-            if (DuelField.INSTANCE.GetZone(Lib.GameZone.Stage, TargetPlayer.Player)?.GetComponentInChildren<Card>() == null && TargetZoneEnum != Lib.GameZone.Stage)
-                yield break;
+        if ((DuelField.INSTANCE.GetZone(Lib.GameZone.Stage, TargetPlayer.Player)?.GetComponentInChildren<Card>() == null && TargetZoneEnum != Lib.GameZone.Stage) 
+            || !allowedZones.Contains(TargetZoneEnum) 
+            || targetZone.transform.parent.name.Equals("OponenteGeneral"))
+            return false;
 
-            thisCard.curZone = TargetZoneEnum;
-            thisCard.lastZone = Lib.GameZone.Hand;
-            //thisCard.playedThisTurn = true;
+        thisCard.curZone = TargetZoneEnum;
+        thisCard.lastZone = Lib.GameZone.Hand;
 
-            this.transform.SetParent(GameObject.Find("HUD").transform);
+        this.transform.SetParent(GameObject.Find("HUD").transform);
 
-            var card = new CardData() { curZone = thisCard.curZone, lastZone = thisCard.lastZone, cardNumber = thisCard.cardNumber };
+        var card = new CardData() { curZone = thisCard.curZone, lastZone = thisCard.lastZone, cardNumber = thisCard.cardNumber };
 
-            yield return DuelField.INSTANCE.AddOrMoveCardToGameZone(new List<CardData> { card }, null, TargetPlayer.Player, false, false);
+        DuelField.INSTANCE.AddOrMoveCardToGameZone(new List<CardData> { card }, null, TargetPlayer.Player, false, false);
 
-            yield return DuelField.INSTANCE.OrganizeGameZone();
-
-            this.gameObject.SetActive(false);
-            Destroy(this.gameObject);
-        }
-        return false;
+        return true;
     }
     private bool Handle_CheerStep()
     {
@@ -223,7 +221,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
 
         DuelAction _DuelAction = new();
 
-        _DuelAction.playerID = DuelField.INSTANCE.duelFieldData.currentPlayerTurn;
+        _DuelAction.playerID = DuelField.INSTANCE.DUELFIELDDATA.currentPlayerTurn;
         _DuelAction.usedCard = thisCard.ToCardData();
         _DuelAction.usedCard.curZone = Lib.GameZone.Hand;
         _DuelAction.targetZone = (Lib.GameZone)Enum.Parse(
@@ -243,7 +241,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
         DuelAction _DuelAction = new DuelAction()
         {
             usedCard = thisCard.ToCardData(),
-            playerID = DuelField.INSTANCE.duelFieldData.currentPlayerTurn,
+            playerID = DuelField.INSTANCE.DUELFIELDDATA.currentPlayerTurn,
             targetZone = targetCard != null ? TargetZoneEnum : Lib.GameZone.na,
             targetCard = targetCard?.ToCardData()
         };
@@ -255,17 +253,16 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
     }
     private bool Handle_SupportEventLimited()
     {
-        if (DuelField.INSTANCE.duelFieldData.playerLimiteCardPlayed.Count > 0)
+        if (DuelField.INSTANCE.DUELFIELDDATA.playerLimiteCardPlayed.Count > 0)
             return false;
 
-        DuelField.INSTANCE.duelFieldData.playerLimiteCardPlayed.Add(thisCard);
+        DuelField.INSTANCE.DUELFIELDDATA.playerLimiteCardPlayed.Add(thisCard);
 
-        if (thisCard == null) return false;
+        Handle_SupportEvent();
 
-        if (thisCard.cardType.Contains("LIMITED"))
-            thisCard.GetComponent<DuelField_HandDragDrop>().enabled = false;
+        DuelField.INSTANCE.visualActionQueue.Enqueue(new ActionItem("GetUsableCards", DuelField.INSTANCE.GetUsableCards()));
 
-        return Handle_SupportEvent();     //RECYCLING LOGIC
+        return true;
     }
     private bool Handle_EquipSupport()
     {
@@ -275,7 +272,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
         DuelAction _DuelAction = new DuelAction()
         {
             usedCard = thisCard.ToCardData(),
-            playerID = DuelField.INSTANCE.duelFieldData.currentPlayerTurn,
+            playerID = DuelField.INSTANCE.DUELFIELDDATA.currentPlayerTurn,
             targetZone = targetCard != null ? TargetZoneEnum : Lib.GameZone.na,
             targetCard = targetCard?.ToCardData()
         };
@@ -319,7 +316,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
         if (!DuelField.INSTANCE.CanBloomHolomem(pointedCard, thisCard))
             return true;
 
-        _DuelAction.playerID = DuelField.INSTANCE.duelFieldData.currentPlayerTurn;
+        _DuelAction.playerID = DuelField.INSTANCE.DUELFIELDDATA.currentPlayerTurn;
         _DuelAction.usedCard = thisCard.ToCardData();
         _DuelAction.targetZone = DuelField.INSTANCE.GetZoneByString(pointedCard.transform.parent.name);
         _DuelAction.targetCard = pointedCard.ToCardData();
@@ -368,7 +365,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
         CardComponent.currentHp = FatherZoneActiveCardComponent.currentHp;
         CardComponent.effectDamageRecieved = FatherZoneActiveCardComponent.effectDamageRecieved;
         CardComponent.normalDamageRecieved = FatherZoneActiveCardComponent.normalDamageRecieved;
-        DuelField.INSTANCE.UpdateHP(CardComponent);
+        CardComponent.UpdateHP();
         //end of passing the hp to the new card
 
         //getting the name of the father gameobject the the position of the new card

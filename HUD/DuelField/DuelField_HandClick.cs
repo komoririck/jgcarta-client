@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Net;
 using Unity.Burst.CompilerServices;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using static DuelField;
@@ -31,14 +34,14 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
 
     bool DoAction(GameObject targetCardGameObject)
     {
-        var duelFieldData = DuelField.INSTANCE.duelFieldData;
+        var duelFieldData = DuelField.INSTANCE.DUELFIELDDATA;
 
         bool actionDone = false;
 
         if (targetCardGameObject == null)
             return actionDone;
 
-        if (DuelField.INSTANCE.isViewMode == false && duelFieldData.currentPlayerTurn == PlayerInfo.INSTANCE.PlayerID)
+        if (!DuelField.INSTANCE.isViewMode && duelFieldData.currentPlayerTurn == PlayerInfo.INSTANCE.PlayerID)
         {
             switch ((Lib.GameZone)Enum.Parse(typeof(Lib.GameZone), targetCardGameObject.name)  )
             {
@@ -50,6 +53,8 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
                     switch (duelFieldData.currentGamePhase)
                     {
                         case DuelFieldData.GAMEPHASE.MainStep:
+
+                            if (DuelField.INSTANCE.hasAlreadyCollabed) { break; }
 
                             if (this.GetComponent<Card>().suspended == true) { break; }
 
@@ -65,6 +70,7 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
                                     activationZone = Lib.GameZone.Collaboration,
                                 };
                                 _DuelField.GenericActionCallBack(duelAction, "DoCollab");
+                                DuelField.INSTANCE.hasAlreadyCollabed = true;
                             }
                             actionDone = true;
                             break;
@@ -84,9 +90,7 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
                     }
                     break;
             }
-        }
-
-        if (actionDone == false || duelFieldData.currentPlayerTurn != PlayerInfo.INSTANCE.PlayerID)
+        } else
         {
             //if in the clicked location theres no card number, return since must be a facedown card
             if (string.IsNullOrEmpty(GetComponentInChildren<Card>().cardNumber))
@@ -95,11 +99,17 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
             _DuelfField_CardDetailViewer ??= FindAnyObjectByType<DuelfField_CardDetailViewer>(FindObjectsInactive.Include);
 
             List<Card> Cards = this.transform.parent.GetComponentsInChildren<Card>(true).ToList();
+            bool targetIsHand = (transform.parent.name.Equals("PlayerHand") || transform.parent.name.Equals("OponentHand"));
+
+            if (targetIsHand)
+                Cards = Cards.ToArray().Reverse().ToList(); //kkkkkkkkkkkkkkkkkkkk segue o jogo
+
             _DuelfField_CardDetailViewer.SetCardListToBeDisplayed(ref Cards, DuelField.INSTANCE.isViewMode, GetComponent<Card>());
         }
         return actionDone;
     }
 
+    
     public void OnPointerClick(PointerEventData eventData)
     {
         if (DuelField_UI_MAP.INSTANCE.SS_LosePanel.gameObject.activeInHierarchy || DuelField_UI_MAP.INSTANCE.SS_WinPanel.gameObject.activeInHierarchy || DuelField_UI_MAP.INSTANCE.SS_LogPanel.gameObject.activeInHierarchy

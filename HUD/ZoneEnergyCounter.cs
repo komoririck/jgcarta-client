@@ -11,14 +11,22 @@ public class ZoneEnergyCounter : MonoBehaviour
     public GameObject anotherPrefab; // Prefab to instantiate
     private Dictionary<string, GameObject> colorPrefabs = new Dictionary<string, GameObject>();
 
+    private void Awake()
+    {
+        anotherPrefab = Resources.Load<GameObject>("Presets/EnergyItem");
+    }
+
     void Update()
     {
+        if (transform.parent == null)
+            return;
+
         int currentChildCount = transform.parent.childCount;
         if (currentChildCount != previousChildCount)
         {
             if (colorPrefabs.Count > 0)
             {
-                foreach (RectTransform transform in this.gameObject.transform)
+                foreach (RectTransform transform in transform.Find("EnergyList").transform)
                 {
                     Destroy(transform.gameObject);
                     colorPrefabs.Clear();
@@ -40,7 +48,8 @@ public class ZoneEnergyCounter : MonoBehaviour
         foreach (Transform child in transform.parent.transform)
         {
             Card card = child.GetComponent<Card>();
-            if (card == null || !card.cardType.Equals("エール")) continue;
+            if (card == null || string.IsNullOrEmpty(card.cardType)) continue;
+            if (!card.cardType.Equals("エール")) continue;
 
             string color = card.color;
             if (colorCounts.ContainsKey(color))
@@ -69,7 +78,7 @@ public class ZoneEnergyCounter : MonoBehaviour
             else
             {
                 // Instantiate new prefab for this color
-                GameObject newPrefab = Instantiate(anotherPrefab, transform); // Assuming the parent is set as needed
+                GameObject newPrefab = Instantiate(anotherPrefab, transform.Find("EnergyList")); // Assuming the parent is set as needed
                 colorPrefabs[color] = newPrefab;
 
                 // Set the color-specific sprite

@@ -37,23 +37,35 @@ public class DuelFieldData
         HolomemDefeatedEnergyChoose = 104
     }
 
+    public List<CardData> playerAHand = new List<CardData>();
+    public List<CardData> playerBHand = new List<CardData>();
 
-    public List<CardData> playerABackPosition { get; set; } = new List<CardData>();
-    public CardData playerAFavourite { get; set; } 
-    public CardData playerAStage { get; set; }
-    public CardData playerACollaboration { get; set; }
-    public List<CardData> playerALife { get; set; } = new List<CardData>();
-    public List<CardData> playerBBackPosition { get; set; } = new List<CardData>();
-    public CardData playerBFavourite { get; set; }
-    public CardData playerBStage { get; set; }
-    public CardData playerBCollaboration { get; set; }
-    public List<CardData> playerBLife { get; set; } = new List<CardData>();
-    public List<CardData> playerBArquive { get; set; } = new List<CardData>();
-    public List<CardData> playerBHoloPower { get; set; } = new List<CardData>();
-    public List<CardData> playerAArquive { get; set; } = new List<CardData>();
-    public List<CardData> playerAHoloPower { get; set; } = new List<CardData>();
-    public List<CardData> playerACardCheer { get; set; }
-    public List<CardData> playerBCardCheer { get; set; }
+    public List<CardData> playerAHoloPower = new List<CardData>();
+    public List<CardData> playerBHoloPower = new List<CardData>();
+
+    public List<CardData> playerADeck = new List<CardData>();
+    public List<CardData> playerBDeck = new List<CardData>();
+
+    public List<CardData> playerABackPosition = new List<CardData>();
+    public List<CardData> playerBBackPosition = new List<CardData>();
+
+    public CardData playerAFavourite = null;
+    public CardData playerBFavourite = null;
+
+    public CardData playerAStage = null;
+    public CardData playerBStage = null;
+
+    public CardData playerACollaboration = null;
+    public CardData playerBCollaboration = null;
+
+    public List<CardData> playerAArquive = new List<CardData>();
+    public List<CardData> playerBArquive = new List<CardData>();
+
+    public List<CardData> playerALife = new List<CardData>();
+    public List<CardData> playerBLife = new List<CardData>();
+
+    public List<CardData> playerACardCheer = new List<CardData>();
+    public List<CardData> playerBCardCheer = new List<CardData>();
 
     public string currentPlayerTurn;
     public string firstPlayer;
@@ -61,7 +73,7 @@ public class DuelFieldData
 
     public static DuelFieldData MapDuelFieldData(List<GameObject> field)
     {
-        DuelFieldData duelFieldData = DuelField.INSTANCE.duelFieldData;
+        DuelFieldData duelFieldData = DuelField.INSTANCE.DUELFIELDDATA;
 
         if (!duelFieldData.firstPlayer.Equals(PlayerInfo.INSTANCE.PlayerID))
         {

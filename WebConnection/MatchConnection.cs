@@ -44,7 +44,7 @@ public class MatchConnection : MonoBehaviour
                             break;
                         case "DuelUpdate":
                             if (responseData.description.Equals("Endduel"))
-                                DuelField.INSTANCE.LockGameFlow = false;
+                                DuelField.INSTANCE.isServerActionLocked = false;
                             break;
                         case "cancelMatch":
                             DontDestroyManager.DestroyAllDontDestroyOnLoadObjects();
@@ -127,13 +127,14 @@ public class MatchConnection : MonoBehaviour
 
     public async Task SendCallToServer(string playerID, string password, string type, string description = "", DuelAction aditionalinformation = null)
     {
-        Request _PlayerRequest = new();
-
-        _PlayerRequest.playerID = playerID;
-        _PlayerRequest.password = password;
-        _PlayerRequest.type = type;
-        _PlayerRequest.description = description;
-        _PlayerRequest.duelAction = aditionalinformation;
+        Request _PlayerRequest = new()
+        {
+            playerID = playerID,
+            password = password,
+            type = type,
+            description = description,
+            duelAction = aditionalinformation,
+        };
 
         JsonSerializerSettings jsonSettings = new JsonSerializerSettings
         {

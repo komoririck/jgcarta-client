@@ -65,6 +65,8 @@ public class DuelField_UI_MAP : MonoBehaviour
         SS_UI_ActionToggleButton,
         SS_UI_LogToggleButton,
         SS_MulliganPanel,
+        SS_MulliganPanelYes,
+        SS_MulliganPanelNo,
         SS_EffectBoxes_General,
         SS_EffectBoxes_SelectionPanel,
         SS_EffectBoxes_SelectionDetachEnergyPanel,

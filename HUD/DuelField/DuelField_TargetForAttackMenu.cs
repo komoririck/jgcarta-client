@@ -59,7 +59,6 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
             bool canSelect = true;
 
             GameObject newItem = Instantiate(CardAttachItemHolder, CardListContent);
-            Destroy(newItem.GetComponent<DuelField_HandClick>());
             newItem.name = clickObjects.ToString();
             instantiatedItem.Add(newItem);
 

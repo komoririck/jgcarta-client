@@ -10,8 +10,6 @@ public class DuelAction
     public Lib.GameZone targetZone { get; set; }
     public CardData targetCard { get; set; }
     public CardData cheerCostCard { get; set; }
-    public string actionType { get; set; }
-    public string actionObject { get; set; }
     public string selectedSkill { get; set; }
     public List<string> SelectedCards { get; set; }
     public List<int> Order { get; set; }
@@ -20,7 +18,9 @@ public class DuelAction
     public List<CardData> cardList { get; set; }
     public DuelFieldData duelFieldData { get; set; }
     public bool yesOrNo { get; set; }
-    public bool toBottom { get; internal set; }
-
-    List<int> diceRoll;
+    public bool toBottom { get; set; }
+    public List<int> diceRoll { get; set; }
+    public int hpAmount { get; set; }
+    public string actionType { get; set; }
+    public string actionObject { get; set; }
 }

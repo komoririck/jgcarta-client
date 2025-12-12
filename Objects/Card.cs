@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -90,10 +91,32 @@ public class Card : MonoBehaviour
             if (this.currentHp == 0 && (cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン")))
                 currentHp = int.Parse(hp);
 
+        if (string.IsNullOrEmpty(cardNumber))
+        {
+            Destroy(GetComponent<DuelField_HandClick>());
+            Destroy(GetComponent<DuelField_HandDragDrop>());
+        }
+        if (!curZone.Equals(Lib.GameZone.Hand))
+        {
+            Destroy(GetComponent<DuelField_HandDragDrop>());
+        }
+        if (curZone.Equals(Lib.GameZone.Hand) && transform.parent != null)
+        {
+            if (transform.parent.name.Equals("OponentHand"))
+                Destroy(GetComponent<DuelField_HandDragDrop>());
+        }
+
+        //SetActiveVisual(false);
+
         return this;
     }
 
-    public void SetCardArt(Lib.GameZone zone = 0)
+    public Card PlayedThisTurn(bool sts) {
+        playedThisTurn = sts;
+        return this;
+    }
+
+    public Card SetCardArt()
     {
         try
         {
@@ -101,19 +124,16 @@ public class Card : MonoBehaviour
             //3d layout
             if (FrontView != null)
             {
-                if (string.IsNullOrEmpty(cardNumber))
-                {
-                    if (zone.Equals(Lib.GameZone.CardCheer))
-                    {
-                        transform.Find("Background").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/001");
-                    }
-                    else
-                    {
-                        transform.Find("Background").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/000");
+                FrontView.GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/000");
+                transform.Find("Background").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/000");
 
-                    }
+                if (curZone.Equals(Lib.GameZone.CardCheer) || curZone.Equals(Lib.GameZone.Life))
+                {
+                    FrontView.GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/001");
+                    transform.Find("Background").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/001");
                 }
-                else
+
+                if (!string.IsNullOrEmpty(cardNumber))
                 {
                     FrontView.GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/" + cardNumber + "_" + rarity);
                 }
@@ -121,11 +141,13 @@ public class Card : MonoBehaviour
             //ui layout
             else
             {
-                if (string.IsNullOrEmpty(cardNumber))
+                transform.Find("CardImage").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/000");
+
+                if (curZone.Equals(Lib.GameZone.Hand) && lastZone.Equals(Lib.GameZone.CardCheer) && string.IsNullOrEmpty(cardNumber))
                 {
-                    transform.Find("CardImage").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/000");
+                    transform.Find("CardImage").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/001");
                 }
-                else
+                else if (!string.IsNullOrEmpty(cardNumber))
                 {
                     transform.Find("CardImage").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/" + cardNumber + "_" + rarity);
                 }
@@ -135,8 +157,8 @@ public class Card : MonoBehaviour
         {
             Debug.Log("Error loading image :" + e);
         }
+        return this;
     }
-
     public Card ScaleToFather()
     {
         if (transform.parent == null)
@@ -185,6 +207,42 @@ public class Card : MonoBehaviour
             curZone = this.curZone,
             lastZone = this.lastZone,
         };
+    }
+    public void UpdateHP()
+    {
+        Card card = this;
+
+        if (card.transform == null)
+            return;
+
+        if (card.transform.parent == null)
+            return;
+
+        if (card.transform.parent.name.Equals(Lib.GameZone.Favourite.ToString()) || card.transform.parent.name.Equals(Lib.GameZone.Deck.ToString())
+            || card.transform.parent.name.Equals(Lib.GameZone.CardCheer.ToString()) || card.transform.parent.name.Equals(Lib.GameZone.Life.ToString())
+            || card.transform.parent.name.Equals(Lib.GameZone.HoloPower.ToString()) || card.transform.parent.name.Equals(Lib.GameZone.Arquive.ToString()))
+            return;
+
+        var hpbar = card.transform.Find("HPBAR");
+        if (hpbar == null)
+            return;
+
+        hpbar.gameObject.SetActive(true);
+        hpbar.Find("HPCurrent").GetComponent<TMP_Text>().text = card.currentHp.ToString();
+        hpbar.Find("HPMax").GetComponent<TMP_Text>().text = card.hp.ToString();
+
+        if (card.transform.parent.parent.name.Equals("Oponente") || card.transform.parent.name.Equals("Oponente"))
+        {
+            hpbar.Find("HPCurrent").localEulerAngles = new Vector3(0, 0, 180);
+            hpbar.Find("HPBar").localEulerAngles = new Vector3(0, 0, 180);
+            hpbar.Find("HPMax").localEulerAngles = new Vector3(0, 0, 180);
+        }
+    }
+    public Card UpdateZone(Lib.GameZone zone)
+    {
+        this.lastZone = curZone;
+        this.curZone = zone;
+        return this;
     }
 }
 

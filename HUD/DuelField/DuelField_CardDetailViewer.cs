@@ -137,7 +137,7 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
         if (CarditemList[currentIndex] != null)
         {
             Card CurrentDisplayingCard = DuelField_UI_MAP.INSTANCE.SS_EffectBoxes_CardPanel.transform.Find("CardPanelInfo").GetComponent<Card>();
-            CurrentDisplayingCard.Init(CarditemList[currentIndex].ToCardData()).Flip();
+            CurrentDisplayingCard.Init(CarditemList[currentIndex].ToCardData());
 
             GameObject ArtPanel_Content = DuelField.INSTANCE.ArtPanel.transform.Find("Viewport").Find("Content").gameObject;
             // Clear existing items in the ArtPanel
@@ -145,8 +145,8 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
 
             if ((CarditemList[currentIndex].cardType.Equals("ホロメン") || CarditemList[currentIndex].cardType.Equals("Buzzホロメン"))
                 && CarditemList[currentIndex].curZone.Equals(Lib.GameZone.Collaboration) || CarditemList[currentIndex].curZone.Equals(Lib.GameZone.Stage)
-                && DuelField.INSTANCE.duelFieldData.currentGamePhase == DuelFieldData.GAMEPHASE.MainStep
-                && DuelField.INSTANCE.duelFieldData.currentPlayerTurn.Equals(PlayerInfo.INSTANCE.PlayerID)
+                && DuelField.INSTANCE.DUELFIELDDATA.currentGamePhase == DuelFieldData.GAMEPHASE.MainStep
+                && DuelField.INSTANCE.DUELFIELDDATA.currentPlayerTurn.Equals(PlayerInfo.INSTANCE.PlayerID)
                 && !isViewMode
                 && CarditemList[currentIndex].transform.parent.parent.name.Equals("PlayerGeneral")
                 )
@@ -204,8 +204,8 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
             }
             else if (CarditemList[currentIndex].cardType.Equals("推しホロメン") 
                 && !isViewMode 
-                && DuelField.INSTANCE.duelFieldData.currentGamePhase == DuelFieldData.GAMEPHASE.MainStep 
-                && DuelField.INSTANCE.duelFieldData.currentPlayerTurn.Equals(PlayerInfo.INSTANCE.PlayerID))
+                && DuelField.INSTANCE.DUELFIELDDATA.currentGamePhase == DuelFieldData.GAMEPHASE.MainStep 
+                && DuelField.INSTANCE.DUELFIELDDATA.currentPlayerTurn.Equals(PlayerInfo.INSTANCE.PlayerID))
             {
                 DuelField.INSTANCE.OshiPowerPanel.SetActive(true);
                 DuelField.INSTANCE.CardEffectPanel.SetActive(false);
