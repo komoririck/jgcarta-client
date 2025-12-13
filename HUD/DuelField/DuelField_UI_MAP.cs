@@ -9,18 +9,19 @@ public class DuelField_UI_MAP : MonoBehaviour
     public static DuelField_UI_MAP INSTANCE;
 
     [Space]
-     public GameObject LogContent = null;
-     public GameObject LogPrefab = null;
-     public GameObject LogBar = null;
+    public GameObject LogContent = null;
+    public GameObject LogPrefab = null;
+    public GameObject LogBar = null;
 
-     private Dictionary<PanelType, bool> SavedStatus = new();
+    private Dictionary<PanelType, bool> SavedStatus = new();
 
     private void Start()
     {
         INSTANCE = this;
     }
 
-    public enum PanelType {
+    public enum PanelType
+    {
         SS_LosePanel,
         SS_WinPanel,
         SS_LogPanel,
@@ -48,7 +49,7 @@ public class DuelField_UI_MAP : MonoBehaviour
         WS_PassTurnButton
     }
 
-    public 
+    public
     GameObject
         SS_LosePanel,
         SS_WinPanel,
@@ -71,6 +72,9 @@ public class DuelField_UI_MAP : MonoBehaviour
         SS_EffectBoxes_SelectionPanel,
         SS_EffectBoxes_SelectionDetachEnergyPanel,
         SS_EffectBoxes_CardPanel,
+        SS_EffectBoxes_CardPanel_ArtPanel,
+        SS_EffectBoxes_CardPanel_OshiPowerPanel,
+        SS_EffectBoxes_CardPanel_CardEffectPanel,
         SS_EffectBoxes_ActivateEffectPanel,
         SS_EffectBoxes_ActivateEffectPanelYES,
         SS_EffectBoxes_ActivateEffectPanelNO,
@@ -80,14 +84,16 @@ public class DuelField_UI_MAP : MonoBehaviour
         WS_ReadyButton,
         WS_PassTurnButton;
 
-    public void SetHandActiveStatus(bool status) {
-        SetPanelActiveStatus(status, new List<PanelType> {PanelType.SS_OponentHand,PanelType.SS_PlayerHand});
-    }
-    public void SetPanelActiveStatus(bool status, List<PanelType> panelTypeList) 
+    public void SetHandActiveStatus(bool status)
     {
-        foreach (PanelType type in panelTypeList) {
+        SetPanelActiveStatus(status, new List<PanelType> { PanelType.SS_OponentHand, PanelType.SS_PlayerHand });
+    }
+    public void SetPanelActiveStatus(bool status, List<PanelType> panelTypeList)
+    {
+        foreach (PanelType type in panelTypeList)
+        {
             SetPanel(status, type);
-        } 
+        }
     }
     public DuelField_UI_MAP SetPanel(bool status, PanelType panelType)
     {
@@ -151,55 +157,55 @@ public class DuelField_UI_MAP : MonoBehaviour
                     SetPanel(true, PanelType.SS_BlockView);
 
                 switch (panelType)
-                    {
-                        case PanelType.SS_EffectBoxes_SelectionPanel:
-                            SS_EffectBoxes_SelectionPanel.SetActive(status);
-                            SS_EffectBoxes_General.SetActive(status);
-                            SetPanel(!status, PanelType.SS_UI_General);
-                            break;
-                        case PanelType.SS_EffectBoxes_SelectionDetachEnergyPanel:
-                            SS_EffectBoxes_SelectionDetachEnergyPanel.SetActive(status);
-                            SS_EffectBoxes_General.SetActive(status);
-                            SetPanel(!status, PanelType.SS_UI_General);
-                            break;
-                        case PanelType.SS_EffectBoxes_CardPanel:
-                            SS_EffectBoxes_CardPanel.SetActive(status);
-                            SS_EffectBoxes_General.SetActive(status);
-                            SetPanel(!status, PanelType.SS_UI_General);
-                            break;
-                        case PanelType.SS_EffectBoxes_ActivateEffectPanel:
-                            SS_EffectBoxes_ActivateEffectPanel.SetActive(status);
-                            SS_EffectBoxes_General.SetActive(status);
+                {
+                    case PanelType.SS_EffectBoxes_SelectionPanel:
+                        SS_EffectBoxes_SelectionPanel.SetActive(status);
+                        SS_EffectBoxes_General.SetActive(status);
+                        SetPanel(!status, PanelType.SS_UI_General);
+                        break;
+                    case PanelType.SS_EffectBoxes_SelectionDetachEnergyPanel:
+                        SS_EffectBoxes_SelectionDetachEnergyPanel.SetActive(status);
+                        SS_EffectBoxes_General.SetActive(status);
+                        SetPanel(!status, PanelType.SS_UI_General);
+                        break;
+                    case PanelType.SS_EffectBoxes_CardPanel:
+                        SS_EffectBoxes_CardPanel.SetActive(status);
+                        SS_EffectBoxes_General.SetActive(status);
+                        SetPanel(!status, PanelType.SS_UI_General);
+                        break;
+                    case PanelType.SS_EffectBoxes_ActivateEffectPanel:
+                        SS_EffectBoxes_ActivateEffectPanel.SetActive(status);
                         SS_EffectBoxes_ActivateEffectPanelYES.SetActive(status);
                         SS_EffectBoxes_ActivateEffectPanelNO.SetActive(status);
+                        SS_EffectBoxes_General.SetActive(status);
                         SetPanel(!status, PanelType.SS_UI_General);
-                            break;
-                        case PanelType.SS_EffectBoxes_NumberListPanell:
-                            SS_EffectBoxes_NumberListPanell.SetActive(status);
-                            SS_EffectBoxes_General.SetActive(status);
-                            SetPanel(!status, PanelType.SS_UI_General);
-                            break;
-                        case PanelType.WS_Oponent_General:
-                            WS_Oponent_General.SetActive(status);
-                            SS_EffectBoxes_General.SetActive(status);
-                            SetPanel(!status, PanelType.SS_UI_General);
-                            break;
-                        case PanelType.WS_Player_General:
-                            WS_Player_General.SetActive(status);
-                            SS_EffectBoxes_General.SetActive(status);
-                            SetPanel(!status, PanelType.SS_UI_General);
-                            break;
-                        case PanelType.WS_ReadyButton:
-                            WS_ReadyButton.SetActive(status);
-                            SS_EffectBoxes_General.SetActive(status);
-                            SetPanel(!status, PanelType.SS_UI_General);
-                            break;
-                        case PanelType.WS_PassTurnButton:
-                            WS_PassTurnButton.SetActive(status);
-                            SS_EffectBoxes_General.SetActive(status);
-                            SetPanel(!status, PanelType.SS_UI_General);
-                            break;
-                    }
+                        break;
+                    case PanelType.SS_EffectBoxes_NumberListPanell:
+                        SS_EffectBoxes_NumberListPanell.SetActive(status);
+                        SS_EffectBoxes_General.SetActive(status);
+                        SetPanel(!status, PanelType.SS_UI_General);
+                        break;
+                    case PanelType.WS_Oponent_General:
+                        WS_Oponent_General.SetActive(status);
+                        SS_EffectBoxes_General.SetActive(status);
+                        SetPanel(!status, PanelType.SS_UI_General);
+                        break;
+                    case PanelType.WS_Player_General:
+                        WS_Player_General.SetActive(status);
+                        SS_EffectBoxes_General.SetActive(status);
+                        SetPanel(!status, PanelType.SS_UI_General);
+                        break;
+                    case PanelType.WS_ReadyButton:
+                        WS_ReadyButton.SetActive(status);
+                        SS_EffectBoxes_General.SetActive(status);
+                        SetPanel(!status, PanelType.SS_UI_General);
+                        break;
+                    case PanelType.WS_PassTurnButton:
+                        WS_PassTurnButton.SetActive(status);
+                        SS_EffectBoxes_General.SetActive(status);
+                        SetPanel(!status, PanelType.SS_UI_General);
+                        break;
+                }
                 break;
         }
         return this;

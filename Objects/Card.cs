@@ -5,6 +5,7 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using static DuelField_HandClick;
 
 [Serializable]
 public class Card : MonoBehaviour
@@ -110,8 +111,113 @@ public class Card : MonoBehaviour
 
         return this;
     }
+    public void Glow()
+    {
+        var glowObj = transform.Find("CardGlow");
+        if (glowObj == null)
+            return;
 
-    public Card PlayedThisTurn(bool sts) {
+        bool isGlowing = false;
+        bool isRed = false;
+
+        bool ISMYTURN = DuelField.INSTANCE.DUELFIELDDATA.currentPlayerTurn == PlayerInfo.INSTANCE.PlayerID; 
+        bool ISMYCARD = transform.parent?.name == "PlayerGeneral" || transform.parent?.parent?.name == "PlayerGeneral" || transform.parent?.parent?.parent?.name == "PlayerGeneral";
+        bool ISMAINPHASE = DuelField.INSTANCE.DUELFIELDDATA.currentGamePhase.Equals(DuelFieldData.GAMEPHASE.MainStep);
+
+        var backRoll = new[] {
+                Lib.GameZone.BackStage1,
+                Lib.GameZone.BackStage2,
+                Lib.GameZone.BackStage3,
+                Lib.GameZone.BackStage4,
+                Lib.GameZone.BackStage5
+            };
+
+        var ActiveCard = this;
+
+        if (!DuelField.INSTANCE.isViewMode && !DuelField.INSTANCE.hasAlreadyCollabed && ISMYTURN && ISMYCARD && backRoll.Contains(ActiveCard.curZone)
+        && ISMAINPHASE && !ActiveCard.suspended)
+            isGlowing = true;
+
+        if ((ActiveCard.cardType.Equals("ホロメン") || ActiveCard.cardType.Equals("Buzzホロメン"))
+            && ActiveCard.curZone.Equals(Lib.GameZone.Collaboration) || ActiveCard.curZone.Equals(Lib.GameZone.Stage)
+            && ISMAINPHASE && ISMYTURN && ISMYCARD)
+        {
+            Dictionary<string, List<GameObject>> energyAmount = CountCardAvaliableEnergy();
+
+            foreach (Art currentArt in ActiveCard.Arts)
+            {
+                if (currentArt.Name.Equals("Retreat") && !ActiveCard.transform.parent.name.Equals(Lib.GameZone.Stage))
+                    continue;
+
+                if (IsCostCovered(currentArt.Cost, energyAmount)
+                    && ((ActiveCard.curZone.Equals(Lib.GameZone.Stage) && !DuelField.INSTANCE.centerStageArtUsed)
+                    || (ActiveCard.curZone.Equals(Lib.GameZone.Collaboration) && !DuelField.INSTANCE.collabStageArtUsed))
+                    && PassSpecialDeclareAttackCondition(currentArt)
+                    )
+                {
+                    isGlowing = true;
+                    isRed = true;
+                }
+            }
+        }
+
+        if (ActiveCard.cardType.Equals("推しホロメン")
+        && ISMAINPHASE && ISMYTURN && ISMYCARD)
+        {
+            bool conditionA = (!DuelField.INSTANCE.usedOshiSkill && DuelField.INSTANCE.CanActivateOshiSkill(ActiveCard.cardNumber));
+            bool conditionB = (!DuelField.INSTANCE.usedSPOshiSkill && DuelField.INSTANCE.CanActivateSPOshiSkill(ActiveCard.cardNumber));
+
+            if (conditionA || conditionB)
+            {
+                isGlowing = true;
+                isRed = true;
+            }
+        }
+        var dragdrop = GetComponent<DuelField_HandDragDrop>();
+        if (dragdrop != null && dragdrop.isActiveAndEnabled)
+            isGlowing = true;
+
+        glowObj.gameObject.SetActive(isGlowing);
+
+        var glowImage = glowObj.GetComponent<Image>();
+        if (glowImage != null)
+        {
+            glowImage.color = !isRed ? Color.green : Color.red;
+        }
+    }
+    public bool PassSpecialDeclareAttackCondition(Art currentArt)
+    {
+        Card card = this;
+        switch (card.cardNumber + "+" + currentArt.Name)
+        {
+            case "hBP01-070+共依存":
+                foreach (GameObject _card in card.attachedEquipe)
+                    if (_card.GetComponent<Card>().cardName.Equals("座員"))
+                        return true;
+                return false;
+        }
+        return true;
+    }
+    public Dictionary<string, List<GameObject>> CountCardAvaliableEnergy()
+    {
+        Card card = this;
+        Dictionary<string, List<GameObject>> energyAmount = new();
+        foreach (GameObject energy in card.attachedEnergy)
+        {
+            Card cardEnergy = energy.GetComponent<Card>();
+            if (cardEnergy.cardType.Equals("エール"))
+            {
+                if (!energyAmount.ContainsKey(cardEnergy.color))
+                {
+                    energyAmount[cardEnergy.color] = new List<GameObject>();
+                }
+                energyAmount[cardEnergy.color].Add(energy);
+            }
+        }
+        return energyAmount;
+    }
+    public Card PlayedThisTurn(bool sts)
+    {
         playedThisTurn = sts;
         return this;
     }
@@ -243,6 +349,80 @@ public class Card : MonoBehaviour
         this.lastZone = curZone;
         this.curZone = zone;
         return this;
+    }
+    public bool IsCostCovered(List<(string Color, int Amount)> cost, Dictionary<string, List<GameObject>> energyAmount)
+    {
+        Card SkillOwnerCard = this;
+        // Convert energyAmount to a payment list with color and total available amount.
+        List<(string Color, int Amount)> payment = energyAmount
+            .Select(entry => (Color: entry.Key, Amount: entry.Value.Count))
+            .ToList();
+
+
+        //check for equipaments effects
+        foreach (GameObject cardObj in SkillOwnerCard.attachedEquipe)
+        {
+            Card card = cardObj.GetComponent<Card>();
+            switch (card.cardNumber)
+            {
+                case "hBP01-126":
+                    int index = payment.FindIndex(p => p.Color == "赤");
+                    payment[index] = (payment[index].Color, (payment[index].Amount + 1));
+                    break;
+                case "hBP01-118":
+                    index = payment.FindIndex(p => p.Color == "白");
+                    payment[index] = (payment[index].Color, (payment[index].Amount + 1));
+                    break;
+            }
+        }
+
+        foreach (var (Color, Amount) in cost.ToList())
+        {
+            int remainingAmount = Amount;
+
+            // Step 1: Try to reduce cost using exact color match first.
+            for (int i = 0; i < payment.Count && remainingAmount > 0; i++)
+            {
+                if (payment[i].Color.Equals(Color))
+                {
+                    int deductAmount = Math.Min(payment[i].Amount, remainingAmount);
+                    payment[i] = (payment[i].Color, payment[i].Amount - deductAmount);
+                    remainingAmount -= deductAmount;
+
+                    // Remove exhausted payments.
+                    if (payment[i].Amount == 0)
+                        payment.RemoveAt(i--);
+                }
+            }
+
+            // Step 2: If exact match did not fully cover the cost, use colorless payments as a fallback.
+            if (remainingAmount > 0)
+            {
+                for (int i = 0; i < payment.Count && remainingAmount > 0; i++)
+                {
+                    if (Color.Equals("無色"))
+                    {
+                        int deductAmount = Math.Min(payment[i].Amount, remainingAmount);
+                        payment[i] = (payment[i].Color, payment[i].Amount - deductAmount);
+                        remainingAmount -= deductAmount;
+
+                        // Remove exhausted payments.
+                        if (payment[i].Amount == 0)
+                            payment.RemoveAt(i--);
+                    }
+                }
+            }
+
+            // If we couldn't cover the entire cost, return false.
+            if (remainingAmount > 0)
+                return false;
+
+            // Remove the fully covered cost from the list.
+            cost.Remove((Color, Amount));
+        }
+
+        // If all costs are covered, return true.
+        return true;
     }
 }
 

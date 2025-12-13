@@ -14,65 +14,33 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
 
     [SerializeField] private RectTransform rectTransform;
     [SerializeField] private CanvasGroup canvasGroup;
-    [SerializeField] private Canvas canvas;
     [SerializeField] public RectTransformData defaultValues;
-    DuelField_HandClick handClick;
 
     private Vector3 screenPoint;
     private Vector3 offset;
 
-    private Camera mainCamera;
-
-    public const bool TESTEMODE = false;
-
     private Dictionary<DuelFieldData.GAMEPHASE, Dictionary<string, Func<bool>>> handlers;
 
     GameObject targetZone;
-    Card thisCard;
     Card targetCard;
     Lib.GameZone TargetZoneEnum = 0;
 
+    Card thisCard;
     void Start()
     {
         rectTransform = GetComponent<RectTransform>();
         canvasGroup = GetComponent<CanvasGroup>();
-        canvas = GetComponentInParent<Canvas>();
-        DuelField.INSTANCE = GameObject.FindAnyObjectByType<DuelField>();
-        handClick = GetComponent<DuelField_HandClick>();
 
-        mainCamera = Camera.main;
         InitializeHandlers();
-
     }
-    private void OnEnable()
-    {
-        try {
-            this.transform.Find("CardGlow").gameObject.SetActive(true);
-        }
-        catch (Exception e) {
-            Debug.Log(e);
-        }
-    }
-    private void OnDisable()
-    {
-        try
-        {
-            this.transform.Find("CardGlow").gameObject.SetActive(false);
-        }
-        catch (Exception e) {
-            Debug.Log(e);
-        }
-    }
-
     public void OnBeginDrag(PointerEventData eventData)
     {
         IsDragging = true;
-        handClick.enabled = false;
         GetComponent<BoxCollider>().enabled = false;
         canvasGroup.blocksRaycasts = false;
 
-        screenPoint = mainCamera.WorldToScreenPoint(transform.position);
-        offset = transform.position - mainCamera.ScreenToWorldPoint(new Vector3(eventData.position.x, eventData.position.y, screenPoint.z));
+        screenPoint = Camera.main.WorldToScreenPoint(transform.position);
+        offset = transform.position - Camera.main.ScreenToWorldPoint(new Vector3(eventData.position.x, eventData.position.y, screenPoint.z));
 
         defaultValues = new RectTransformData(rectTransform);
         rectTransform.localScale = new Vector3(rectTransform.localScale.x * 1.1f, rectTransform.localScale.y * 1.1f, 1f);
@@ -81,13 +49,13 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
     public void OnDrag(PointerEventData eventData)
     {
         Vector3 currentScreenPoint = new Vector3(eventData.position.x, eventData.position.y, screenPoint.z);
-        Vector3 currentWorldPos = mainCamera.ScreenToWorldPoint(currentScreenPoint) + offset;
+        Vector3 currentWorldPos = Camera.main.ScreenToWorldPoint(currentScreenPoint) + offset;
         transform.position = currentWorldPos;
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        Ray ray = mainCamera.ScreenPointToRay(eventData.position);
+        Ray ray = Camera.main.ScreenPointToRay(eventData.position);
         float radius = 0.5f;
         RaycastHit[] hits = Physics.SphereCastAll(ray, radius);
 
@@ -102,7 +70,6 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
             if (targetZone != null) { 
                 if (DoAction())
                 {
-                    DuelField.INSTANCE.visualActionQueue.Enqueue(new("OrganizeGameZone", DuelField_ActionLibrary.OrganizeGameZone()));
                     this.transform.SetParent(GameObject.Find("HUD").transform);
                     this.gameObject.SetActive(false);
                     Destroy(this.gameObject);
@@ -116,7 +83,6 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
 
         rectTransform = defaultValues.ApplyToRectTransform(rectTransform);
         GetComponent<BoxCollider>().enabled = true;
-        handClick.enabled = true;
         IsDragging = false;
         canvasGroup.blocksRaycasts = true;
     }
@@ -260,7 +226,8 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
 
         Handle_SupportEvent();
 
-        DuelField.INSTANCE.visualActionQueue.Enqueue(new ActionItem("GetUsableCards", DuelField.INSTANCE.GetUsableCards()));
+
+        ActionItem.Add("GetUsableCards", DuelField.INSTANCE.GetUsableCards());
 
         return true;
     }

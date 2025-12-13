@@ -4,6 +4,7 @@ using Google.Apis.Translate.v2.Data;
 using System.Collections;
 using System.Threading.Tasks;
 using UnityEngine;
+using static Google.Apis.Requests.BatchRequest;
 
 public class GoogleTranslateAPI : MonoBehaviour
 {
@@ -68,7 +69,7 @@ public class GoogleTranslateAPI : MonoBehaviour
         catch (System.Exception ex)
         {
             Debug.LogError("Failed to translate text: " + ex.Message);
-            return null;
+            return text;
         }
     }
 }
