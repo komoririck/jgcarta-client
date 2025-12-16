@@ -6,11 +6,13 @@ public class GameController : MonoBehaviour
 {
     static public GameController INSTANCE;
 
+    public string Language = "JP";
     [SerializeField] public bool waitingForARequest = false;
     [SerializeField] public GameObject canvas;
     [SerializeField] public GameObject alertLoadingPopupPrefab;
     GameObject alertLoadingPopup;
 
+    public float DuelSpeed = 0.2f;
     void Start()
     {
         DontDestroyOnLoad(this.gameObject);

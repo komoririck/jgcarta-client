@@ -14,74 +14,63 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
     public List<Card> selectedItemsReturn = new();
     public List<int> selectedItemsReturnOrder = new();
     private List<GameObject> notSelectedItems = new();
-    private List<Card> SelectableItemsCard = new();
     public List<int> selectedItemsPos = new List<int>();
     public List<int> notSelectedItemsPos = new List<int>();
     private int clickOrder = 1;
     private int clickObjects = 1;
     private bool doubleSelect = false;
-    private DuelField _DuelField;
-    List<string> returnList = new();
+    List<CardData> returnList = new();
     int clickcounter = 0;
     int mustclick = 0;
     int MaximumCanPick = -1;
     DuelAction _DuelAction;
 
-    private EffectController effectController;
-
-    public IEnumerator SetupSelectableItems(DuelAction DuelAction, List<CardData> SelectableCards, List<CardData> avaliableForSelect, bool doubleselect = false, int MaximumCanPick = -1)
+    public IEnumerator SetupSelectableItems(DuelAction DuelAction, List<Card> SelectableCards, List<Card> avaliableForSelect = null, bool doubleselect = false, int MaximumCanPick = -1)
     {
-        effectController.isSelectionCompleted = false;
+        avaliableForSelect ??= SelectableCards;
+
+        EffectController.INSTANCE.isSelectionCompleted = false;
         contentPanel.transform.parent.parent.parent.gameObject.SetActive(true);
         FillMenu(DuelAction, SelectableCards, avaliableForSelect, doubleselect, MaximumCanPick);
-        yield return new WaitUntil(() => effectController.isSelectionCompleted);
-        effectController.isSelectionCompleted = false;
+        yield return new WaitUntil(() => EffectController.INSTANCE.isSelectionCompleted);
+        EffectController.INSTANCE.isSelectionCompleted = false;
     }
-    public void FillMenu(DuelAction DuelAction, List<CardData> SelectableCards, List<CardData> avaliableForSelect, bool doubleselect = false, int MaximumCanPick = -1)
+    public void FillMenu(DuelAction DuelAction, List<Card> SelectableCards, List<Card> avaliableForSelect, bool doubleselect = false, int MaximumCanPick = -1)
     {
         confirmButton.onClick.RemoveAllListeners();
         confirmButton.onClick.AddListener(FinishSelection);
-        effectController.isSelectionCompleted = false;
+        EffectController.INSTANCE.isSelectionCompleted = false;
         this._DuelAction = DuelAction;
         this.MaximumCanPick = MaximumCanPick;
         this.doubleSelect = doubleselect;
 
-        if (this.MaximumCanPick == -1)
-        {
-            mustclick = SelectableCards.Count;
-        }
-        else
-        {
-            mustclick = this.MaximumCanPick;
-        }
+        mustclick = (this.MaximumCanPick == -1) ? SelectableCards.Count : this.MaximumCanPick;
 
-        int x = 0;  // Variable to track order
-        foreach (CardData item in SelectableCards)
+        int x = 0;
+        foreach (Card item in SelectableCards)
         {
             bool canSelect = false;
             GameObject newItem = Instantiate(itemPrefab, contentPanel);
             newItem.name = clickObjects.ToString();
-            Card newC = newItem.GetComponent<Card>().Init(item) ;
+            Card newC = newItem.GetComponent<Card>().Init(item.ToCardData()) ;
 
             SelectableItems.Add(newItem);
 
-            foreach (CardData avalibleCard in avaliableForSelect)
+            foreach (Card avalibleCard in avaliableForSelect)
             {
                 if (avalibleCard.cardNumber.Equals(newC.cardNumber))
                     canSelect = true;
             }
 
-            // Clear or set the TMP text as needed
             TMP_Text itemText = newItem.GetComponentInChildren<TMP_Text>();
             itemText.text = "";
 
             int subclickObjects = clickObjects;
 
-            // Add the click event listener with the local variable
             Button itemButton = newItem.GetComponent<Button>();
             itemButton.onClick.AddListener(() => OnItemClick(newItem, subclickObjects, canSelect));
             clickObjects++;
-            x++;  // Increment x for the next item
+            x++;
         }
 
     }
@@ -97,22 +86,13 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
             selectedItemsPos.Add(clickOrder);
             selectedItems.Add(obj);
 
-            // Update the selection order text
             TMP_Text orderText = itemObject.transform.Find("OrderText").GetComponent<TMP_Text>();
             orderText.text = clickOrder.ToString();
             orderText.gameObject.SetActive(true);
 
-            // Increment click order
-
             clickOrder++;
             clickcounter++;
         }
-    }
-
-    public void Start()
-    {
-        effectController = FindAnyObjectByType<EffectController>();
-        _DuelField = GameObject.FindAnyObjectByType<DuelField>();
     }
     void FinishSelection()
     {
@@ -128,10 +108,10 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
                 if (!selectedItems.Contains(item))
                     notSelectedItems.Add(item);
             }
-            List<CardData> SecondSelectableItemsCard = new();
+            List<Card> SecondSelectableItemsCard = new();
             foreach (GameObject item in notSelectedItems)
             {
-                SecondSelectableItemsCard.Add(item.GetComponent<Card>().ToCardData());
+                SecondSelectableItemsCard.Add(item.GetComponent<Card>());
             }
             foreach (GameObject gm in SelectableItems)
             {
@@ -141,7 +121,7 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
 
             foreach (GameObject gms in selectedItems)
             {
-                returnList.Add(gms.GetComponent<Card>().cardNumber);
+                returnList.Add(gms.GetComponent<Card>().ToCardData());
             }
 
             selectedItems = new();
@@ -149,23 +129,18 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
         }
         else
         {
-
-
             if (clickcounter < mustclick)
                 return;
 
             ///////////////////////////////////////////////////////////////////////
             if (!doubleSelect)
                 foreach (GameObject gms in selectedItems)
-                    returnList.Add(gms.GetComponent<Card>().cardNumber);
+                    returnList.Add(gms.GetComponent<Card>().ToCardData());
 
-            _DuelAction.cardList = null;
-
-
-            _DuelAction.SelectedCards = returnList;
+            _DuelAction.cardList = returnList;
             _DuelAction.Order = selectedItemsPos;
 
-            effectController.EffectInformation.Add(_DuelAction);
+            EffectController.INSTANCE.CurrentContext.Register(_DuelAction);
 
             foreach (GameObject gm in SelectableItems)
             {
@@ -178,7 +153,7 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
             selectedItemsPos = new();
             contentPanel.transform.parent.parent.parent.gameObject.SetActive(false);
 
-            effectController.isSelectionCompleted = true;
+            EffectController.INSTANCE.isSelectionCompleted = true;
         }
     }
 }

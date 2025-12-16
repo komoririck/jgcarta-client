@@ -5,6 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using static DuelField;
+using static UnityEngine.GraphicsBuffer;
 
 public class DuelField_TargetForEffectMenu : MonoBehaviour
 {
@@ -12,42 +13,35 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
     [SerializeField] private Transform CardListContent;
     [SerializeField] private GameObject CardAttachItemHolder;
     [SerializeField] private GameObject AttachedCardItem;
+
     private GameObject selectedItem;
     private int clickObjects = 1;
-    private DuelField _DuelField;
-    List<CardData> SelectableCards = new();
-    CardData usedCard;
-    DuelAction duelAction;
-    private EffectController effectController;
-
+    List<Card> SelectableCards = new();
     List<GameObject> instantiatedItem = new();
 
-    public IEnumerator SetupSelectableItems(DuelAction da, TargetPlayer target = TargetPlayer.Player, Lib.GameZone[] zonesThatPlayerCanSelect = null)
+    DuelAction _DuelAction;
+    Player _target;
+
+    public IEnumerator SetupSelectableItems(DuelAction da, Player target = Player.Player, Lib.GameZone[] zonesThatPlayerCanSelect = null)
     {
-        effectController.isSelectionCompleted = false;
+        _DuelAction = da;
+        _target = target; 
 
-        duelAction = da;
-        usedCard = duelAction.usedCard;
+        EffectController.INSTANCE.isSelectionCompleted = false;
 
-        //assign the positions where we need to get the cards for selection, if stars null, we pass the values bellow
-        if (zonesThatPlayerCanSelect == null)
-            zonesThatPlayerCanSelect = new Lib.GameZone[] { Lib.GameZone.Stage, Lib.GameZone.Collaboration, Lib.GameZone.BackStage1, Lib.GameZone.BackStage2, Lib.GameZone.BackStage3, Lib.GameZone.BackStage4, Lib.GameZone.BackStage5 };
+        zonesThatPlayerCanSelect ??= DuelField.DEFAULTHOLOMEMZONE;
+        GameObjectExtensions.DestroyAllChildren(CardListContent.gameObject);
+        SelectableCards = CardLib.GetAndFilterCards(gameZones: zonesThatPlayerCanSelect, player: target, onlyVisible: true);
 
-        //we call PopulateSelectableCards to clear the recycable menu and add to  SelectableCards the last card in each position 
-        _DuelField.PopulateSelectableCards(target, zonesThatPlayerCanSelect, CardListContent.gameObject, SelectableCards);
-
-        int x = 0;  // Variable to track order
-        foreach (CardData item in SelectableCards)
+        int x = 0; 
+        foreach (Card item in SelectableCards)
         {
             bool canSelect = true;
 
             GameObject newItem = Instantiate(CardAttachItemHolder, CardListContent);
             newItem.name = clickObjects.ToString();
             instantiatedItem.Add(newItem);
-
-            Card newC = newItem.GetComponent<Card>();
-            newC.cardNumber = item.cardNumber;
-            newC.curZone = DuelField.INSTANCE.GetZoneByString(CardAttachItemHolder.transform.parent.name);
+            Card newC = newItem.GetComponent<Card>().Init(item.ToCardData());
 
             TMP_Text itemText = newItem.GetComponentInChildren<TMP_Text>();
             itemText.text = "";
@@ -56,11 +50,9 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
             itemButton.onClick.AddListener(() => OnItemClick(newItem, x, canSelect));
 
 
-
-            for (int i = 0; i <  newC.attachedEnergy.Count; i++) {
+            for (int i = 0; i <  item.attachedEnergy.Count; i++) {
                 GameObject attachedCardItem = Instantiate(AttachedCardItem, newItem.GetComponentInChildren<GridLayoutGroup>().transform);
-                Card attachedCard = attachedCardItem.GetComponent<Card>();
-                attachedCard.Init(attachedCard.ToCardData());
+                attachedCardItem.GetComponent<Card>().Init(item.attachedEnergy[i].GetComponent<Card>().ToCardData());
             }
             int subclickObjects = clickObjects;
             clickObjects++;
@@ -69,8 +61,8 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
 
         CardListContent.transform.parent.parent.parent.gameObject.SetActive(true);
 
-        yield return new WaitUntil(() => effectController.isSelectionCompleted);
-        effectController.isSelectionCompleted = false;
+        yield return new WaitUntil(() => EffectController.INSTANCE.isSelectionCompleted);
+        EffectController.INSTANCE.isSelectionCompleted = false;
         zonesThatPlayerCanSelect = null;
     }
 
@@ -88,8 +80,6 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
 
     public void Start()
     {
-        effectController = FindAnyObjectByType<EffectController>();
-        _DuelField = GameObject.FindAnyObjectByType<DuelField>();
         confirmButton.onClick.AddListener(FinishSelection);
     }
     void FinishSelection()
@@ -102,14 +92,12 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
         if (returnCard == null)
             return;
 
-        duelAction.targetCard = returnCard.ToCardData();
-        duelAction.usedCard.curZone = duelAction.usedCard.curZone;
+        _DuelAction.targetCard = returnCard.ToCardData();
+        _DuelAction.usedCard = _DuelAction.usedCard;
+        _DuelAction.targetPlayer = _target;
 
-        effectController.EffectInformation.Add(duelAction);
-
-        // Hide panel
+        EffectController.INSTANCE.CurrentContext.Register(_DuelAction);
         CardListContent.transform.parent.parent.parent.gameObject.SetActive(false);
-
-        effectController.isSelectionCompleted = true;
+        EffectController.INSTANCE.isSelectionCompleted = true;
     }
 }

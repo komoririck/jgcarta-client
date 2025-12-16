@@ -161,7 +161,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
             Lib.GameZone.BackStage5
         };
 
-        if ((DuelField.INSTANCE.GetZone(Lib.GameZone.Stage, TargetPlayer.Player)?.GetComponentInChildren<Card>() == null && TargetZoneEnum != Lib.GameZone.Stage) 
+        if ((DuelField.INSTANCE.GetZone(Lib.GameZone.Stage, Player.Player)?.GetComponentInChildren<Card>() == null && TargetZoneEnum != Lib.GameZone.Stage) 
             || !allowedZones.Contains(TargetZoneEnum) 
             || targetZone.transform.parent.name.Equals("OponenteGeneral"))
             return false;
@@ -173,7 +173,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
 
         var card = new CardData() { curZone = thisCard.curZone, lastZone = thisCard.lastZone, cardNumber = thisCard.cardNumber };
 
-        DuelField.INSTANCE.AddOrMoveCardToGameZone(new List<CardData> { card }, null, TargetPlayer.Player, false, false);
+        DuelField.INSTANCE.AddOrMoveCardToGameZone(new List<CardData> { card }, null, Player.Player, false, false);
 
         return true;
     }
@@ -201,7 +201,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
     }
     private bool Handle_SupportEvent()
     {
-        if (!DuelField.INSTANCE.CheckForPlayRestrictions(thisCard.cardNumber))
+        if (!CardLib.CheckForPlayRestrictions(thisCard.cardNumber))
             return false;
 
         DuelAction _DuelAction = new DuelAction()
@@ -233,7 +233,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
     }
     private bool Handle_EquipSupport()
     {
-        if (DuelField.INSTANCE.HasRestrictionsToPlayEquip(thisCard, targetCard))
+        if (CardLib.HasRestrictionsToPlayEquip(thisCard, targetCard))
             return false;
 
         DuelAction _DuelAction = new DuelAction()
@@ -280,8 +280,8 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
         }
 
         // BLOOM
-        if (!DuelField.INSTANCE.CanBloomHolomem(pointedCard, thisCard))
-            return true;
+        if (!CardLib.CanBloomHolomem(pointedCard, thisCard))
+            return false;
 
         _DuelAction.playerID = DuelField.INSTANCE.DUELFIELDDATA.currentPlayerTurn;
         _DuelAction.usedCard = thisCard.ToCardData();
@@ -290,64 +290,6 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
 
         DuelField.INSTANCE.GenericActionCallBack(_DuelAction, "BloomHolomem");
         return true;
-    }
-    void AttachCardToCard(GameObject FatherZone, GameObject card)
-    {
-
-        card.transform.SetParent(FatherZone.transform, true);
-
-        card.transform.SetSiblingIndex(0);
-
-        card.transform.localPosition = Vector3.zero;
-        card.transform.localScale = new Vector3(0.9f, 0.9f, 0.9f);
-
-        card.GetComponentInChildren<Card>().curZone = Lib.GameZone.Hand;
-		Destroy(this);
-    }
-    void BloomCard(GameObject FatherZone, GameObject card)
-    {
-
-        GameObject FatherZoneActiveCard = FatherZone.transform.GetChild(FatherZone.transform.childCount - 1).gameObject;
-
-        //set this card dropped card as child of the zone
-        card.transform.SetParent(FatherZone.transform, true);
-
-        card.transform.SetSiblingIndex(FatherZone.transform.childCount - 1);
-
-        card.transform.localPosition = Vector3.zero;
-        card.transform.localScale = new Vector3(0.9f, 0.9f, 0.9f);
-
-        //get both cards information
-        Card CardComponent = card.GetComponent<Card>();
-        Card FatherZoneActiveCardComponent = card.GetComponent<Card>();
-
-        CardComponent.suspended = FatherZoneActiveCardComponent.suspended;
-        //if the card targeted is suspended, lets suspend
-        if (FatherZoneActiveCardComponent.suspended)
-        {
-            this.gameObject.transform.Rotate(0, 0, 90);
-        }
-
-        //passing the hp to the new card
-        CardComponent.currentHp = FatherZoneActiveCardComponent.currentHp;
-        CardComponent.effectDamageRecieved = FatherZoneActiveCardComponent.effectDamageRecieved;
-        CardComponent.normalDamageRecieved = FatherZoneActiveCardComponent.normalDamageRecieved;
-        CardComponent.UpdateHP();
-        //end of passing the hp to the new card
-
-        //getting the name of the father gameobject the the position of the new card
-        card.GetComponentInChildren<Card>().curZone = (Lib.GameZone)Enum.Parse(typeof(Lib.GameZone), FatherZoneActiveCard.transform.parent.name);
-        //adding all the bloomed childs as reference to the new card
-        card.GetComponentInChildren<Card>().bloomChild.Add(FatherZoneActiveCard);
-        //adding of attachs from the bloomed card to the new card
-        card.GetComponentInChildren<Card>().attachedEnergy = FatherZoneActiveCard.GetComponentInChildren<Card>().attachedEnergy;
-        //removing the reference from the past form card
-        FatherZoneActiveCard.GetComponentInChildren<Card>().attachedEnergy = null;
-        card.GetComponentInChildren<Card>().curZone = Lib.GameZone.Hand;
-
-		//make the older last position card invisible 
-		FatherZoneActiveCard.SetActive(false);
-        Destroy(this);
     }
     public void EffectQuestionDispalyMenuButton(DuelAction duelAction)
     {

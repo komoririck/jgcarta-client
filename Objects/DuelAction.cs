@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using static DuelField;
 
 [Serializable]
 public class DuelAction
@@ -9,9 +10,8 @@ public class DuelAction
     public Lib.GameZone activationZone { get; set; }
     public Lib.GameZone targetZone { get; set; }
     public CardData targetCard { get; set; }
-    public CardData cheerCostCard { get; set; }
+    public List<CardData> attachmentCost { get; set; }
     public string selectedSkill { get; set; }
-    public List<string> SelectedCards { get; set; }
     public List<int> Order { get; set; }
     public bool suffle { get; set; }
     public bool suffleHandBackToDeck { get; set; }
@@ -21,6 +21,15 @@ public class DuelAction
     public bool toBottom { get; set; }
     public List<int> diceRoll { get; set; }
     public int hpAmount { get; set; }
-    public string actionType { get; set; }
-    public string actionObject { get; set; }
+    public int hpFixedValue { get; set; }
+    public DuelField.Player targetPlayer { get; set; } = Player.na;
+    public DuelAction GetPlayerTypeById()
+    {
+        if (DuelField.INSTANCE.DUELFIELDDATA.firstPlayer.Equals(playerID))
+            targetPlayer = Player.FirstPlayer;
+        else if (DuelField.INSTANCE.DUELFIELDDATA.secondPlayer.Equals(playerID))
+            targetPlayer = Player.SecondPlayer;
+
+        return this;
+    }
 }

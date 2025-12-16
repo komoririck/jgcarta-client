@@ -4,31 +4,26 @@ using Google.Apis.Translate.v2.Data;
 using System.Collections;
 using System.Threading.Tasks;
 using UnityEngine;
-using static Google.Apis.Requests.BatchRequest;
 
 public class GoogleTranslateAPI : MonoBehaviour
 {
     static GameSettings settings;
     private static string apiKey = "AIzaSyBxOg-1y1tAKWEcbG8NOKvpIMVkqBnAvl8";
 
-    // This method starts the coroutine
     public static void TranslateText(MonoBehaviour context, string text, System.Action<string> onComplete)
     {
         context.StartCoroutine(TranslateTextCoroutine(text, onComplete));
     }
 
-    // Coroutine method to call the async method
     private static IEnumerator TranslateTextCoroutine(string text, System.Action<string> onComplete)
     {
         Task<string> translateTask = TranslateTextHandle(text);
 
-        // Wait until the async task completes
         while (!translateTask.IsCompleted)
         {
             yield return null;
         }
 
-        // Call the completion callback with the result
         if (translateTask.IsCompletedSuccessfully)
         {
             onComplete?.Invoke(translateTask.Result);
@@ -40,9 +35,11 @@ public class GoogleTranslateAPI : MonoBehaviour
         }
     }
 
-    // Async method to handle the actual translation
     public static async Task<string> TranslateTextHandle(string text)
     {
+        if (GameController.INSTANCE.Language.Equals("JP"))
+            return text;
+
         text.Replace("cheer", "XXXXXXX");
         text.Replace("cheers", "XXXX01X");
         text.Replace("&lt", "|");

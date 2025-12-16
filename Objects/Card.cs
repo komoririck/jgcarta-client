@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using static DuelField_HandClick;
@@ -39,6 +40,7 @@ public class Card : MonoBehaviour
     public List<GameObject> attachedEnergy = new();
     public List<GameObject> attachedEquipe = new();
     public List<GameObject> bloomChild = new();
+    public Card father = null;
 
     [Flags]
     public enum CardFoil : byte
@@ -97,6 +99,7 @@ public class Card : MonoBehaviour
             Destroy(GetComponent<DuelField_HandClick>());
             Destroy(GetComponent<DuelField_HandDragDrop>());
         }
+
         if (!curZone.Equals(Lib.GameZone.Hand))
         {
             Destroy(GetComponent<DuelField_HandDragDrop>());
@@ -106,9 +109,57 @@ public class Card : MonoBehaviour
             if (transform.parent.name.Equals("OponentHand"))
                 Destroy(GetComponent<DuelField_HandDragDrop>());
         }
+        return this;
+    }
+    public Card NeedEnergyCounter ()
+    {
+        var energyList = transform.Find("EnergyList");
+        ZoneEnergyCounter zoneEnergyCounter = GetComponentInChildren<ZoneEnergyCounter>();
 
-        //SetActiveVisual(false);
+        if (!DuelField.DEFAULTHOLOMEMZONE.Contains(curZone))
+        {
+            zoneEnergyCounter.enabled = false;
+            energyList.gameObject.SetActive(false);
+        }
+        else
+        {
+            zoneEnergyCounter.enabled = true;
+            energyList.gameObject.SetActive(true);
+        }
+        return this;
+    }
+    public Card Attach(Card fatherr)
+    {
+        if (fatherr == null)
+            return this;
 
+        if (fatherr.Equals(this))
+            return this;
+
+        father = fatherr;
+
+        if (cardType.Equals("エール"))
+            father.attachedEnergy?.Add(father.gameObject);
+        else if (cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン"))
+            father.bloomChild?.Add(father.gameObject);
+        else
+            father.attachedEquipe?.Add(father.gameObject);
+
+        attachedEnergy = new();
+        bloomChild = new();
+        attachedEquipe = new();
+
+        return this;
+    }
+    public Card Detach()
+    {
+        if (father == null)
+            return this;
+
+        father.attachedEnergy?.Remove(this.gameObject);
+        father.attachedEquipe?.Remove(this.gameObject);
+        father.bloomChild?.Remove(this.gameObject);
+        father = null;
         return this;
     }
     public void Glow()
@@ -164,8 +215,8 @@ public class Card : MonoBehaviour
         if (ActiveCard.cardType.Equals("推しホロメン")
         && ISMAINPHASE && ISMYTURN && ISMYCARD)
         {
-            bool conditionA = (!DuelField.INSTANCE.usedOshiSkill && DuelField.INSTANCE.CanActivateOshiSkill(ActiveCard.cardNumber));
-            bool conditionB = (!DuelField.INSTANCE.usedSPOshiSkill && DuelField.INSTANCE.CanActivateSPOshiSkill(ActiveCard.cardNumber));
+            bool conditionA = (!DuelField.INSTANCE.usedOshiSkill && CardLib.CanActivateOshiSkill(ActiveCard.cardNumber));
+            bool conditionB = (!DuelField.INSTANCE.usedSPOshiSkill && CardLib.CanActivateSPOshiSkill(ActiveCard.cardNumber));
 
             if (conditionA || conditionB)
             {
@@ -324,11 +375,6 @@ public class Card : MonoBehaviour
         if (card.transform.parent == null)
             return;
 
-        if (card.transform.parent.name.Equals(Lib.GameZone.Favourite.ToString()) || card.transform.parent.name.Equals(Lib.GameZone.Deck.ToString())
-            || card.transform.parent.name.Equals(Lib.GameZone.CardCheer.ToString()) || card.transform.parent.name.Equals(Lib.GameZone.Life.ToString())
-            || card.transform.parent.name.Equals(Lib.GameZone.HoloPower.ToString()) || card.transform.parent.name.Equals(Lib.GameZone.Arquive.ToString()))
-            return;
-
         var hpbar = card.transform.Find("HPBAR");
         if (hpbar == null)
             return;
@@ -336,6 +382,12 @@ public class Card : MonoBehaviour
         hpbar.gameObject.SetActive(true);
         hpbar.Find("HPCurrent").GetComponent<TMP_Text>().text = card.currentHp.ToString();
         hpbar.Find("HPMax").GetComponent<TMP_Text>().text = card.hp.ToString();
+
+        if (!DuelField.DEFAULTHOLOMEMZONE.Contains(curZone))
+        {
+            hpbar.gameObject.SetActive(false);
+            return;
+        }
 
         if (card.transform.parent.parent.name.Equals("Oponente") || card.transform.parent.name.Equals("Oponente"))
         {

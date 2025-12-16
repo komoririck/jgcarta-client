@@ -125,15 +125,20 @@ public class MatchConnection : MonoBehaviour
         //            SceneManager.LoadScene("Login");
     }
 
-    public async Task SendCallToServer(string playerID, string password, string type, string description = "", DuelAction aditionalinformation = null)
+    public async Task SendCallToServer(string playerID, string password, string type, string description = "", DuelAction addInfo = null)
     {
+        if (addInfo != null) {
+            if (addInfo.targetPlayer.Equals(DuelField.Player.na))
+                addInfo.GetPlayerTypeById();
+        }
+
         Request _PlayerRequest = new()
         {
             playerID = playerID,
             password = password,
             type = type,
             description = description,
-            duelAction = aditionalinformation,
+            duelAction = addInfo,
         };
 
         JsonSerializerSettings jsonSettings = new JsonSerializerSettings

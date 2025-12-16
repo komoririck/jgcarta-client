@@ -1,10 +1,11 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
+﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Linq;
-using System;
+using System.Threading.Tasks;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+using static DuelFieldData;
 
 public class DuelfField_CardDetailViewer : MonoBehaviour
 {
@@ -40,6 +41,9 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
 
     public void CloseDisplayed() {
         DuelField_UI_MAP.INSTANCE.LoadAllPanelStatus().SetPanel(true, DuelField_UI_MAP.PanelType.SS_UI_General).SetPanel(false, DuelField_UI_MAP.PanelType.SS_BlockView);
+
+        if (!DuelField.INSTANCE.ReadyButtonShowed) 
+            DuelField_UI_MAP.INSTANCE.SetPanel(true, DuelField_UI_MAP.PanelType.SS_BlockView);
     }
     public void SetCardListToBeDisplayed(ref List<Card> _CarditemList, Card clickedCard, DuelField_HandClick.ClickAction _clickAction)
     {
@@ -137,7 +141,7 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
                 //for each art that the current card(CarditemList[currentIndex]) have, we need to instantiate a new card
                 foreach (Art currentArt in CarditemList[currentIndex].Arts)
                 {
-                    if (currentArt.Name.Equals("Retreat") && !CarditemList[currentIndex].transform.parent.name.Equals(Lib.GameZone.Stage))
+                    if (currentArt.Name.Equals("Retreat") && !CarditemList[currentIndex].curZone.Equals(Lib.GameZone.Stage))
                         continue;
 
                     GameObject newItem = Instantiate(ArtPrefab, ArtPanel_Content.transform);
@@ -158,8 +162,8 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
 
 
                     Button itemButton = newItem.GetComponent<Button>();
-                    DuelAction duelaction = new() { usedCard = thisCard.ToCardData() };
-                    duelaction.usedCard.curZone = thisCard.curZone;
+                    DuelAction duelaction = new();
+                    duelaction.usedCard = thisCard.ToCardData();
                     
                     if (thisCard.IsCostCovered(currentArt.Cost, energyAmount)
                         && ((thisCard.curZone.Equals(Lib.GameZone.Stage) && !DuelField.INSTANCE.centerStageArtUsed)
@@ -245,16 +249,19 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
     }
     private void OnItemClickRetrat(DuelAction duelaction)
     {
+        var list = CardLib.GetAndFilterCards(gameZones: DuelField.DEFAULTBACKSTAGE, player: DuelField.Player.Player);
+        if (list == null || list.Count == 0)
+            return;
+
         CloseDisplayed();
+        DuelField.INSTANCE.centerStageArtUsed = true;
         StartCoroutine(EffectController.INSTANCE.RetreatArt(duelaction));
     }
     private void OnItemClickOshiSkill(DuelAction duelaction)
     {
         CloseDisplayed();
         StartCoroutine(EffectController.INSTANCE.OshiSkill(duelaction));
-        GameObject HoloPower = DuelField.INSTANCE.GetZone(Lib.GameZone.HoloPower, DuelField.TargetPlayer.Player);
-        /*for (int n = 0; n < HoloPowerCost(duelaction.usedCard.cardNumber, false); n++)
-            DuelField.INSTANCE.SendCardToZone(HoloPower.transform.GetChild(HoloPower.transform.childCount - 1).gameObject, Lib.GameZone.Arquive, DuelField.TargetPlayer.Player);*/
+        GameObject HoloPower = DuelField.INSTANCE.GetZone(Lib.GameZone.HoloPower, DuelField.Player.Player);
         DuelField.INSTANCE.usedOshiSkill = true;
 
     }
@@ -262,9 +269,7 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
     {
         CloseDisplayed();
         StartCoroutine(EffectController.INSTANCE.SPOshiSkill(duelaction));
-        GameObject HoloPower = DuelField.INSTANCE.GetZone(Lib.GameZone.HoloPower, DuelField.TargetPlayer.Player);
-        /*for (int n = 0; n < HoloPowerCost(duelaction.usedCard.cardNumber, true); n++)
-            DuelField.INSTANCE.SendCardToZone(HoloPower.transform.GetChild(HoloPower.transform.childCount - 1).gameObject, Lib.GameZone.Arquive, DuelField.TargetPlayer.Player);*/
+        GameObject HoloPower = DuelField.INSTANCE.GetZone(Lib.GameZone.HoloPower, DuelField.Player.Player);
         DuelField.INSTANCE.usedSPOshiSkill = true;
     }
     private void OnItemClickDeclareAttack(DuelAction duelaction, Button thisButton)
@@ -274,16 +279,17 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
         {
             if (DuelField.INSTANCE.centerStageArtUsed)
                 return;
+            DuelField.INSTANCE.centerStageArtUsed = true;
         }
         else if (duelaction.usedCard.curZone.Equals(Lib.GameZone.Collaboration))
         {
             if (DuelField.INSTANCE.collabStageArtUsed)
                 return;
+            DuelField.INSTANCE.collabStageArtUsed = true;
         }
 
         duelaction.selectedSkill = thisButton.transform.Find("ArtButton").Find("Name").GetComponent<TMP_Text>().text;
-        duelaction.actionType = "doArt";
-        StartCoroutine(_DuelField_TargetForAttackMenu.SetupSelectableItems(duelaction, DuelField.TargetPlayer.Oponnent));
+        StartCoroutine(_DuelField_TargetForAttackMenu.SetupSelectableItems(duelaction, DuelField.Player.Oponnent, performArt: true));
 
     }
     public static string RemoveEmptyLines(string input)

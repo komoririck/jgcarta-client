@@ -3,17 +3,14 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-
 public class DuelField_ShowANumberList : MonoBehaviour
 {
     [SerializeField] private Transform NumberPanel;
-    private EffectController effectController;
-
     public TMP_Dropdown dropdown;
 
     public IEnumerator SetupSelectableNumbers(int min, int max)
     {
-        effectController.isSelectionCompleted = false;
+        EffectController.INSTANCE.isSelectionCompleted = false;
         dropdown.ClearOptions();
 
         List<string> options = new List<string>();
@@ -25,19 +22,13 @@ public class DuelField_ShowANumberList : MonoBehaviour
 
         NumberPanel.gameObject.SetActive(true);
 
-        yield return new WaitUntil(() => effectController.isSelectionCompleted);
-        effectController.isSelectionCompleted = false;
-    }
-
-    public void Start()
-    {
-        effectController = FindAnyObjectByType<EffectController>();
+        yield return new WaitUntil(() => EffectController.INSTANCE.isSelectionCompleted);
+        EffectController.INSTANCE.isSelectionCompleted = false;
     }
     public void FinishSelection()
     {
         NumberPanel.gameObject.SetActive(false);
-        effectController.EffectInformation.Add(new DuelAction{ yesOrNo = dropdown.options[dropdown.value].text.Equals("Yes") ? true: false });
-        effectController.isSelectionCompleted = true;
+        EffectController.INSTANCE.CurrentContext.Register(new DuelAction{ yesOrNo = dropdown.options[dropdown.value].text.Equals("Yes") ? true: false });
+        EffectController.INSTANCE.isSelectionCompleted = true;
     }
-
 }

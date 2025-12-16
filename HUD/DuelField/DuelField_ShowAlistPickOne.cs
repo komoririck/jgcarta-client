@@ -15,43 +15,35 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
     int MustClickCounter = 1;
     int MaxClickCounter = 1;
     int ClickedCounter = 0;
-    DuelAction _DuelAction;
-    private EffectController effectController;
 
-    public IEnumerator SetupSelectableItems(DuelAction da, List<CardData> SelectableCards, List<CardData> avaliableForSelect)
+    public IEnumerator SetupSelectableItems(List<Card> SelectableCards, List<Card> avaliableForSelect = null)
     {
-
         confirmButton.onClick.RemoveAllListeners();
         confirmButton.onClick.AddListener(FinishSelection);
         selectedItems.Clear();
-        effectController.isSelectionCompleted = false;
+        EffectController.INSTANCE.isSelectionCompleted = false;
 
-        this._DuelAction = da;
+        avaliableForSelect ??= SelectableCards;
 
-        // Clean up previous items before loading the panel
-
-            foreach (GameObject gm in SelectableItems)
+        foreach (GameObject gm in SelectableItems)
+        {
+            if (gm != null)
             {
-                if (gm != null)
-                {
-                    Destroy(gm); 
-                }
+                Destroy(gm); 
             }
-            SelectableItems.Clear();  
+        }
+        SelectableItems.Clear();  
         
-
-
-        foreach (CardData item in SelectableCards)
+        foreach (Card item in SelectableCards)
         {
             bool canSelect = false;
             GameObject newItem = Instantiate(itemPrefab, contentPanel);
             newItem.name = InstantiatedObjIndex.ToString();
-            Card newC = newItem.GetComponent<Card>().Init(item);
+            Card newC = newItem.GetComponent<Card>().Init(item.ToCardData());
 
             SelectableItems.Add(newItem);  
 
-            // Check if this card is selectable
-            foreach (CardData availableCard in avaliableForSelect)
+            foreach (Card availableCard in avaliableForSelect)
             {
                 if (availableCard.cardNumber.Equals(newC.cardNumber))
                     canSelect = true;
@@ -67,8 +59,8 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
 
         contentPanel.transform.parent.parent.parent.gameObject.SetActive(true);
 
-        yield return new WaitUntil(() => effectController.isSelectionCompleted);
-        effectController.isSelectionCompleted = false;
+        yield return new WaitUntil(() => EffectController.INSTANCE.isSelectionCompleted);
+        EffectController.INSTANCE.isSelectionCompleted = false;
     }
 
     void OnItemClick(GameObject itemObject, bool canSelect)
@@ -87,39 +79,19 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
 
         ClickedCounter++;
     }
-
-    public void Start()
-    {
-        effectController = FindAnyObjectByType<EffectController>();
-    }
-
     void FinishSelection()
     {
         if (ClickedCounter < MustClickCounter)
             return;
-
-        // Prepare information to send to the server
-        effectController.EffectInformation.Add(new DuelAction {cardList = selectedItems });
 
         // Clear selection list
         InstantiatedObjIndex = 1;
         MustClickCounter = 1;
         MaxClickCounter = 1;
         ClickedCounter = 0;
-        _DuelAction = null;
 
-        // Hide panel
         contentPanel.transform.parent.parent.parent.gameObject.SetActive(false);
-
-        effectController.isSelectionCompleted = true;
+        EffectController.INSTANCE.CurrentContext.Register(new DuelAction {cardList = selectedItems });
+        EffectController.INSTANCE.isSelectionCompleted = true;
     }
-
-    private void OnDisable()
-    {
-    }
-
-    private void OnEnable()
-    {
-    }
-
 }

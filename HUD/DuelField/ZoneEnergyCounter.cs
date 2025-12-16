@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -8,7 +7,7 @@ using UnityEngine.UI;
 public class ZoneEnergyCounter : MonoBehaviour
 {
     private int previousChildCount = 0;
-    public GameObject anotherPrefab; // Prefab to instantiate
+    private GameObject anotherPrefab;
     private Dictionary<string, GameObject> colorPrefabs = new Dictionary<string, GameObject>();
 
     private void Awake()
@@ -24,31 +23,30 @@ public class ZoneEnergyCounter : MonoBehaviour
         int currentChildCount = transform.parent.childCount;
         if (currentChildCount != previousChildCount)
         {
-            if (colorPrefabs.Count > 0)
-            {
-                foreach (RectTransform transform in transform.Find("EnergyList").transform)
-                {
-                    Destroy(transform.gameObject);
-                    colorPrefabs.Clear();
-                }
-            }
             UpdateColorPrefabs();
             previousChildCount = currentChildCount;
         }
     }
 
-
-    // Call this method whenever cards are added or removed
     public void UpdateColorPrefabs()
     {
-        // Clear counts for existing colors
+        //count colors
         Dictionary<string, int> colorCounts = new Dictionary<string, int>();
-
-        // Step 1: Count Cards by Color
         foreach (Transform child in transform.parent.transform)
         {
             Card card = child.GetComponent<Card>();
             if (card == null || string.IsNullOrEmpty(card.cardType)) continue;
+
+            List<string> toremoved = new ();
+            foreach (KeyValuePair<string, GameObject> s in colorPrefabs)
+            {
+                Destroy(s.Value);
+                toremoved.Add(s.Key);
+            }
+
+            foreach (string s in toremoved)
+                colorPrefabs.Remove(s);
+            
             if (!card.cardType.Equals("エール")) continue;
 
             string color = card.color;
@@ -61,8 +59,7 @@ public class ZoneEnergyCounter : MonoBehaviour
                 colorCounts[color] = 1;
             }
         }
-
-        // Step 2: Update or Instantiate Prefabs based on the counts
+        //instantie
         foreach (var entry in colorCounts)
         {
             string color = entry.Key;
@@ -70,40 +67,21 @@ public class ZoneEnergyCounter : MonoBehaviour
 
             if (colorPrefabs.ContainsKey(color))
             {
-                // Update the count if the prefab already exists
                 GameObject existingPrefab = colorPrefabs[color];
                 TMP_Text countText = existingPrefab.transform.Find("Counter").GetComponent<TMP_Text>();
                 countText.text = count.ToString();
             }
             else
             {
-                // Instantiate new prefab for this color
-                GameObject newPrefab = Instantiate(anotherPrefab, transform.Find("EnergyList")); // Assuming the parent is set as needed
+                GameObject newPrefab = Instantiate(anotherPrefab, transform.Find("EnergyList")); 
                 colorPrefabs[color] = newPrefab;
 
-                // Set the color-specific sprite
                 Image colorImage = newPrefab.transform.Find("Image").GetComponent<Image>();
-                colorImage.sprite = GetColorSprite(color); // Replace with actual method to get sprite by color
+                colorImage.sprite = GetColorSprite(color);
 
-                // Set the initial count
                 TMP_Text countText = newPrefab.transform.Find("Counter").GetComponent<TMP_Text>();
                 countText.text = count.ToString();
             }
-        }
-
-        // Step 3: Remove Prefabs for Colors No Longer Present
-        List<string> colorsToRemove = new List<string>();
-        foreach (var color in colorPrefabs.Keys)
-        {
-            if (!colorCounts.ContainsKey(color))
-            {
-                colorsToRemove.Add(color);
-            }
-        }
-        foreach (string color in colorsToRemove)
-        {
-            Destroy(colorPrefabs[color]);
-            colorPrefabs.Remove(color);
         }
     }
 
