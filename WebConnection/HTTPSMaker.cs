@@ -54,7 +54,7 @@ public class HTTPSMaker : MonoBehaviour
     {
 
         Request _PlayerRequest = new() {
-            playerID = playerID.ToString(),
+            playerID = playerID,
             password = password,
         };
 
@@ -201,7 +201,7 @@ public class HTTPSMaker : MonoBehaviour
     {
 
         Request _PlayerRequest = new() {
-            playerID = playerID.ToString(),
+            playerID = playerID,
             password = password,
             type = "JoinQueue",
             description = type
@@ -225,7 +225,7 @@ public class HTTPSMaker : MonoBehaviour
     public IEnumerator CancelMatchQueue(string playerID, string password)
     {
         Request _PlayerRequest = new() {
-            playerID = playerID.ToString(),
+            playerID = playerID,
             password = password,
             description = "Cancel"
         };
@@ -249,7 +249,7 @@ public class HTTPSMaker : MonoBehaviour
     {
         Request _PlayerRequest = new()
         {
-            playerID = playerID.ToString(),
+            playerID = playerID,
             password = password,
             description = code.ToString()
         };
@@ -344,7 +344,6 @@ public class HTTPSMaker : MonoBehaviour
         {
             playerID = playerInfo.PlayerID,
             password = playerInfo.Password,
-            jsonObject = deckData
         };
 
         yield return httpManager.MakeRequest(
@@ -371,7 +370,6 @@ public class HTTPSMaker : MonoBehaviour
         {
             playerID = playerInfo.PlayerID,
             password = playerInfo.Password,
-            jsonObject = deckDataId
         };
 
         yield return httpManager.MakeRequest(

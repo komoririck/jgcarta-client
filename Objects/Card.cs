@@ -37,9 +37,9 @@ public class Card : MonoBehaviour
     public int effectDamageRecieved = 0;
     public int normalDamageRecieved = 0;
     public List<CardEffect> cardEffects = new();
-    public List<GameObject> attachedEnergy = new();
-    public List<GameObject> attachedEquipe = new();
-    public List<GameObject> bloomChild = new();
+    public List<Card> attachedEnergy = new();
+    public List<Card> attachedEquipe = new();
+    public List<Card> bloomChild = new();
     public Card father = null;
 
     [Flags]
@@ -128,42 +128,80 @@ public class Card : MonoBehaviour
         }
         return this;
     }
-    public Card Attach(Card fatherr)
+    public void AttachTo(Card newFather)
     {
-        if (fatherr == null)
-            return this;
+        if (newFather == null || newFather == this)
+            return;
 
-        if (fatherr.Equals(this))
-            return this;
+        Detach();
 
-        father = fatherr;
+        father = newFather;
 
-        if (cardType.Equals("エール"))
-            father.attachedEnergy?.Add(father.gameObject);
-        else if (cardType.Equals("ホロメン") || cardType.Equals("Buzzホロメン"))
-            father.bloomChild?.Add(father.gameObject);
-        else
-            father.attachedEquipe?.Add(father.gameObject);
+        switch (cardType)
+        {
+            case "エール":
+                father.attachedEnergy ??= new();
+                father.attachedEnergy.Add(this);
+                break;
 
-        attachedEnergy = new();
-        bloomChild = new();
-        attachedEquipe = new();
+            case "ホロメン":
+            case "Buzzホロメン":
+                father.bloomChild ??= new();
+                father.bloomChild.Add(this);
+                break;
 
-        return this;
+            default:
+                father.attachedEquipe ??= new();
+                father.attachedEquipe.Add(this);
+                break;
+        }
     }
-    public Card Detach()
+    public void Detach()
     {
         if (father == null)
-            return this;
+            return;
 
-        father.attachedEnergy?.Remove(this.gameObject);
-        father.attachedEquipe?.Remove(this.gameObject);
-        father.bloomChild?.Remove(this.gameObject);
+        father.attachedEnergy?.Remove(this);
+        father.attachedEquipe?.Remove(this);
+        father.bloomChild?.Remove(this);
+
         father = null;
-        return this;
     }
-    public void Glow()
+    public void BloomFrom(Card baseCard)
     {
+        if (baseCard == null || baseCard == this)
+            return;
+
+        Detach();
+
+        if (father != null)
+        {
+            baseCard.father.bloomChild?.Remove(baseCard);
+            baseCard.father.bloomChild?.Add(this);
+        }
+
+        attachedEnergy = baseCard.attachedEnergy ?? new();
+        attachedEquipe = baseCard.attachedEquipe ?? new(); 
+        bloomChild = baseCard.bloomChild ?? new();
+        bloomChild.Add(baseCard);
+
+        baseCard.Detach();
+        baseCard.attachedEnergy = new();
+        baseCard.attachedEquipe = new();
+        baseCard.bloomChild = new();
+
+        foreach (var go in attachedEnergy.Concat(attachedEquipe.Concat(bloomChild)))
+        {
+            if (go.TryGetComponent<Card>(out var child))
+                child.father = this;
+        }
+        playedThisTurn = true;
+    }
+
+    public void Glow(bool ForceGlow = false, Color? ForceColor = null)
+    {
+        var finalColor = ForceColor ?? Color.clear;
+
         var glowObj = transform.Find("CardGlow");
         if (glowObj == null)
             return;
@@ -235,6 +273,13 @@ public class Card : MonoBehaviour
         {
             glowImage.color = !isRed ? Color.green : Color.red;
         }
+
+        if (ForceGlow)
+            glowObj.gameObject.SetActive(true);
+
+        if (ForceColor != null)
+            glowImage.color = finalColor;
+
     }
     public bool PassSpecialDeclareAttackCondition(Art currentArt)
     {
@@ -242,8 +287,8 @@ public class Card : MonoBehaviour
         switch (card.cardNumber + "+" + currentArt.Name)
         {
             case "hBP01-070+共依存":
-                foreach (GameObject _card in card.attachedEquipe)
-                    if (_card.GetComponent<Card>().cardName.Equals("座員"))
+                foreach (Card _card in card.attachedEquipe)
+                    if (_card.cardName.Equals("座員"))
                         return true;
                 return false;
         }
@@ -253,16 +298,15 @@ public class Card : MonoBehaviour
     {
         Card card = this;
         Dictionary<string, List<GameObject>> energyAmount = new();
-        foreach (GameObject energy in card.attachedEnergy)
+        foreach (Card cardEnergy in card.attachedEnergy)
         {
-            Card cardEnergy = energy.GetComponent<Card>();
             if (cardEnergy.cardType.Equals("エール"))
             {
                 if (!energyAmount.ContainsKey(cardEnergy.color))
                 {
                     energyAmount[cardEnergy.color] = new List<GameObject>();
                 }
-                energyAmount[cardEnergy.color].Add(energy);
+                energyAmount[cardEnergy.color].Add(cardEnergy.gameObject);
             }
         }
         return energyAmount;
@@ -412,9 +456,8 @@ public class Card : MonoBehaviour
 
 
         //check for equipaments effects
-        foreach (GameObject cardObj in SkillOwnerCard.attachedEquipe)
+        foreach (Card card in SkillOwnerCard.attachedEquipe)
         {
-            Card card = cardObj.GetComponent<Card>();
             switch (card.cardNumber)
             {
                 case "hBP01-126":

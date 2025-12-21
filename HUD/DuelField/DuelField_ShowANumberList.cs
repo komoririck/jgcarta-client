@@ -7,9 +7,17 @@ public class DuelField_ShowANumberList : MonoBehaviour
 {
     [SerializeField] private Transform NumberPanel;
     public TMP_Dropdown dropdown;
+    static DuelAction _DaToReturn;
 
-    public IEnumerator SetupSelectableNumbers(int min, int max)
+
+    public static DuelField_ShowANumberList INSTANCE;
+    private void Awake()
     {
+        INSTANCE = this;
+    }
+    public IEnumerator SetupSelectableItems(int min, int max, DuelAction DaToReturn)
+    {
+        _DaToReturn = DaToReturn;
         EffectController.INSTANCE.isSelectionCompleted = false;
         dropdown.ClearOptions();
 
@@ -20,15 +28,21 @@ public class DuelField_ShowANumberList : MonoBehaviour
         }
         dropdown.AddOptions(options);
 
-        NumberPanel.gameObject.SetActive(true);
+        DuelField_UI_MAP.INSTANCE.SaveAllPanelStatus().DisableAllOther().SetPanel(true, DuelField_UI_MAP.PanelType.SS_EffectBoxes_NumberListPanell);
 
         yield return new WaitUntil(() => EffectController.INSTANCE.isSelectionCompleted);
         EffectController.INSTANCE.isSelectionCompleted = false;
     }
     public void FinishSelection()
     {
-        NumberPanel.gameObject.SetActive(false);
-        EffectController.INSTANCE.CurrentContext.Register(new DuelAction{ yesOrNo = dropdown.options[dropdown.value].text.Equals("Yes") ? true: false });
+        _DaToReturn ??= new();
+        _DaToReturn.yesOrNo = dropdown.options[dropdown.value].text.Equals("Yes");
+
+        DuelField_UI_MAP.INSTANCE.LoadAllPanelStatus().SetPanel(true, DuelField_UI_MAP.PanelType.SS_UI_General);
         EffectController.INSTANCE.isSelectionCompleted = true;
+    }
+    public static DuelAction GetDA()
+    {
+        return _DaToReturn;
     }
 }

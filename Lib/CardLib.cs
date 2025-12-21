@@ -7,7 +7,16 @@ using static DuelField;
 
 class CardLib
 {
-    public static List<Card> GetAndFilterCards(List<Card> CardList = null, List<string> cardType = null, List<string> bloomLevel = null, List<string> cardNumber = null, List<string> color = null, List<string> cardName = null, bool onlyVisible = false, Lib.GameZone[] gameZones = null, Player player = Player.na, bool GetOnlyHolomem = false, bool GetLimitedCards = false, bool CardThatAllowReRoll = false, bool GetAllSuportTypes = false, List<string> ContainTags = null, bool WhoCanBloom = false, bool OnlyBackStage = false , bool CheckFieldForHasRestrictionsToPlayEquip = false, bool GetOnlyItemMascot = false, CardData CardToBeFound = null)
+    [Flags]
+    public enum attachType : byte
+    {
+        na = 0,
+        energy,
+        mascot,
+        equip,
+        all,
+    }
+    public static List<Card> GetAndFilterCards(List<Card> CardList = null, List<string> cardType = null, List<string> bloomLevel = null, List<string> cardNumber = null, List<string> color = null, List<string> cardName = null, bool onlyVisible = false, Lib.GameZone[] gameZones = null, Player player = Player.na, bool GetOnlyHolomem = false, bool GetLimitedCards = false, bool CardThatAllowReRoll = false, bool GetAllSuportTypes = false, List<string> ContainTags = null, bool WhoCanBloom = false, bool OnlyBackStage = false , bool CheckFieldForHasRestrictionsToPlayEquip = false, bool GetOnlyItemMascot = false, CardData CardToBeFound = null, CardFilter filter = null, bool CheckForAttachableTargetsOnTheBoard = false, bool isNotSuspended = false, attachType OnlyWithAttachment = attachType.na )
     {
         //var thisCard = CardLib.GetAndFilterCards(gameZones: new[] { da.usedCard.curZone }, player: TargetPlayer.Player, color: new() { "赤" }, cardType: new() { "エール" });
         //List<string> cardType = IsACheer ? new (){ "エール"} : new() { "サポート・ツール", "サポート・マスコット", "サポート・ファン" };
@@ -126,6 +135,27 @@ class CardLib
                     if (HasRestrictionsToPlayEquip(card, target))
                         CardList.Remove(card);
         }
+
+        CardList = OnlyWithAttachment switch
+        {
+            attachType.energy =>
+                CardList.FindAll(card => card.attachedEnergy != null && card.attachedEnergy.Count > 0),
+
+            attachType.equip =>
+                CardList.FindAll(card => card.attachedEquipe != null && card.attachedEquipe.Count > 0),
+
+            attachType.mascot =>
+                CardList.FindAll(card => card.bloomChild != null && card.bloomChild.Count > 0),
+
+            attachType.all =>
+                CardList.FindAll(card =>
+                    (card.attachedEnergy != null && card.attachedEnergy.Count > 0) ||
+                    (card.attachedEquipe != null && card.attachedEquipe.Count > 0) ||
+                    (card.bloomChild != null && card.bloomChild.Count > 0)
+                ),
+
+            _ => CardList
+        };
 
         return CardList;
     }
@@ -335,9 +365,9 @@ class CardLib
             case "hBP01-120":
             case "hBP01-115":
             case "hBP01-121":
-                foreach (GameObject _Card in card.attachedEquipe)
+                foreach (Card _Card in card.attachedEquipe)
                 {
-                    _Card.GetComponent<Card>().cardNumber.Equals(card.cardNumber);
+                    _Card.cardNumber.Equals(card.cardNumber);
                     return false;
                 }
                 break;
@@ -357,20 +387,37 @@ class CardLib
 
     internal static List<Tuple<Card, bool>> GetActiveParent(Card[] cards)
     {
-        List<Tuple<Card, bool>> result = new();
+        var result = new List<Tuple<Card, bool>>();
 
         if (cards == null || cards.Length == 0)
             return result;
 
-        bool anyHasFather = cards.Any(c => c.father != null);
+        var roots = cards.Where(c => c.father == null);
 
-        foreach (var card in cards)
+        foreach (var root in roots)
         {
-            bool isActive = anyHasFather ? card.father != null : true;
-            result.Add(Tuple.Create(card, isActive));
+            bool showRoot = true;
+            bool showChildren = false;
+
+            result.Add(Tuple.Create(root, showRoot));
+
+            AddChildren(root.attachedEnergy, showChildren, result);
+            AddChildren(root.attachedEquipe, showChildren, result);
+            AddChildren(root.bloomChild, showChildren, result);
         }
 
         return result;
+    }
+    static void AddChildren(List<Card> list,bool active, List<Tuple<Card, bool>> result)
+    {
+        if (list == null)
+            return;
+
+        foreach (var go in list)
+        {
+            if (go.TryGetComponent<Card>(out var card))
+                result.Add(Tuple.Create(card, active));
+        }
     }
 }
 

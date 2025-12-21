@@ -14,24 +14,44 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
     [SerializeField] private GameObject CardAttachItemHolder;
     [SerializeField] private GameObject AttachedCardItem;
 
+
     private GameObject selectedItem;
     private int clickObjects = 1;
     List<Card> SelectableCards = new();
     List<GameObject> instantiatedItem = new();
 
-    DuelAction _DuelAction;
+    static DuelAction _DaToReturn;
     Player _target;
+    [SerializeField] private Button closeButton;
+    bool _canClosePanel = false;
 
-    public IEnumerator SetupSelectableItems(DuelAction da, Player target = Player.Player, Lib.GameZone[] zonesThatPlayerCanSelect = null)
+    public static DuelField_TargetForEffectMenu INSTANCE;
+    private void Awake()
     {
-        _DuelAction = da;
-        _target = target; 
+        INSTANCE = this;
+        closeButton = DuelField_UI_MAP.INSTANCE.SS_EffectBoxes_General_PanelCloseButton.GetComponent<Button>();
+        closeButton.onClick.AddListener(() => {
+            if (_canClosePanel) { 
+                _DaToReturn = new DuelAction();
+                DuelField_UI_MAP.INSTANCE.LoadAllPanelStatus().SetPanel(true, DuelField_UI_MAP.PanelType.SS_UI_General);
+            }
+        });
+    }
+
+    public IEnumerator SetupSelectableItems(DuelAction da, Player target = Player.Player, Lib.GameZone[] zonesThatPlayerCanSelect = null, List<Card> specificList = null , bool canClosePanel = false)
+    {
+        _DaToReturn = da;
+        _target = target;
+        _canClosePanel = canClosePanel;
 
         EffectController.INSTANCE.isSelectionCompleted = false;
 
         zonesThatPlayerCanSelect ??= DuelField.DEFAULTHOLOMEMZONE;
         GameObjectExtensions.DestroyAllChildren(CardListContent.gameObject);
         SelectableCards = CardLib.GetAndFilterCards(gameZones: zonesThatPlayerCanSelect, player: target, onlyVisible: true);
+
+        if (specificList != null)
+            SelectableCards = SelectableCards.Where(sc => specificList.Any(sl => sl.cardNumber == sc.cardNumber && sl.curZone == sc.curZone)).ToList();
 
         int x = 0; 
         foreach (Card item in SelectableCards)
@@ -59,7 +79,8 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
             x++;
         }
 
-        CardListContent.transform.parent.parent.parent.gameObject.SetActive(true);
+        DuelField_UI_MAP.INSTANCE.SaveAllPanelStatus().DisableAllOther().SetPanel(true, DuelField_UI_MAP.PanelType.SS_EffectBoxes_SelectionDetachEnergyPanel);
+        DuelField_UI_MAP.INSTANCE.SetPanel(_canClosePanel, DuelField_UI_MAP.PanelType.SS_EffectBoxes_General_PanelCloseButton);
 
         yield return new WaitUntil(() => EffectController.INSTANCE.isSelectionCompleted);
         EffectController.INSTANCE.isSelectionCompleted = false;
@@ -92,12 +113,15 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
         if (returnCard == null)
             return;
 
-        _DuelAction.targetCard = returnCard.ToCardData();
-        _DuelAction.usedCard = _DuelAction.usedCard;
-        _DuelAction.targetPlayer = _target;
+        _DaToReturn.targetCard = returnCard.ToCardData();
+        _DaToReturn.usedCard = _DaToReturn.usedCard;
+        _DaToReturn.actionTarget = _target;
 
-        EffectController.INSTANCE.CurrentContext.Register(_DuelAction);
-        CardListContent.transform.parent.parent.parent.gameObject.SetActive(false);
+        DuelField_UI_MAP.INSTANCE.LoadAllPanelStatus().SetPanel(true, DuelField_UI_MAP.PanelType.SS_UI_General).SetPanel(false, DuelField_UI_MAP.PanelType.SS_BlockView);
         EffectController.INSTANCE.isSelectionCompleted = true;
+    }
+    public static DuelAction GetDA()
+    {
+        return _DaToReturn;
     }
 }

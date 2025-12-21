@@ -25,14 +25,9 @@ public class Lib : MonoBehaviour
         Favourite = 13,
         HoloPower = 18,
     }
-    static List<Card> temp = new();
+    public static List<Card> temp = new();
     public static List<Card> ConvertToCard(List<CardData> CardDataList)
     {
-        foreach (Card cds in temp)
-        {
-            Destroy(cds.gameObject);
-        }
-
         var CardList = new List<Card>();
         foreach (CardData cd in CardDataList)
         {
@@ -41,6 +36,7 @@ public class Lib : MonoBehaviour
             card.Init(cd);
             obj.gameObject.SetActive(false);
             CardList.Add(card);
+            temp.Add(card);
         }
         return CardList;
     }

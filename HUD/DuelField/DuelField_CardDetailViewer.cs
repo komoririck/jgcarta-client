@@ -162,7 +162,7 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
 
 
                     Button itemButton = newItem.GetComponent<Button>();
-                    DuelAction duelaction = new();
+                    DuelAction duelaction = new() {playerID = PlayerInfo.INSTANCE.PlayerID};
                     duelaction.usedCard = thisCard.ToCardData();
                     
                     if (thisCard.IsCostCovered(currentArt.Cost, energyAmount)
@@ -255,12 +255,12 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
 
         CloseDisplayed();
         DuelField.INSTANCE.centerStageArtUsed = true;
-        StartCoroutine(EffectController.INSTANCE.RetreatArt(duelaction));
+        DuelField.INSTANCE.GenericActionCallBack(duelaction, "Retreat");
     }
     private void OnItemClickOshiSkill(DuelAction duelaction)
     {
         CloseDisplayed();
-        StartCoroutine(EffectController.INSTANCE.OshiSkill(duelaction));
+        DuelField.INSTANCE.GenericActionCallBack(duelaction, "ResolveOnOshiEffect");
         GameObject HoloPower = DuelField.INSTANCE.GetZone(Lib.GameZone.HoloPower, DuelField.Player.Player);
         DuelField.INSTANCE.usedOshiSkill = true;
 
@@ -268,7 +268,7 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
     private void OnItemClickSPOshiSkill(DuelAction duelaction)
     {
         CloseDisplayed();
-        StartCoroutine(EffectController.INSTANCE.SPOshiSkill(duelaction));
+        DuelField.INSTANCE.GenericActionCallBack(duelaction, "ResolveOnOshiSPEffect");
         GameObject HoloPower = DuelField.INSTANCE.GetZone(Lib.GameZone.HoloPower, DuelField.Player.Player);
         DuelField.INSTANCE.usedSPOshiSkill = true;
     }

@@ -1,11 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class DuelField_ShowAlistPickOne : MonoBehaviour
 {
+    public static DuelField_ShowAlistPickOne INSTANCE;
+
     [SerializeField] private Button confirmButton;
     [SerializeField] private Transform contentPanel;
     [SerializeField] private GameObject itemPrefab;
@@ -15,13 +18,32 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
     int MustClickCounter = 1;
     int MaxClickCounter = 1;
     int ClickedCounter = 0;
+    static DuelAction _DaToReturn;
 
-    public IEnumerator SetupSelectableItems(List<Card> SelectableCards, List<Card> avaliableForSelect = null)
+    [SerializeField] private Button closeButton;
+    bool _canClosePanel = false;
+
+    private void Awake()
     {
+        INSTANCE = this;
+        
+        closeButton = DuelField_UI_MAP.INSTANCE.SS_EffectBoxes_General_PanelCloseButton.GetComponent<Button>();
+        closeButton.onClick.AddListener(() => {
+            if (_canClosePanel)
+            {
+                _DaToReturn = new DuelAction();
+                DuelField_UI_MAP.INSTANCE.LoadAllPanelStatus().SetPanel(true, DuelField_UI_MAP.PanelType.SS_UI_General);
+            }
+        });
+    }
+    public IEnumerator SetupSelectableItems(DuelAction DaToReturn, List<Card> SelectableCards, List<Card> avaliableForSelect = null, bool canClosePanel = false)
+    {
+        _DaToReturn = DaToReturn;
         confirmButton.onClick.RemoveAllListeners();
         confirmButton.onClick.AddListener(FinishSelection);
         selectedItems.Clear();
         EffectController.INSTANCE.isSelectionCompleted = false;
+        _canClosePanel = canClosePanel;
 
         avaliableForSelect ??= SelectableCards;
 
@@ -45,8 +67,11 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
 
             foreach (Card availableCard in avaliableForSelect)
             {
-                if (availableCard.cardNumber.Equals(newC.cardNumber))
+                if (availableCard.cardNumber.Equals(newC.cardNumber)) 
+                { 
                     canSelect = true;
+                    newC.Glow(ForceColor: Color.blue, ForceGlow: true);
+                }
             }
 
             TMP_Text itemText = newItem.GetComponentInChildren<TMP_Text>();
@@ -57,7 +82,8 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
             InstantiatedObjIndex++;
         }
 
-        contentPanel.transform.parent.parent.parent.gameObject.SetActive(true);
+        DuelField_UI_MAP.INSTANCE.SaveAllPanelStatus().DisableAllOther().SetPanel(true, DuelField_UI_MAP.PanelType.SS_EffectBoxes_SelectionPanel);
+        DuelField_UI_MAP.INSTANCE.SetPanel(_canClosePanel, DuelField_UI_MAP.PanelType.SS_EffectBoxes_General_PanelCloseButton);
 
         yield return new WaitUntil(() => EffectController.INSTANCE.isSelectionCompleted);
         EffectController.INSTANCE.isSelectionCompleted = false;
@@ -71,7 +97,10 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
         if (ClickedCounter >= MaxClickCounter)
             return;
 
-        selectedItems.Add(itemObject.GetComponent<Card>().ToCardData());
+        Card card = itemObject.GetComponent<Card>();
+        card.Glow(ForceColor: Color.green, ForceGlow: true);
+
+        selectedItems.Add(card.ToCardData());
 
         TMP_Text orderText = itemObject.transform.Find("OrderText").GetComponent<TMP_Text>();
         orderText.text = (ClickedCounter + 1).ToString();  
@@ -84,14 +113,19 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
         if (ClickedCounter < MustClickCounter)
             return;
 
-        // Clear selection list
         InstantiatedObjIndex = 1;
         MustClickCounter = 1;
         MaxClickCounter = 1;
         ClickedCounter = 0;
 
-        contentPanel.transform.parent.parent.parent.gameObject.SetActive(false);
-        EffectController.INSTANCE.CurrentContext.Register(new DuelAction {cardList = selectedItems });
+        _DaToReturn ??= new();
+        _DaToReturn.cardList = selectedItems;
+
+        DuelField_UI_MAP.INSTANCE.LoadAllPanelStatus().SetPanel(true, DuelField_UI_MAP.PanelType.SS_UI_General).SetPanel(false, DuelField_UI_MAP.PanelType.SS_BlockView);
         EffectController.INSTANCE.isSelectionCompleted = true;
+    }
+    public static DuelAction GetDA()
+    {
+        return _DaToReturn;
     }
 }

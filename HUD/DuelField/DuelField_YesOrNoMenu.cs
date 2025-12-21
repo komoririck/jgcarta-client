@@ -8,12 +8,21 @@ public class DuelField_YesOrNoMenu : MonoBehaviour
     [SerializeField] private Button yesButton;
     [SerializeField] private Button noButton;
     [SerializeField] private Transform CardListContent;
+    static DuelAction _DaToReturn;
 
-    public IEnumerator ShowYesOrNoMenu(string text = "")
+
+    public static DuelField_YesOrNoMenu INSTANCE;
+    private void Awake()
     {
+        INSTANCE = this;
+    }
+    public IEnumerator ShowYesOrNoMenu(DuelAction DaToReturn, string text = "")
+    {
+        _DaToReturn = DaToReturn;
         EffectController.INSTANCE.isSelectionCompleted = false;
 
-        CardListContent.gameObject.SetActive(true);
+        DuelField_UI_MAP.INSTANCE.SaveAllPanelStatus().DisableAllOther().SetPanel(true, DuelField_UI_MAP.PanelType.SS_EffectBoxes_ActivateEffectPanel);
+
         if (!string.IsNullOrEmpty(text))
             CardListContent.GetComponentInChildren<TMP_Text>().text = text;
 
@@ -27,19 +36,25 @@ public class DuelField_YesOrNoMenu : MonoBehaviour
     }
     void FinishSelection()
     {
-        CardListContent.gameObject.SetActive(false);
+        DuelField_UI_MAP.INSTANCE.LoadAllPanelStatus().SetPanel(true, DuelField_UI_MAP.PanelType.SS_UI_General);
         EffectController.INSTANCE.isSelectionCompleted = true;
     }
 
-    public void YesButton() 
+    public void YesButton()
     {
-        EffectController.INSTANCE.CurrentContext.Register(new DuelAction { yesOrNo = true });
+        _DaToReturn ??= new();
+        _DaToReturn.yesOrNo = true;
         FinishSelection();
     }
     public void NoButton()
     {
-        EffectController.INSTANCE.CurrentContext.Register( new DuelAction { yesOrNo = false }  );
+        _DaToReturn ??= new();
+        _DaToReturn.yesOrNo = false;
         FinishSelection();
     }
 
+    public static DuelAction GetDA()
+    {
+        return _DaToReturn;
+    }
 }

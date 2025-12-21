@@ -4,12 +4,10 @@ using System;
 [Serializable]
 public class Request
 {
-    public string playerID;
-    public string password;
-    public string email;
-    public string type;
-    public string description;
-    [JsonIgnore]
-    public object jsonObject;
-    public DuelAction duelAction;
+    public string? playerID { get; set; }
+    public string? password { get; set; }
+    public string? email { get; set; }
+    public string? type { get; set; }
+    public string? description { get; set; }
+    public DuelAction? duelAction { get; set; }
 }

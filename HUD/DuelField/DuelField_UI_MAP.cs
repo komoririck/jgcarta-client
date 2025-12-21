@@ -38,6 +38,7 @@ public class DuelField_UI_MAP : MonoBehaviour
         SS_UI_LogToggleButton,
         SS_MulliganPanel,
         SS_EffectBoxes_General,
+        SS_EffectBoxes_General_PanelCloseButton,
         SS_EffectBoxes_SelectionPanel,
         SS_EffectBoxes_SelectionDetachEnergyPanel,
         SS_EffectBoxes_CardPanel,
@@ -46,7 +47,7 @@ public class DuelField_UI_MAP : MonoBehaviour
         WS_Oponent_General,
         WS_Player_General,
         WS_ReadyButton,
-        WS_PassTurnButton
+        WS_PassTurnButton,
     }
 
     public
@@ -69,6 +70,7 @@ public class DuelField_UI_MAP : MonoBehaviour
         SS_MulliganPanelYes,
         SS_MulliganPanelNo,
         SS_EffectBoxes_General,
+        SS_EffectBoxes_General_PanelCloseButton,
         SS_EffectBoxes_SelectionPanel,
         SS_EffectBoxes_SelectionDetachEnergyPanel,
         SS_EffectBoxes_CardPanel,
@@ -149,6 +151,9 @@ public class DuelField_UI_MAP : MonoBehaviour
                 SetPanel(status, PanelType.SS_BlockView);
                 break;
             case PanelType.SS_EffectBoxes_General:
+                break;
+            case PanelType.SS_EffectBoxes_General_PanelCloseButton:
+                SS_EffectBoxes_General_PanelCloseButton.SetActive(status);
                 break;
             default:
                 if (status)
@@ -247,6 +252,8 @@ public class DuelField_UI_MAP : MonoBehaviour
 
             case PanelType.SS_EffectBoxes_General:
                 return SS_EffectBoxes_General;
+            case PanelType.SS_EffectBoxes_General_PanelCloseButton:
+                return SS_EffectBoxes_General_PanelCloseButton;
             case PanelType.SS_EffectBoxes_SelectionPanel:
                 return SS_EffectBoxes_SelectionPanel;
             case PanelType.SS_EffectBoxes_SelectionDetachEnergyPanel:
@@ -291,6 +298,7 @@ public class DuelField_UI_MAP : MonoBehaviour
         SS_UI_LogToggleButton.SetActive(false);
         SS_MulliganPanel.SetActive(false);
         SS_EffectBoxes_General.SetActive(false);
+        SS_EffectBoxes_General_PanelCloseButton.SetActive(false);
         SS_EffectBoxes_SelectionPanel.SetActive(false);
         SS_EffectBoxes_SelectionDetachEnergyPanel.SetActive(false);
         SS_EffectBoxes_CardPanel.SetActive(false);

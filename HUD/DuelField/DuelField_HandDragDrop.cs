@@ -212,7 +212,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
             targetCard = targetCard?.ToCardData()
         };
 
-        FindAnyObjectByType<EffectController>().ResolveSuportEffect(_DuelAction);
+        DuelField.INSTANCE.GenericActionCallBack(_DuelAction, "ResolveOnSupportEffect");
         rectTransform.anchoredPosition = Vector2.zero;
 
         return true;

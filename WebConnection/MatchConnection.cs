@@ -128,7 +128,7 @@ public class MatchConnection : MonoBehaviour
     public async Task SendCallToServer(string playerID, string password, string type, string description = "", DuelAction addInfo = null)
     {
         if (addInfo != null) {
-            if (addInfo.targetPlayer.Equals(DuelField.Player.na))
+            if (addInfo.actionTarget.Equals(DuelField.Player.na))
                 addInfo.GetPlayerTypeById();
         }
 
