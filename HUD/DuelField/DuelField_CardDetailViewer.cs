@@ -39,10 +39,11 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
         DetectSwipe();
     }
 
-    public void CloseDisplayed() {
+    public void CloseDisplayed() 
+    {
         DuelField_UI_MAP.INSTANCE.LoadAllPanelStatus().SetPanel(true, DuelField_UI_MAP.PanelType.SS_UI_General).SetPanel(false, DuelField_UI_MAP.PanelType.SS_BlockView);
 
-        if (!DuelField.INSTANCE.ReadyButtonShowed) 
+        if (DuelField.INSTANCE.DUELFIELDDATA.currentGamePhase == GAMEPHASE.Mulligan) 
             DuelField_UI_MAP.INSTANCE.SetPanel(true, DuelField_UI_MAP.PanelType.SS_BlockView);
     }
     public void SetCardListToBeDisplayed(ref List<Card> _CarditemList, Card clickedCard, DuelField_HandClick.ClickAction _clickAction)
@@ -162,7 +163,7 @@ public class DuelfField_CardDetailViewer : MonoBehaviour
 
 
                     Button itemButton = newItem.GetComponent<Button>();
-                    DuelAction duelaction = new() {playerID = PlayerInfo.INSTANCE.PlayerID};
+                    DuelAction duelaction = new() {playerID = DuelField.INSTANCE.DUELFIELDDATA.playersType[PlayerInfo.INSTANCE.PlayerID] };
                     duelaction.usedCard = thisCard.ToCardData();
                     
                     if (thisCard.IsCostCovered(currentArt.Cost, energyAmount)

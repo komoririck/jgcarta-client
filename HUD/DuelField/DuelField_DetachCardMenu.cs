@@ -113,8 +113,8 @@ public class DuelField_DetachCardMenu : MonoBehaviour
         Card returnCard = selectedItem.GetComponent<Card>();
 
         DuelAction da = new DuelAction();
-        da.attachmentCost = new() { returnCard.ToCardData() };
-        da.activationZone = da.attachmentCost.First().curZone;
+        da.cardList = new() { returnCard.ToCardData() };
+        da.activationZone = da.cardList.First().curZone;
         da.actionTarget = _target;
 
         _DaToReturn = da;

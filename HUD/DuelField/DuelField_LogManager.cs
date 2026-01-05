@@ -6,14 +6,11 @@ using UnityEngine;
 public class DuelField_LogManager : MonoBehaviour
 {
     public static void AddLog(DuelAction _DuelAction, string type) {
-        PlayerInfo _PlayerInfo = FindAnyObjectByType<PlayerInfo>();
-        DuelFieldData _DuelFieldData = DuelField.INSTANCE.DUELFIELDDATA;
-
         string whichPlayer = "";
-        if(_DuelAction == null || string.IsNullOrEmpty(_DuelAction.playerID))
-            whichPlayer = _DuelFieldData.currentPlayerTurn.Equals(_PlayerInfo.PlayerID) ? "You" : "Your Opponent";
+        if (_DuelAction == null || _DuelAction.playerID != null)
+            whichPlayer = DuelField.INSTANCE.IsMyTurn() ? "You" : "Your Opponent";
         else
-            whichPlayer = _DuelAction.playerID.Equals(_PlayerInfo.PlayerID) ? "You" : "Your Opponent";
+            whichPlayer = _DuelAction.playerID == DuelField.INSTANCE.DUELFIELDDATA.playersType[PlayerInfo.INSTANCE.PlayerID] ? "You" : "Your Opponent";
 
         switch (type){
             case "StartDuel":

@@ -3,38 +3,35 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using static DuelField;
 
 
 [Serializable]
 public class DuelFieldData
 {
     [JsonIgnore]
-    public GAMEPHASE currentGamePhase = GAMEPHASE.StartDuel;
+    public GAMEPHASE currentGamePhase = GAMEPHASE.StartMatch;
     [JsonIgnore]
     public List<Card> playerLimiteCardPlayed = new();
     [Flags]
     public enum GAMEPHASE : byte
     {
-        StartDuel = 200,
-        InitialDraw = 201,
-        Mulligan = 202,
-        ForcedMulligan = 203,
-        SettingUpBoard = 204,
-        StartMatch = 0,
-        ResetStep = 1,
-        ResetStepReSetStage = 11,
-        DrawStep = 2,
-        CheerStep = 3,
-        CheerStepChoose = 4,
-        CheerStepChoosed = 5,
-        MainStep = 6,
-        PerformanceStep = 7,
-        UseArt = 8,
-        EndStep = 9,
-        ConditionedDraw = 101,
-        ConditionedSummom = 102,
-        HolomemDefeated = 103,
-        HolomemDefeatedEnergyChoose = 104
+        StartMatch,
+        Mulligan,
+        MulliganForced,
+        SettingUpBoard,
+        ResetStep,
+        SetHolomemStep,
+        DrawStep,
+        CheerStep,
+        CheerStepChoose,
+        CheerStepChoosed,
+        MainStep,
+        PerformanceStep,
+        UseArt,
+        EndStep,
+        DamageCalculation,
+        InflictDamage,
     }
 
     public List<CardData> playerAHand = new List<CardData>();
@@ -67,15 +64,15 @@ public class DuelFieldData
     public List<CardData> playerACardCheer = new List<CardData>();
     public List<CardData> playerBCardCheer = new List<CardData>();
 
-    public string currentPlayerTurn;
-    public string firstPlayer;
-    public string secondPlayer;
+    public Dictionary<Player, string> players { get; set; }
+    public Dictionary<string, Player> playersType { get; set; }
+    public Player turnPlayer;
 
     public static DuelFieldData MapDuelFieldData(List<GameObject> field)
     {
         DuelFieldData duelFieldData = DuelField.INSTANCE.DUELFIELDDATA;
 
-        if (!duelFieldData.firstPlayer.Equals(PlayerInfo.INSTANCE.PlayerID))
+        if (!duelFieldData.players.First().Equals(PlayerInfo.INSTANCE.PlayerID))
         {
             duelFieldData.playerBArquive = field[0].GetComponentsInChildren<Card>()?.ToList().Select(item => item.ToCardData()).ToList();
             duelFieldData.playerBHoloPower = field[2].GetComponentsInChildren<Card>()?.ToList().Select(item => item.ToCardData()).ToList();
@@ -92,6 +89,8 @@ public class DuelFieldData
             duelFieldData.playerAStage = field[15].GetComponentInChildren<Card>()?.ToCardData();
             duelFieldData.playerACollaboration = field[14].GetComponentInChildren<Card>()?.ToCardData();
             duelFieldData.playerALife = field[17].GetComponentsInChildren<Card>()?.ToList().Select(item => item.ToCardData()).ToList();
+
+            duelFieldData.playersType = duelFieldData.players.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
 
             return duelFieldData;
         }
@@ -111,6 +110,8 @@ public class DuelFieldData
         duelFieldData.playerBStage = field[15].GetComponentInChildren<Card>()?.ToCardData();
         duelFieldData.playerBCollaboration = field[14].GetComponentInChildren<Card>()?.ToCardData();
         duelFieldData.playerBLife = field[17].GetComponentsInChildren<Card>().ToList()?.Select(item => item.ToCardData()).ToList();
+
+        duelFieldData.playersType = duelFieldData.players.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
 
         return duelFieldData;
     }

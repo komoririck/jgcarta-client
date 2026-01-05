@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using static DuelField;
 
 public class MatchConnection : MonoBehaviour
 {
     public static MatchConnection INSTANCE;
     public WebSocket _webSocket;
     public readonly Uri WebSocketConnectionUrl = new("wss://localhost:7047/ws");
-    [SerializeField] private int _connectionState = 0;
 
     private Queue<Tuple<string, DuelAction>> PendingActions = new();
     public Tuple<string, DuelAction> GetPendingActions() { return PendingActions.Dequeue(); }
@@ -25,7 +25,10 @@ public class MatchConnection : MonoBehaviour
         INSTANCE = this;
         _webSocket = new WebSocket(WebSocketConnectionUrl.ToString());
 
-        _webSocket.OnOpen += () =>{Debug.Log("Connected to server.");};
+        _webSocket.OnOpen += () =>
+        {
+            StartCoroutine(TryToRequest("Waitingforopponent", 1, 5000f, SendCallToServer(PlayerInfo.INSTANCE.PlayerID, PlayerInfo.INSTANCE.Password, "JoinPlayerQueueList", null)));
+        };
 
         _webSocket.OnMessage += (bytes) =>
         {
@@ -39,12 +42,10 @@ public class MatchConnection : MonoBehaviour
                     switch (responseData.type)
                     {
                         case "goToRoom":
-                            _connectionState = 4;
                             StartCoroutine( HandleLoadNewScene("DuelField"));
                             break;
                         case "DuelUpdate":
-                            if (responseData.description.Equals("Endduel"))
-                                DuelField.INSTANCE.isServerActionLocked = false;
+                           // if (responseData.description.Equals("Endduel") || responseData.description.Equals("unlockGame"))
                             break;
                         case "cancelMatch":
                             DontDestroyManager.DestroyAllDontDestroyOnLoadObjects();
@@ -52,6 +53,8 @@ public class MatchConnection : MonoBehaviour
                             break;
                     }
                     PendingActions.Enqueue(new Tuple<string, DuelAction>(responseData.description, responseData.duelAction));
+                
+                
                 }
             }
             catch (Exception e)
@@ -79,17 +82,9 @@ public class MatchConnection : MonoBehaviour
         #if !UNITY_WEBGL || UNITY_EDITOR
             _webSocket.DispatchMessageQueue();
         #endif
-
-        if (_webSocket.State == WebSocketState.Open) {
-            if (_connectionState == 0)
-            {
-                _connectionState = 1;
-                StartCoroutine(TryToRequest("Waitingforopponent", 1, 5000f, SendCallToServer(PlayerInfo.INSTANCE.PlayerID, PlayerInfo.INSTANCE.Password, "JoinPlayerQueueList"), 2));
-            }
-        }
     }
 
-    public IEnumerator TryToRequest(string expectedResponse, int maxTry, float timeInterval, Task asyncFunc, int conState, Action updateReturn = null) { 
+    public IEnumerator TryToRequest(string expectedResponse, int maxTry, float timeInterval, Task asyncFunc, Action updateReturn = null) { 
         bool shouldAsk = true;
         int connectionRetry = 0;
         float timer = 0f;
@@ -116,29 +111,23 @@ public class MatchConnection : MonoBehaviour
                 updateReturn();
                 _requestData.type = "";
 
-                _connectionState = conState;
                 yield break;
             }
         } while (connectionRetry > maxTry);
 
-        if (connectionRetry < maxTry && _connectionState == 1) { }
+        if (connectionRetry < maxTry) { }
         //            SceneManager.LoadScene("Login");
     }
 
-    public async Task SendCallToServer(string playerID, string password, string type, string description = "", DuelAction addInfo = null)
+    public async Task SendCallToServer(string playerID, string password, string? type = null, string? description = null, DuelAction da = null)
     {
-        if (addInfo != null) {
-            if (addInfo.actionTarget.Equals(DuelField.Player.na))
-                addInfo.GetPlayerTypeById();
-        }
-
         Request _PlayerRequest = new()
         {
             playerID = playerID,
             password = password,
             type = type,
             description = description,
-            duelAction = addInfo,
+            duelAction = da,
         };
 
         JsonSerializerSettings jsonSettings = new JsonSerializerSettings

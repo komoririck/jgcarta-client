@@ -36,7 +36,8 @@ public class DuelField_ShowANumberList : MonoBehaviour
     public void FinishSelection()
     {
         _DaToReturn ??= new();
-        _DaToReturn.yesOrNo = dropdown.options[dropdown.value].text.Equals("Yes");
+        _DaToReturn.Order ??= new();
+        _DaToReturn.Order.Add(int.Parse( dropdown.options[dropdown.value].text));
 
         DuelField_UI_MAP.INSTANCE.LoadAllPanelStatus().SetPanel(true, DuelField_UI_MAP.PanelType.SS_UI_General);
         EffectController.INSTANCE.isSelectionCompleted = true;

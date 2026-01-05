@@ -6,11 +6,13 @@ using TMPro;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using static DuelField;
 using static DuelField_HandClick;
 
 [Serializable]
 public class Card : MonoBehaviour
 {
+    public Player owner { get; set; }
     public string cardNumber;
     public Lib.GameZone lastZone = 0;
     public Lib.GameZone curZone = 0;
@@ -64,6 +66,8 @@ public class Card : MonoBehaviour
             throw new ArgumentNullException(nameof(data));
 
         data.GetCardInfo();
+
+        this.owner = data.owner;
 
         this.cardNumber = data.cardNumber;
         this.curZone = data.curZone;
@@ -209,7 +213,7 @@ public class Card : MonoBehaviour
         bool isGlowing = false;
         bool isRed = false;
 
-        bool ISMYTURN = DuelField.INSTANCE.DUELFIELDDATA.currentPlayerTurn == PlayerInfo.INSTANCE.PlayerID; 
+        bool ISMYTURN = DuelField.INSTANCE.IsMyTurn(); 
         bool ISMYCARD = transform.parent?.name == "PlayerGeneral" || transform.parent?.parent?.name == "PlayerGeneral" || transform.parent?.parent?.parent?.name == "PlayerGeneral";
         bool ISMAINPHASE = DuelField.INSTANCE.DUELFIELDDATA.currentGamePhase.Equals(DuelFieldData.GAMEPHASE.MainStep);
 

@@ -1,18 +1,17 @@
 using System;
 using System.Collections.Generic;
 using static DuelField;
+using static DuelFieldData;
 using static Lib;
-using static UnityEngine.Rendering.BoolParameter;
 
 [Serializable]
 public class DuelAction
 {
-    public string playerID;
+    public Player playerID;
     public CardData usedCard { get; set; }
     public Lib.GameZone activationZone { get; set; }
     public Lib.GameZone targetZone { get; set; }
     public CardData targetCard { get; set; }
-    public List<CardData> attachmentCost { get; set; }
     public string selectedSkill { get; set; }
     public List<int> Order { get; set; }
     public bool suffle { get; set; }
@@ -34,28 +33,8 @@ public class DuelAction
     public bool targetType { get; set; }
     public bool lookLastZone { get; set; }
     public bool canClosePanel { get; set; }
-    public DuelAction GetPlayerTypeById()
-    {
-        if (DuelField.INSTANCE.DUELFIELDDATA.firstPlayer.Equals(playerID))
-            actionTarget = Player.FirstPlayer;
-        else if (DuelField.INSTANCE.DUELFIELDDATA.secondPlayer.Equals(playerID))
-            actionTarget = Player.SecondPlayer;
+    public GAMEPHASE gamePhase { get; set; }
 
-        return this;
-    }
-    public Player GetClientSideType(Player type)
-    {
-        var player = Player.FirstPlayer;
-        if (DuelField.INSTANCE.DUELFIELDDATA.secondPlayer.Equals(PlayerInfo.INSTANCE.PlayerID))
-            player = Player.SecondPlayer;
-
-        if (type == player)
-                return Player.Player;
-            else
-                return Player.Oponnent;
-
-        return Player.na;
-    }
     [Flags]
     public enum Display : byte
     {
@@ -80,5 +59,36 @@ public class DuelAction
                 valid.Add(cardList[n]);
         }
         return valid;
+    }
+
+    public DuelAction GetClientSidePlayers()
+    {
+        if (playerID != null || playerID != Player.na)
+            playerID = GetClientSideType(playerID);
+
+        if (actionTarget != null || actionTarget != Player.na)
+            actionTarget = GetClientSideType(actionTarget);
+
+        return this;
+    }
+
+    private Player GetClientSideType(Player type)
+    {
+        // if (DuelField.INSTANCE == null || DuelField.INSTANCE.DUELFIELDDATA == null)
+        //   return Player.na;
+        try 
+        {
+            var player = Player.PlayerA;
+            if (DuelField.INSTANCE.DUELFIELDDATA.players[Player.PlayerB].Equals(PlayerInfo.INSTANCE.PlayerID))
+                player = Player.PlayerB;
+
+            if (type == player)
+                return Player.Player;
+            else
+                return Player.Oponnent;
+        } catch (Exception e) 
+        {
+            return Player.na;
+        }
     }
 }

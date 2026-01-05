@@ -97,12 +97,6 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
                 }
             },
             {
-                DuelFieldData.GAMEPHASE.HolomemDefeatedEnergyChoose, new()
-                {
-                    { "エール", Handle_CheerStep }
-                }
-            },
-            {
                 DuelFieldData.GAMEPHASE.CheerStepChoose, new()
                 {
                     { "エール", Handle_CheerStep }
@@ -187,7 +181,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
 
         DuelAction _DuelAction = new();
 
-        _DuelAction.playerID = DuelField.INSTANCE.DUELFIELDDATA.currentPlayerTurn;
+        _DuelAction.playerID = DuelField.INSTANCE.DUELFIELDDATA.turnPlayer;
         _DuelAction.usedCard = thisCard.ToCardData();
         _DuelAction.usedCard.curZone = Lib.GameZone.Hand;
         _DuelAction.targetZone = (Lib.GameZone)Enum.Parse(
@@ -207,7 +201,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
         DuelAction _DuelAction = new DuelAction()
         {
             usedCard = thisCard.ToCardData(),
-            playerID = DuelField.INSTANCE.DUELFIELDDATA.currentPlayerTurn,
+            playerID = DuelField.INSTANCE.DUELFIELDDATA.turnPlayer,
             targetZone = targetCard != null ? TargetZoneEnum : Lib.GameZone.na,
             targetCard = targetCard?.ToCardData()
         };
@@ -239,7 +233,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
         DuelAction _DuelAction = new DuelAction()
         {
             usedCard = thisCard.ToCardData(),
-            playerID = DuelField.INSTANCE.DUELFIELDDATA.currentPlayerTurn,
+            playerID = DuelField.INSTANCE.DUELFIELDDATA.turnPlayer,
             targetZone = targetCard != null ? TargetZoneEnum : Lib.GameZone.na,
             targetCard = targetCard?.ToCardData()
         };
@@ -283,7 +277,7 @@ public class DuelField_HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHan
         if (!CardLib.CanBloomHolomem(pointedCard, thisCard))
             return false;
 
-        _DuelAction.playerID = DuelField.INSTANCE.DUELFIELDDATA.currentPlayerTurn;
+        _DuelAction.playerID = DuelField.INSTANCE.DUELFIELDDATA.turnPlayer;
         _DuelAction.usedCard = thisCard.ToCardData();
         _DuelAction.targetZone = DuelField.INSTANCE.GetZoneByString(pointedCard.transform.parent.name);
         _DuelAction.targetCard = pointedCard.ToCardData();
