@@ -215,7 +215,7 @@ public class Card : MonoBehaviour
 
         bool ISMYTURN = DuelField.INSTANCE.IsMyTurn(); 
         bool ISMYCARD = transform.parent?.name == "PlayerGeneral" || transform.parent?.parent?.name == "PlayerGeneral" || transform.parent?.parent?.parent?.name == "PlayerGeneral";
-        bool ISMAINPHASE = DuelField.INSTANCE.DUELFIELDDATA.currentGamePhase.Equals(DuelFieldData.GAMEPHASE.MainStep);
+        bool ISMAINPHASE = DuelField.INSTANCE.GamePhase.Equals(GAMEPHASE.MainStep);
 
         var backRoll = new[] {
                 Lib.GameZone.BackStage1,

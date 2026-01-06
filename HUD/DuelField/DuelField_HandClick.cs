@@ -4,17 +4,13 @@ using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using static DuelField;
 
 public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
 {
-    bool VALIDFORACTION = false;
     void Start()
     {
         if (string.IsNullOrEmpty(gameObject.GetComponent<Card>().cardNumber))
-        {
             this.enabled = false;
-        }
     }
     [Flags]
     public enum ClickAction : byte
@@ -33,7 +29,7 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
             || DuelField_UI_MAP.INSTANCE.SS_EffectBoxes_SelectionDetachEnergyPanel.gameObject.activeInHierarchy || DuelField_UI_MAP.INSTANCE.SS_EffectBoxes_SelectionPanel.gameObject.activeInHierarchy)
             return;
 
-        if (DuelField_HandDragDrop.IsDragging)
+        if (DuelField_HandDragDrop.IsDragging_Global)
             return;
 
         DoAction(this.gameObject);
@@ -43,38 +39,22 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
         ClickAction clickAction = ClickAction.OnlyView;
 
         List<Card> CardsInTheZone = this.transform.parent.GetComponentsInChildren<Card>(true).ToList();
+        Card ActiveCard = CardsInTheZone.Where(item => item.gameObject.activeSelf).FirstOrDefault();
 
-        Card ActiveCard = null;
-        foreach (Card card in CardsInTheZone)
-            if (card.gameObject.activeSelf)
-                ActiveCard = card;
-
-        if (ActiveCard == null) return;
+        if (ActiveCard == null) 
+            return;
 
         bool ISMYTURN = DuelField.INSTANCE.IsMyTurn();
-
         bool ISMYCARD = targetCardGameObject.transform.parent.parent.name.Equals("PlayerGeneral");
-        if (targetCardGameObject.transform.parent.parent.parent != null)
-            ISMYCARD = targetCardGameObject.transform.parent.parent.name.Equals("PlayerGeneral") || targetCardGameObject.transform.parent.parent.parent.name.Equals("PlayerGeneral");
+        bool ISMAINPHASE = DuelField.INSTANCE.GamePhase.Equals(GAMEPHASE.MainStep);
 
-        bool ISMAINPHASE = DuelField.INSTANCE.DUELFIELDDATA.currentGamePhase.Equals(DuelFieldData.GAMEPHASE.MainStep);
-
-        var backRoll = new[]
-        {
-            Lib.GameZone.BackStage1,
-            Lib.GameZone.BackStage2,
-            Lib.GameZone.BackStage3,
-            Lib.GameZone.BackStage4,
-            Lib.GameZone.BackStage5
-        };
-
-        if (!DuelField.INSTANCE.isViewMode && !DuelField.INSTANCE.hasAlreadyCollabed && ISMYTURN && ISMYCARD && backRoll.Contains(ActiveCard.curZone)
+        if (!DuelField.INSTANCE.isViewMode && !DuelField.INSTANCE.hasAlreadyCollabed && ISMYTURN && ISMYCARD && DuelField.DEFAULTBACKSTAGE.Contains(ActiveCard.curZone)
             && ISMAINPHASE && !ActiveCard.suspended)
         {
             clickAction = ClickAction.Collab;
         }
-        else if (!DuelField.INSTANCE.isViewMode && ISMYTURN && ISMYCARD && backRoll.Contains(ActiveCard.curZone)
-            && DuelField.INSTANCE.DUELFIELDDATA.currentGamePhase.Equals(DuelFieldData.GAMEPHASE.SetHolomemStep))
+        else if (!DuelField.INSTANCE.isViewMode && ISMYTURN && ISMYCARD && DuelField.DEFAULTBACKSTAGE.Contains(ActiveCard.curZone)
+            && DuelField.INSTANCE.GamePhase.Equals(GAMEPHASE.SetHolomemStep))
         {
             clickAction = ClickAction.ReSETStage;
         }
@@ -104,27 +84,27 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
         {
             DuelAction duelAction = new()
             {
-                playerID = DuelField.INSTANCE.DUELFIELDDATA.playersType[PlayerInfo.INSTANCE.PlayerID],
-                usedCard = this.GetComponent<Card>().ToCardData(),
-                activationZone = Lib.GameZone.Collaboration,
+                playerID = DuelField.INSTANCE.playersType[PlayerInfo.INSTANCE.PlayerID],
+                used = this.GetComponent<Card>().ToCardData(),
+                targetedZones = new() { Lib.GameZone.Collaboration },
             };
 
-            DuelField.INSTANCE.GenericActionCallBack(duelAction, "DoCollab");
+            MatchConnection.INSTANCE.SendRequest(duelAction, "DoCollab");
             DuelField.INSTANCE.hasAlreadyCollabed = true;
         }
         else if (clickAction.Equals(ClickAction.ReSETStage))
         {
             DuelAction duelActionn = new()
             {
-                playerID = DuelField.INSTANCE.DUELFIELDDATA.playersType[PlayerInfo.INSTANCE.PlayerID],
-                usedCard = this.GetComponent<Card>().ToCardData(),
-                activationZone = Lib.GameZone.Stage,
+                playerID = DuelField.INSTANCE.playersType[PlayerInfo.INSTANCE.PlayerID],
+                used = this.GetComponent<Card>().ToCardData(),
+                targetedZones = new() { Lib.GameZone.Stage },
             };
-            DuelField.INSTANCE.GenericActionCallBack(duelActionn, "ReSetCardAtStage");
+            MatchConnection.INSTANCE.SendRequest(duelActionn, "ReSetCardAtStage");
         }
         else
         {
-            DuelfField_CardDetailViewer.INSTANCE.SetCardListToBeDisplayed(ref CardsInTheZone, ActiveCard, clickAction);
+            DuelfField_CardDetailViewer.INSTANCE.SetCardListToBeDisplayed(ref CardsInTheZone, CardsInTheZone.IndexOf(ActiveCard), clickAction);
         }
         ActiveCard.Glow();
     }

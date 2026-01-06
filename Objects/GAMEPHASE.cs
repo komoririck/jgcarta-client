@@ -1,0 +1,19 @@
+﻿public enum GAMEPHASE : byte
+{
+    StartMatch,
+    Mulligan,
+    MulliganForced,
+    SettingUpBoard,
+    ResetStep,
+    SetHolomemStep,
+    DrawStep,
+    CheerStep,
+    CheerStepChoose,
+    CheerStepChoosed,
+    MainStep,
+    PerformanceStep,
+    UseArt,
+    EndStep,
+    DamageCalculation,
+    InflictDamage,
+}

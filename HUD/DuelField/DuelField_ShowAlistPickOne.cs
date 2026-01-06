@@ -42,7 +42,7 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
         confirmButton.onClick.RemoveAllListeners();
         confirmButton.onClick.AddListener(FinishSelection);
         selectedItems.Clear();
-        EffectController.INSTANCE.isSelectionCompleted = false;
+        DuelField.INSTANCE.isSelectionCompleted = false;
         _canClosePanel = canClosePanel;
 
         avaliableForSelect ??= SelectableCards;
@@ -85,8 +85,8 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
         DuelField_UI_MAP.INSTANCE.SaveAllPanelStatus().DisableAllOther().SetPanel(true, DuelField_UI_MAP.PanelType.SS_EffectBoxes_SelectionPanel);
         DuelField_UI_MAP.INSTANCE.SetPanel(_canClosePanel, DuelField_UI_MAP.PanelType.SS_EffectBoxes_General_PanelCloseButton);
 
-        yield return new WaitUntil(() => EffectController.INSTANCE.isSelectionCompleted);
-        EffectController.INSTANCE.isSelectionCompleted = false;
+        yield return new WaitUntil(() => DuelField.INSTANCE.isSelectionCompleted);
+        DuelField.INSTANCE.isSelectionCompleted = false;
     }
 
     void OnItemClick(GameObject itemObject, bool canSelect)
@@ -119,10 +119,10 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
         ClickedCounter = 0;
 
         _DaToReturn ??= new();
-        _DaToReturn.cardList = selectedItems;
+        _DaToReturn.cards = selectedItems;
 
         DuelField_UI_MAP.INSTANCE.LoadAllPanelStatus().SetPanel(true, DuelField_UI_MAP.PanelType.SS_UI_General).SetPanel(false, DuelField_UI_MAP.PanelType.SS_BlockView);
-        EffectController.INSTANCE.isSelectionCompleted = true;
+        DuelField.INSTANCE.isSelectionCompleted = true;
     }
     public static DuelAction GetDA()
     {

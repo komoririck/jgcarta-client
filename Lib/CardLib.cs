@@ -91,8 +91,7 @@ class CardLib
         }
         if (onlyVisible) 
         {
-            List<Tuple<Card, bool>> toBeReturned = CardLib.GetActiveParent(CardList.ToArray());
-            CardList = toBeReturned.FindAll(x => x.Item2.Equals(true)).Select(x => x.Item1).ToList();
+            CardList = CardList.Where(c => c.father == null).ToList();
         }
         if (ContainTags != null && ContainTags.Count > 0)
         {
@@ -126,14 +125,6 @@ class CardLib
         if (WhoCanBloom && bloomLevel == null) 
         {
             Debug.Log("wrong way of calling this function");
-        }
-
-        if (CheckFieldForHasRestrictionsToPlayEquip) 
-        { 
-            foreach (Card card in CardList)
-                foreach (Card target in GetAndFilterCards(player: Player.Player, onlyVisible: true))
-                    if (HasRestrictionsToPlayEquip(card, target))
-                        CardList.Remove(card);
         }
 
         CardList = OnlyWithAttachment switch
@@ -184,42 +175,13 @@ class CardLib
         }
         return CardDataList;
     }
-    public static bool CanBloomHolomem(Card pointedCard, Card thisCard)
-    {
-        if (pointedCard.playedThisTurn == true || pointedCard.cardType.Equals("Buzzホロメン")) return false;
-
-        bool canContinue = false;
-        if (thisCard.cardType.Equals("ホロメン") || thisCard.cardType.Equals("Buzzホロメン"))
-        {
-            string bloomToLevel = pointedCard.bloomLevel.Equals("Debut") ? "1st" : "2nd";
-            // especial card condition to bloom match
-            if (thisCard.cardNumber.Equals("hSD01-013") && thisCard.bloomLevel.Equals(bloomToLevel) && (pointedCard.cardName.Equals("ときのそら") || pointedCard.cardName.Equals("AZKi")))
-            {
-                canContinue = true;
-            }
-            else if (pointedCard.cardNumber.Equals("hSD01-013") && (thisCard.cardName.Equals("ときのそら") || thisCard.cardName.Equals("AZKi")) && bloomToLevel.Equals("2nd"))
-            {
-                canContinue = true;
-            }
-            else if (thisCard.cardNumber.Equals("hBP01-045"))
-            {
-                int lifeCounter = DuelField.INSTANCE.GetZone(Lib.GameZone.Life, Player.Player).transform.childCount - 1;
-                if (lifeCounter < 4 && pointedCard.cardName.Equals("AZKi") || pointedCard.cardName.Equals("SorAZ"))
-                {
-                    canContinue = true;
-                }
-            }
-            // normal condition to bloom match
-            else if (thisCard.cardName.Equals(pointedCard.cardName) && thisCard.bloomLevel.Equals(bloomToLevel))
-            {
-                canContinue = true;
-            }
-        }
-        return canContinue;
-    }
     public static int CountPlayerActiveHolomem(bool onlyBackstage = false, Player target = Player.Player)
     {
-        return GetAndFilterCards(player: target, OnlyBackStage: onlyBackstage, GetOnlyHolomem: true, onlyVisible: true).Count;
+        List<Lib.GameZone> x = new();
+        x.AddRange(DuelField.DEFAULTBACKSTAGE);
+        x.Add(Lib.GameZone.Favourite);
+
+        return GetAndFilterCards(player: target, gameZones: x.ToArray(), GetOnlyHolomem: true, onlyVisible: true).Count;
     }
     public static bool CanActivateOshiSkill(string cardNumber)
     {
@@ -284,96 +246,6 @@ class CardLib
             }
         return 0;
     }
-    public static bool CheckForPlayRestrictions(string cardNumber)
-    {
-        switch (cardNumber)
-        {
-            case "hSD01-016":
-                var deckCount = DuelField.INSTANCE.GetZone(Lib.GameZone.Deck, Player.Player).transform.childCount - 1;
-                if (deckCount < 3)
-                    return false;
-                break;
-            case "hSD01-021":
-            case "hSD01-018":
-            case "hBP01-111":
-            case "hBP01-113":
-                deckCount = DuelField.INSTANCE.GetZone(Lib.GameZone.Deck, Player.Player).transform.childCount - 1;
-                if (deckCount == 0)
-                    return false;
-                break;
-            case "hBP01-109":
-            case "hBP01-102":
-                if (DuelField.INSTANCE.GetZone(Lib.GameZone.Hand, Player.Player).transform.childCount > 6)
-                    return false;
-                break;
-            case "hBP01-105":
-            case "hSD01-019":
-            case "hBP01-103":
-                return CardLib.GetAndFilterCards(player: Player.Player, cardType: new() { "エール" }).Count > 0;
-            case "hBP01-106":
-                //check if we have back holomems to switch
-                int backstagecount = CardLib.CountPlayerActiveHolomem(true);
-                return (backstagecount > 0);
-            case "hBP01-108":
-            case "hBP01-112":
-                //check if opponent have back holomems to switch
-                backstagecount = CardLib.CountPlayerActiveHolomem(true, Player.Oponnent);
-                return (backstagecount > 0);
-            case "hSD01-020":
-            case "hBP01-107":
-                var energyList = DuelField.INSTANCE.GetZone(Lib.GameZone.Arquive, Player.Player).GetComponentsInChildren<Card>();
-                foreach (Card card in energyList)
-                {
-                    if (card.cardType.Equals("エール"))
-                    {
-                        return true;
-                    }
-                }
-                return false;
-        }
-        return true;
-    }
-    public static bool HasRestrictionsToPlayEquip(Card card, Card target)
-    {
-        switch (card.cardNumber)
-        {
-            case "hBP01-123":
-                if (target.name.Equals("兎田ぺこら"))
-                    return false;
-                break;
-            case "hBP01-122":
-                if (target.name.Equals("アキ・ローゼンタール"))
-                    return false;
-                break;
-            case "hBP01-126":
-                if (target.name.Equals("尾丸ポルカ"))
-                    return false;
-                break;
-            case "hBP01-125":
-                if (target.name.Equals("小鳥遊キアラ"))
-                    return false;
-                break;
-            case "hBP01-124":
-                if (target.name.Equals("AZKi") || target.name.Equals("SorAZ"))
-                    return false;
-                break;
-            case "hBP01-114":
-            case "hBP01-116":
-            case "hBP01-117":
-            case "hBP01-118":
-            case "hBP01-119":
-            case "hBP01-120":
-            case "hBP01-115":
-            case "hBP01-121":
-                foreach (Card _Card in card.attachedEquipe)
-                {
-                    _Card.cardNumber.Equals(card.cardNumber);
-                    return false;
-                }
-                break;
-        }
-        return true;
-    }
     internal static Lib.GameZone[] ZonesForList(List<Card> cards)
     {
         if (cards == null || cards.Count == 0)
@@ -385,11 +257,11 @@ class CardLib
             .ToArray();
     }
 
-    internal static List<Tuple<Card, bool>> GetActiveParent(Card[] cards)
+    internal static List<Tuple<Card, bool>> GetActiveParent(List<Card> cards)
     {
         var result = new List<Tuple<Card, bool>>();
 
-        if (cards == null || cards.Length == 0)
+        if (cards == null || cards.Count == 0)
             return result;
 
         var roots = cards.Where(c => c.father == null);

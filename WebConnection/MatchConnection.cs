@@ -4,10 +4,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using static DuelField;
 
 public class MatchConnection : MonoBehaviour
 {
@@ -27,7 +25,7 @@ public class MatchConnection : MonoBehaviour
 
         _webSocket.OnOpen += () =>
         {
-            StartCoroutine(TryToRequest("Waitingforopponent", 1, 5000f, SendCallToServer(PlayerInfo.INSTANCE.PlayerID, PlayerInfo.INSTANCE.Password, "JoinPlayerQueueList", null)));
+            StartCoroutine(TryToRequest("Waitingforopponent", 1, 5000f, SendRequest(null, "JoinPlayerQueueList")));
         };
 
         _webSocket.OnMessage += (bytes) =>
@@ -43,9 +41,6 @@ public class MatchConnection : MonoBehaviour
                     {
                         case "goToRoom":
                             StartCoroutine( HandleLoadNewScene("DuelField"));
-                            break;
-                        case "DuelUpdate":
-                           // if (responseData.description.Equals("Endduel") || responseData.description.Equals("unlockGame"))
                             break;
                         case "cancelMatch":
                             DontDestroyManager.DestroyAllDontDestroyOnLoadObjects();
@@ -119,14 +114,13 @@ public class MatchConnection : MonoBehaviour
         //            SceneManager.LoadScene("Login");
     }
 
-    public async Task SendCallToServer(string playerID, string password, string? type = null, string? description = null, DuelAction da = null)
+    public async Task SendRequest(DuelAction da = null, string? type = null)
     {
         Request _PlayerRequest = new()
         {
-            playerID = playerID,
-            password = password,
+            playerID = PlayerInfo.INSTANCE.PlayerID,
+            password = PlayerInfo.INSTANCE.Password,
             type = type,
-            description = description,
             duelAction = da,
         };
 

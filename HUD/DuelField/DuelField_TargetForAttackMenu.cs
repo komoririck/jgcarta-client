@@ -13,6 +13,8 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
     [SerializeField] private GameObject CardAttachItemHolder;
     [SerializeField] private GameObject AttachedCardItem;
 
+    public static DuelField_TargetForAttackMenu INSTANCE;
+
     private GameObject selectedItem;
     private int clickObjects = 1;
 
@@ -25,12 +27,12 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
 
     public IEnumerator SetupSelectableItems(DuelAction DuelAction, Player target = Player.Oponnent, bool performArt = false)
     {
-        EffectController.INSTANCE.isSelectionCompleted = false;
+        DuelField.INSTANCE.isSelectionCompleted = false;
         _DuelAction = DuelAction;
         _performArt = performArt;
         _target = target;
 
-        switch (_DuelAction.usedCard.cardNumber)
+        switch (_DuelAction.used.cardNumber)
         {
             case "hBP01-009":
                 if (DuelField.INSTANCE.GetZone(Lib.GameZone.Stage, target).GetComponentInChildren<Card>() == null)
@@ -79,8 +81,8 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
 
         CardListContent.transform.parent.parent.parent.gameObject.SetActive(true);
 
-        yield return new WaitUntil(() => EffectController.INSTANCE.isSelectionCompleted);
-        EffectController.INSTANCE.isSelectionCompleted = false;
+        yield return new WaitUntil(() => DuelField.INSTANCE.isSelectionCompleted);
+        DuelField.INSTANCE.isSelectionCompleted = false;
     }
 
     void OnItemClick(GameObject itemObject, int itemName, bool canSelect)
@@ -97,6 +99,7 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
 
     public void Start()
     {
+        INSTANCE = this;
         confirmButton.onClick.AddListener(FinishSelection);
     }
     void FinishSelection()
@@ -104,22 +107,23 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
         if (selectedItem == null)
             return;
 
-        var pos = _DuelAction.usedCard.curZone;
+        var pos = _DuelAction.used.curZone;
         Card returnCard = selectedItem.GetComponent<Card>();
 
-        _DuelAction.targetCard = returnCard.ToCardData();
-        _DuelAction.actionTarget = _target;
+        _DuelAction.target = returnCard.ToCardData();
+        _DuelAction.players = new();
+        _DuelAction.players.Add(_target, "x");
 
-        CardData card = _DuelAction.usedCard;
+        CardData card = _DuelAction.used;
 
-        _DuelAction.usedCard.curZone = pos;
+        _DuelAction.used.curZone = pos;
         if (_performArt)
         {
-            DuelField.INSTANCE.GenericActionCallBack(_DuelAction, "doArt");
+            MatchConnection.INSTANCE.SendRequest(_DuelAction, "doArt");
         }
 
         CardListContent.transform.parent.parent.parent.gameObject.SetActive(false);
-        EffectController.INSTANCE.isSelectionCompleted = true;
+        DuelField.INSTANCE.isSelectionCompleted = true;
     }
 }
 

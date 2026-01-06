@@ -19,15 +19,15 @@ public class DuelField_YesOrNoMenu : MonoBehaviour
     public IEnumerator ShowYesOrNoMenu(DuelAction DaToReturn, string text = "")
     {
         _DaToReturn = DaToReturn;
-        EffectController.INSTANCE.isSelectionCompleted = false;
+        DuelField.INSTANCE.isSelectionCompleted = false;
 
         DuelField_UI_MAP.INSTANCE.SaveAllPanelStatus().DisableAllOther().SetPanel(true, DuelField_UI_MAP.PanelType.SS_EffectBoxes_ActivateEffectPanel);
 
         if (!string.IsNullOrEmpty(text))
             CardListContent.GetComponentInChildren<TMP_Text>().text = text;
 
-        yield return new WaitUntil(() => EffectController.INSTANCE.isSelectionCompleted);
-        EffectController.INSTANCE.isSelectionCompleted = false;
+        yield return new WaitUntil(() => DuelField.INSTANCE.isSelectionCompleted);
+        DuelField.INSTANCE.isSelectionCompleted = false;
     }
     public void Start()
     {
@@ -37,7 +37,7 @@ public class DuelField_YesOrNoMenu : MonoBehaviour
     void FinishSelection()
     {
         DuelField_UI_MAP.INSTANCE.LoadAllPanelStatus().SetPanel(true, DuelField_UI_MAP.PanelType.SS_UI_General);
-        EffectController.INSTANCE.isSelectionCompleted = true;
+        DuelField.INSTANCE.isSelectionCompleted = true;
     }
 
     public void YesButton()

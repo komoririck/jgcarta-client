@@ -1,35 +1,29 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using static DuelField;
-using static DuelFieldData;
 using static Lib;
 
 [Serializable]
 public class DuelAction
 {
     public Player playerID;
-    public CardData usedCard { get; set; }
-    public Lib.GameZone activationZone { get; set; }
-    public Lib.GameZone targetZone { get; set; }
-    public CardData targetCard { get; set; }
-    public string selectedSkill { get; set; }
-    public List<int> Order { get; set; }
+	public Dictionary<Player, string>? players { get; set; }
+    public CardData used { get; set; }
+    public CardData target { get; set; }
+	public List<GameZone> targetedZones { get; set; }
+	public string selectedSkill { get; set; }
+    public List<int> indexes { get; set; }
     public bool suffle { get; set; }
     public bool suffleHandBackToDeck { get; set; }
-    public List<CardData> cardList { get; set; }
-    public DuelFieldData duelFieldData { get; set; }
+    public List<CardData> cards { get; set; }
     public bool yesOrNo { get; set; }
-    public bool toBottom { get; set; }
-    public List<int> diceRoll { get; set; }
-    public int hpAmount { get; set; }
-    public int hpFixedValue { get; set; }
-    public DuelField.Player actionTarget { get; set; }
-    public GameZone[] targetedZones { get; set; }
-    public Display displayType { get; set; }
-    public Message message { get; set; }
-    public List<int> selectableList { get; set; }
-    public int maxPick { get; set; }
-    public bool reSelect { get; set; }
+	public int hpAmount { get; set; }
+	public int hpFixedValue { get; set; }
+	public Display displayType { get; set; }
+	public Message message { get; set; }
+	public int maxPick { get; set; }
+	public bool reSelect { get; set; }
     public bool targetType { get; set; }
     public bool lookLastZone { get; set; }
     public bool canClosePanel { get; set; }
@@ -54,9 +48,9 @@ public class DuelAction
     public List<CardData> MapSelectable() {
 
         List<CardData> valid = new();
-        for (int n = 0; n < cardList.Count; n++) {
-            if (selectableList[n] == 0)
-                valid.Add(cardList[n]);
+        for (int n = 0; n < cards.Count; n++) {
+            if (indexes[n] == 0)
+                valid.Add(cards[n]);
         }
         return valid;
     }
@@ -66,20 +60,19 @@ public class DuelAction
         if (playerID != null || playerID != Player.na)
             playerID = GetClientSideType(playerID);
 
-        if (actionTarget != null || actionTarget != Player.na)
-            actionTarget = GetClientSideType(actionTarget);
+        if (players != null)
+            foreach(Player pl in players.Keys.ToList())
+                players[GetClientSideType(pl)] = "x";
 
         return this;
     }
 
     private Player GetClientSideType(Player type)
     {
-        // if (DuelField.INSTANCE == null || DuelField.INSTANCE.DUELFIELDDATA == null)
-        //   return Player.na;
         try 
         {
             var player = Player.PlayerA;
-            if (DuelField.INSTANCE.DUELFIELDDATA.players[Player.PlayerB].Equals(PlayerInfo.INSTANCE.PlayerID))
+            if (DuelField.INSTANCE.players[Player.PlayerB].Equals(PlayerInfo.INSTANCE.PlayerID))
                 player = Player.PlayerB;
 
             if (type == player)

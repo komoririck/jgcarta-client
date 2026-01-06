@@ -50,19 +50,19 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
 
         avaliableForSelect ??= SelectableCards;
 
-        EffectController.INSTANCE.isSelectionCompleted = false;
+        DuelField.INSTANCE.isSelectionCompleted = false;
         DuelField_UI_MAP.INSTANCE.SaveAllPanelStatus().DisableAllOther().SetPanel(true, DuelField_UI_MAP.PanelType.SS_EffectBoxes_SelectionPanel);
         DuelField_UI_MAP.INSTANCE.SetPanel(_canClosePanel, DuelField_UI_MAP.PanelType.SS_EffectBoxes_General_PanelCloseButton);
         FillMenu(DuelAction, SelectableCards, avaliableForSelect, doubleselect, MaximumCanPick);
 
-        yield return new WaitUntil(() => EffectController.INSTANCE.isSelectionCompleted);
-        EffectController.INSTANCE.isSelectionCompleted = false;
+        yield return new WaitUntil(() => DuelField.INSTANCE.isSelectionCompleted);
+        DuelField.INSTANCE.isSelectionCompleted = false;
     }
     public void FillMenu(DuelAction DuelAction, List<Card> SelectableCards, List<Card> avaliableForSelect, bool doubleselect = false, int MaximumCanPick = -1)
     {
         confirmButton.onClick.RemoveAllListeners();
         confirmButton.onClick.AddListener(FinishSelection);
-        EffectController.INSTANCE.isSelectionCompleted = false;
+        DuelField.INSTANCE.isSelectionCompleted = false;
         _DaToReturn = DuelAction;
         this.MaximumCanPick = MaximumCanPick;
         this.doubleSelect = doubleselect;
@@ -165,8 +165,8 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
                 foreach (GameObject gms in selectedItems)
                     returnList.Add(gms.GetComponent<Card>().ToCardData());
 
-            _DaToReturn.cardList = returnList;
-            _DaToReturn.Order = selectedItemsPos;
+            _DaToReturn.cards = returnList;
+            _DaToReturn.indexes = selectedItemsPos;
 
             foreach (GameObject gm in SelectableItems)
             {
@@ -179,7 +179,7 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
             selectedItemsPos = new();
             DuelField_UI_MAP.INSTANCE.LoadAllPanelStatus().SetPanel(true, DuelField_UI_MAP.PanelType.SS_UI_General).SetPanel(false, DuelField_UI_MAP.PanelType.SS_BlockView);
 
-            EffectController.INSTANCE.isSelectionCompleted = true;
+            DuelField.INSTANCE.isSelectionCompleted = true;
         }
     }
     public static DuelAction GetDA() {

@@ -31,7 +31,7 @@ public class Lib : MonoBehaviour
         var CardList = new List<Card>();
         foreach (CardData cd in CardDataList)
         {
-            GameObject obj = Instantiate(DuelField.INSTANCE.GetCardPrefab("xxx"));
+            GameObject obj = Instantiate(DuelField.INSTANCE.cardPrefab);
             Card card = obj.GetComponent<Card>();
             card.Init(cd);
             obj.gameObject.SetActive(false);
