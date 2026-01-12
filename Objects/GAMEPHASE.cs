@@ -16,4 +16,6 @@
     EndStep,
     DamageCalculation,
     InflictDamage,
+    OnKnockDown,
+    EndKnockDown,
 }

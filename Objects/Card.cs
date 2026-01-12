@@ -101,17 +101,17 @@ public class Card : MonoBehaviour
         if (string.IsNullOrEmpty(cardNumber))
         {
             Destroy(GetComponent<DuelField_HandClick>());
-            Destroy(GetComponent<DuelField_HandDragDrop>());
+            Destroy(GetComponent<HandDragDrop>());
         }
 
         if (!curZone.Equals(Lib.GameZone.Hand))
         {
-            Destroy(GetComponent<DuelField_HandDragDrop>());
+            Destroy(GetComponent<HandDragDrop>());
         }
         if (curZone.Equals(Lib.GameZone.Hand) && transform.parent != null)
         {
             if (transform.parent.name.Equals("OponentHand"))
-                Destroy(GetComponent<DuelField_HandDragDrop>());
+                Destroy(GetComponent<HandDragDrop>());
         }
         return this;
     }
@@ -266,7 +266,7 @@ public class Card : MonoBehaviour
                 isRed = true;
             }
         }
-        var dragdrop = GetComponent<DuelField_HandDragDrop>();
+        var dragdrop = GetComponent<HandDragDrop>();
         if (dragdrop != null && dragdrop.isActiveAndEnabled)
             isGlowing = true;
 
@@ -332,7 +332,7 @@ public class Card : MonoBehaviour
                 FrontView.GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/000");
                 transform.Find("Background").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/000");
 
-                if (curZone.Equals(Lib.GameZone.CardCheer) || curZone.Equals(Lib.GameZone.Life))
+                if (curZone.Equals(Lib.GameZone.CardCheer) || curZone.Equals(Lib.GameZone.Life) || cardType != null && cardType.Equals("エール"))
                 {
                     FrontView.GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/001");
                     transform.Find("Background").GetComponent<Image>().sprite = Resources.Load<Sprite>("CardImages/001");

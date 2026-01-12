@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Assets.Scripts.HUD.DuelField;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,10 +17,12 @@ public class DuelField : MonoBehaviour
     public static DuelField INSTANCE;
     public static Lib.GameZone[] DEFAULTHOLOMEMZONE = new Lib.GameZone[] { Lib.GameZone.Stage, Lib.GameZone.Collaboration, Lib.GameZone.BackStage1, Lib.GameZone.BackStage2, Lib.GameZone.BackStage3, Lib.GameZone.BackStage4, Lib.GameZone.BackStage5 };
     public static Lib.GameZone[] DEFAULTBACKSTAGE = new Lib.GameZone[] { Lib.GameZone.BackStage1, Lib.GameZone.BackStage2, Lib.GameZone.BackStage3, Lib.GameZone.BackStage4, Lib.GameZone.BackStage5 };
-    [SerializeField] private List<GameObject> GameZones = new();
+    [SerializeField] public List<GameObject> GameZones = new();
     public List<GameObject> GetGameZones() { return GameZones; }
     public Dictionary<Player, string>? players { get; set; }
     public Dictionary<string, Player>? playersType { get; set; }
+    public List<GameObject> changedZones { get; internal set; } = new();
+
     public Player? turnPlayer;
 
     public GAMEPHASE GamePhase = GAMEPHASE.StartMatch;
@@ -71,65 +74,10 @@ public class DuelField : MonoBehaviour
         activationOwner = 100,
     }
 
-    public DuelAction CUR_DA;
-    string CUR_DA_TYPE;
-
     Dictionary<string, Func<IEnumerator>> serverActionHandlers;
-    private bool isVisualActionRunning = false;
-    private bool isServerActionRunning = false;
     internal bool isSelectionCompleted;
-
-    private void Awake()
-    {
-        INSTANCE = this;
-        //fake data for first turn
-        playerLimiteCardPlayed.Add(new Card() { });
-    }
-    void Start()
-    {
-        DuelField_UI_MAP.INSTANCE = FindAnyObjectByType<DuelField_UI_MAP>();
-        SetActionToggleMode(ToggleStatus.on);
-
-        var action = MatchConnection.INSTANCE.GetPendingActions();
-        while (!action.Item1.Equals("mt"))
-            action = MatchConnection.INSTANCE.GetPendingActions();
-
-        ClearLogConsole();
-
-        DuelField_UI_MAP.INSTANCE.SS_MulliganPanelYes.GetComponent<Button>().onClick.AddListener(() => { MulliganBoxAwnser(true); });
-        DuelField_UI_MAP.INSTANCE.SS_MulliganPanelNo.GetComponent<Button>().onClick.AddListener(() => { MulliganBoxAwnser(false); });
-
-        DuelField_TargetForEffectMenu.INSTANCE.enabled = true;
-        DuelField_DetachCardMenu.INSTANCE.enabled = true;
-
-        DuelField_UI_MAP.INSTANCE.WS_PassTurnButton.SetActive(false);
-    }
-    void Update()
-    {
-        if (isViewModeButton == null)
-        {
-            if (isViewModeButton == null)
-                isViewModeButton = DuelField_UI_MAP.INSTANCE.SS_UI_ActionToggleButton.GetComponent<Button>();
-
-            if (isViewModeButton != null)
-                isViewModeButton.onClick.AddListener(() => { SetActionToggleMode(ToggleStatus.flip); });
-        }
-
-        if (MatchConnection.INSTANCE == null)
-        {
-            SceneManager.LoadScene("Login");
-            return;
-        }
-
-        if (serverActionHandlers == null)
-            serverActionHandlers = MapActions();
-
-        if (!isServerActionRunning)
-            INSTANCE.StartCoroutine(INSTANCE.ProcessServerActions());
-
-        if (!isVisualActionRunning)
-            INSTANCE.StartCoroutine(INSTANCE.ProcessVisualActions());
-    }
+    private int requestIndex = 0;
+    public ActionQueue actionQueue = null;
 
     public bool IsMyTurn()
     {
@@ -139,89 +87,76 @@ public class DuelField : MonoBehaviour
     }
     public bool IsMyAction(Player? player = null)
     {
-        player ??= CUR_DA.playerID;
-
         if (players[(Player)player].Equals(PlayerInfo.INSTANCE.PlayerID))
             return true;
         return false;
     }
-
-    private IEnumerator ProcessServerActions()
+    IEnumerator Start()
     {
-        isServerActionRunning = true;
-        if (MatchConnection.INSTANCE.GetPendingActionsCount() > 0)
-        {
-            var action = MatchConnection.INSTANCE.GetPendingActions();
+        actionQueue = new();
 
-            CUR_DA = action.Item2;
-            CUR_DA_TYPE = action.Item1;
+        INSTANCE = this;
+        ClearLogConsole();
 
-            if (!serverActionHandlers.TryGetValue(CUR_DA_TYPE, out Func<IEnumerator> handler))
-            {
-                isServerActionRunning = false;
-                Debug.LogWarning("Unhandled action: " + CUR_DA_TYPE);
-                yield break;
-            }
+        DuelField_UI_MAP.INSTANCE = FindAnyObjectByType<DuelField_UI_MAP>();
+        SetActionToggleMode(ToggleStatus.on);
 
-            yield return handler();
-            yield return 0;
+        DuelField_UI_MAP.INSTANCE.SS_MulliganPanelYes.GetComponent<Button>().onClick.AddListener(() => { MulliganBoxAwnser(true); });
+        DuelField_UI_MAP.INSTANCE.SS_MulliganPanelNo.GetComponent<Button>().onClick.AddListener(() => { MulliganBoxAwnser(false); });
+        DuelField_UI_MAP.INSTANCE.WS_PassTurnButton.SetActive(false);
+        playerLimiteCardPlayed.Add(new Card() { });
 
-            foreach (Card cds in Lib.temp)
-                try
-                {
-                    Destroy(cds.gameObject);
-                }
-                catch (Exception e) { }
+        serverActionHandlers = MapActions();
 
+        isViewModeButton ??= DuelField_UI_MAP.INSTANCE.SS_UI_ActionToggleButton.GetComponent<Button>();
+        isViewModeButton.onClick.AddListener(() => { SetActionToggleMode(ToggleStatus.flip); });
 
-        }
-        isServerActionRunning = false;
+        requestIndex = 0;
+        actionQueue.CancelAll();
+        StopAllCoroutines();
+        GameLifecycle.Set(GameState.Ready);
+        yield return null;
     }
-    private IEnumerator ProcessVisualActions()
+
+    void Update()
     {
-        isVisualActionRunning = true;
-        while (ActionItem.visualActionQueue.Count > 0)
+        if (!GameLifecycle.IsReady)
+            return;
+
+        while (requestIndex < MatchConnection.INSTANCE.PendingActions.Count)
         {
-            var visualAction = ActionItem.visualActionQueue.Dequeue();
-
-            yield return visualAction.Routine;
-
-            yield return null;
-
-            foreach (GameObject zone in GameZones)
+            if (MatchConnection.INSTANCE.PendingActions[requestIndex].type == "Waitingforopponent" || MatchConnection.INSTANCE.PendingActions[requestIndex].description == "mt")
             {
-                if (zone.name == "PlayerHand")
-                {
-                    yield return DuelField_ActionLibrary.ArrangeCards(zone);
-                }
-                else if (zone.name == "OponentHand")
-                {
-                    yield return DuelField_ActionLibrary.ArrangeCards(zone);
-                }
-                else if (zone.name == Lib.GameZone.Life.ToString())
-                {
-                    yield return DuelField_ActionLibrary.ArrangeCards(zone, true);
-                }
+                requestIndex++;
+                continue;
             }
-            foreach (DuelField_ZoneWatcher zone in FindObjectsOfType<DuelField_ZoneWatcher>())
-            {
-                DuelField_ActionLibrary.CardCounter(zone.gameObject);
-                DuelField_ActionLibrary.StackCardsEffect(zone.gameObject);
-            }
+
+            var request = MatchConnection.INSTANCE.PendingActions[requestIndex];
+
+            if (serverActionHandlers.TryGetValue(request.description, out var handler))
+                actionQueue.Enqueue(request.description, handler(), request.duelAction);
+
+            requestIndex++;
         }
-        isVisualActionRunning = false;
+
+        if (GameLifecycle.IsReady && !actionQueue.IsRunning)
+        {
+            StartCoroutine(actionQueue.Run());
+        }
+
     }
+
     //FUNCTIONS ASSIGNED IN THE INSPECTOR
     public void ReturnButton()
     {
-        if (MatchConnection.INSTANCE._webSocket.State.Equals(WebSocketState.Open))
-        {
-            _ = MatchConnection.INSTANCE._webSocket.Close();
-        }
-
         MatchConnection.INSTANCE.SendRequest(null, "EndDuel");
+        MatchConnection.INSTANCE.CloseConnection();
+
+        GameLifecycle.Set(GameState.Boot);
+        actionQueue.CancelAll();
+        StopAllCoroutines();
+
         Destroy(GameObject.Find("HUD DuelField"));
-        Destroy(MatchConnection.INSTANCE = null);
         Destroy(this);
         SceneManager.LoadScene("Match");
     }
@@ -250,7 +185,7 @@ public class DuelField : MonoBehaviour
             yield break;
 
         var cards = CardLib.GetAndFilterCards();
-        cards.Where(item => item.GetComponent<DuelField_HandDragDrop>().enabled = false);
+        cards.Where(item => item.GetComponent<HandDragDrop>().enabled = false);
 
         List<Card> usable = new();
         foreach (CardData cardx in usableInput)
@@ -260,7 +195,7 @@ public class DuelField : MonoBehaviour
 
         foreach (Card card in usable)
         {
-            DuelField_HandDragDrop handDragDrop = card.GetComponent<DuelField_HandDragDrop>() ?? card.gameObject.AddComponent<DuelField_HandDragDrop>();
+            HandDragDrop handDragDrop = card.GetComponent<HandDragDrop>() ?? card.gameObject.AddComponent<HandDragDrop>();
             handDragDrop.enabled = true;
             card.Glow();
         }
@@ -270,39 +205,39 @@ public class DuelField : MonoBehaviour
     {
         var CUR_DA_PLAYER = IsMyAction() ? Player.Player : Player.Oponnent;
 
-        if (CUR_DA.players != null)
-            CUR_DA_PLAYER = IsMyAction(CUR_DA.players.First().Key) ? Player.Player : Player.Oponnent;
+        if (actionQueue.CUR_DA.players != null)
+            CUR_DA_PLAYER = IsMyAction(actionQueue.CUR_DA.players.First().Key) ? Player.Player : Player.Oponnent;
 
-        if (!IsMyAction() && GAMEPHASE.SettingUpBoard == CUR_DA.gamePhase)
+        if (!IsMyAction() && GAMEPHASE.SettingUpBoard == actionQueue.CUR_DA.gamePhase)
             yield break;
 
-        if (CUR_DA.used.curZone == Lib.GameZone.Favourite)
+        if (actionQueue.CUR_DA.used.curZone == Lib.GameZone.Favourite)
         {
             if (!IsMyAction())
             {
                 RemoveCardFromZone(GetZone(Lib.GameZone.Favourite, Player.Oponnent), 1);
-                AddOrMoveCardToGameZone(new() { CUR_DA.used }, null, CUR_DA_PLAYER);
+                AddOrMoveCardToGameZone(new() { actionQueue.CUR_DA.used }, null, CUR_DA_PLAYER);
             }
         }
-        else if ((CUR_DA.used.lastZone.Equals(Lib.GameZone.Hand) && !IsMyTurn()) || CUR_DA_TYPE.Equals("DisposeCard") || CUR_DA_TYPE.Equals("DisposeCard"))
+        else if ((actionQueue.CUR_DA.used.lastZone.Equals(Lib.GameZone.Hand) && !IsMyTurn()) || actionQueue.CUR_DA_TYPE.Equals("DisposeCard") || actionQueue.CUR_DA_TYPE.Equals("DisposeCard"))
         {
-            bool onPlay = CUR_DA_TYPE.Equals("PlayHolomem");
-            bool onBloom = CUR_DA_TYPE.Equals("BloomHolomem");
+            bool onPlay = actionQueue.CUR_DA_TYPE.Equals("PlayHolomem");
+            bool onBloom = actionQueue.CUR_DA_TYPE.Equals("BloomHolomem");
 
             var playedThisTurn = false;
             if (onPlay || onBloom)
                 playedThisTurn = true;
 
-            var list = AddOrMoveCardToGameZone(new() { CUR_DA.used }, null, CUR_DA_PLAYER, false, false, playedThisTurn: playedThisTurn);
+            var list = AddOrMoveCardToGameZone(new() { actionQueue.CUR_DA.used }, null, CUR_DA_PLAYER, false, false, playedThisTurn: playedThisTurn);
             if (!IsMyTurn())
-                RemoveCardFromZone(GetZone(Lib.GameZone.Hand, Player.Oponnent), 1, findEnergy: CUR_DA.used.cardType.Equals("エール"));
+                RemoveCardFromZone(GetZone(Lib.GameZone.Hand, Player.Oponnent), 1, findEnergy: actionQueue.CUR_DA.used.cardType.Equals("エール"));
 
             var attachmentTypes = new List<string>() { "サポート・マスコット", "サポート・アイテム", "サポート・アイテム・LIMITED", "エール" };
-            var isEquipable = attachmentTypes.Contains(CUR_DA.used.cardType);
+            var isEquipable = attachmentTypes.Contains(actionQueue.CUR_DA.used.cardType);
 
             if (!onPlay && isEquipable)
             {
-                var curZone = CUR_DA.lookLastZone ? new[] { CUR_DA.used.lastZone } : new[] { CUR_DA.used.curZone };
+                var curZone = actionQueue.CUR_DA.lookLastZone ? new[] { actionQueue.CUR_DA.used.lastZone } : new[] { actionQueue.CUR_DA.used.curZone };
                 Card target = CardLib.GetAndFilterCards(player: CUR_DA_PLAYER, gameZones: curZone, onlyVisible: true).FirstOrDefault();
 
                 var createdCard = list.FirstOrDefault().GetComponent<Card>();
@@ -315,19 +250,19 @@ public class DuelField : MonoBehaviour
         }
         else
         {
-            var curZone = CUR_DA.lookLastZone ? new[] { CUR_DA.used.lastZone } : new[] { CUR_DA.used.curZone };
-            Card card = CardLib.GetAndFilterCards(player: CUR_DA_PLAYER, gameZones: curZone, cardNumber: new() { CUR_DA.used.cardNumber }).FirstOrDefault();//note to futre, this may lead to problemns if two holomens with same number, one visible and another not
-            if (CUR_DA.used != null && string.IsNullOrEmpty(CUR_DA.used.cardNumber)) // this should happen only to invisible zones
+            var curZone = actionQueue.CUR_DA.lookLastZone ? new[] { actionQueue.CUR_DA.used.lastZone } : new[] { actionQueue.CUR_DA.used.curZone };
+            Card card = CardLib.GetAndFilterCards(player: CUR_DA_PLAYER, gameZones: curZone, cardNumber: new() { actionQueue.CUR_DA.used.cardNumber }).FirstOrDefault();//note to futre, this may lead to problemns if two holomens with same number, one visible and another not
+            if (actionQueue.CUR_DA.used != null && string.IsNullOrEmpty(actionQueue.CUR_DA.used.cardNumber)) // this should happen only to invisible zones
                 card = CardLib.GetAndFilterCards(player: CUR_DA_PLAYER, gameZones: curZone).FirstOrDefault();
-            card.Init(CUR_DA.used);
+            card.Init(actionQueue.CUR_DA.used);
             card.Detach();
             AddOrMoveCardToGameZone(null, new() { card.gameObject }, CUR_DA_PLAYER, false, false);
 
-            if (CUR_DA.target != null)
+            if (actionQueue.CUR_DA.target != null)
             {
-                Card father = CardLib.GetAndFilterCards(player: CUR_DA_PLAYER, CardToBeFound: CUR_DA.target, OnlyWithAttachment: CardLib.attachType.all).FirstOrDefault();
+                Card father = CardLib.GetAndFilterCards(player: CUR_DA_PLAYER, CardToBeFound: actionQueue.CUR_DA.target, OnlyWithAttachment: CardLib.attachType.all).FirstOrDefault();
                 if (father == null)
-                    father = CardLib.GetAndFilterCards(player: CUR_DA_PLAYER, CardToBeFound: CUR_DA.target).FirstOrDefault();
+                    father = CardLib.GetAndFilterCards(player: CUR_DA_PLAYER, CardToBeFound: actionQueue.CUR_DA.target).FirstOrDefault();
 
                 if (father != null)
                 {
@@ -337,7 +272,7 @@ public class DuelField : MonoBehaviour
             }
         }
 
-        ActionItem.Add("SetVisibility", SetVisibility(CUR_DA.used.curZone, CUR_DA_PLAYER));
+        actionQueue.EnqueueNext("SetVisibility", SetVisibility(actionQueue.CUR_DA.used.curZone, CUR_DA_PLAYER));
 
         IEnumerator SetVisibility(Lib.GameZone zone, Player player)
         {
@@ -412,18 +347,18 @@ public class DuelField : MonoBehaviour
         {
 
             Card card = cardObj.GetComponent<Card>();
-            GameObject newHolder = GetZone(card.curZone, player);
-            GameObject oldHolder = GetZone(card.lastZone, player);
+            GameObject newHolder = GetZone(card.curZone, card.owner);
+            GameObject oldHolder = GetZone(card.lastZone, card.owner);
             bool isPlayedFromHand = card.lastZone.Equals(Lib.GameZone.Hand) || card.lastZone.Equals(Lib.GameZone.na);
 
             if (MOVEALLATONCE)
             {
-                ActionItem.Add("MoveCard", DuelField_ActionLibrary.MoveCard(allCardsToMove, oldHolder.transform, newHolder.transform, 0.2f, isPlayedFromHand, IsMyTurn(), SuspendAfter));
+                actionQueue.EnqueueNext("MoveCard", DuelField_ActionLibrary.MoveCard(allCardsToMove, oldHolder.transform, newHolder.transform, 0.2f, isPlayedFromHand, IsMyTurn(), SuspendAfter));
                 break;
             }
             else
             {
-                ActionItem.Add("MoveCard", DuelField_ActionLibrary.MoveCard(new List<GameObject> { cardObj }, oldHolder.transform, newHolder.transform, 0.2f, isPlayedFromHand, IsMyTurn(), SuspendAfter));
+                actionQueue.EnqueueNext("MoveCard", DuelField_ActionLibrary.MoveCard(new List<GameObject> { cardObj }, oldHolder.transform, newHolder.transform, 0.2f, isPlayedFromHand, IsMyTurn(), SuspendAfter));
             }
         }
         return allCardsToMove;
@@ -440,7 +375,7 @@ public class DuelField : MonoBehaviour
     {
         if (draw.suffleHandBackToDeck)
         {
-            var handZone = GetZone(Lib.GameZone.Hand, CUR_DA.playerID);
+            var handZone = GetZone(Lib.GameZone.Hand, actionQueue.CUR_DA.playerID);
             var cards = handZone.GetComponentsInChildren<Card>();
             int amount = cards.Length;
 
@@ -457,10 +392,10 @@ public class DuelField : MonoBehaviour
                 });
             }
 
-            AddOrMoveCardToGameZone(cardsFakeData, null, CUR_DA.playerID, false, false, MOVEALLATONCE: false);
+            AddOrMoveCardToGameZone(cardsFakeData, null, actionQueue.CUR_DA.playerID, false, false, MOVEALLATONCE: false);
 
             if (draw.suffle)
-                ActionItem.Add("ShuffleDeck", DuelField_ActionLibrary.ShuffleDeck(GetZone(Lib.GameZone.Deck, CUR_DA.playerID)));
+                actionQueue.EnqueueNext("ShuffleDeck", DuelField_ActionLibrary.ShuffleDeck(GetZone(Lib.GameZone.Deck, actionQueue.CUR_DA.playerID)));
         }
 
         if (!IsMyAction())
@@ -469,12 +404,12 @@ public class DuelField : MonoBehaviour
                 cardData.cardNumber = "";
             }
 
-        AddOrMoveCardToGameZone(draw.cards, (List<GameObject>)null, CUR_DA.playerID, false, draw.suffle, MOVEALLATONCE: false);
-        RemoveCardFromZone(GetZone(draw.cards[0].lastZone, CUR_DA.playerID), draw.cards.Count);
+        AddOrMoveCardToGameZone(draw.cards, (List<GameObject>)null, actionQueue.CUR_DA.playerID, false, draw.suffle, MOVEALLATONCE: false);
+        RemoveCardFromZone(GetZone(draw.cards[0].lastZone, actionQueue.CUR_DA.playerID), draw.cards.Count);
     }
     public void RemoveCardFromZone(GameObject father, int amount, bool findEnergy = false)
     {
-        ActionItem.Add("RemoveCardFromZone", DuelField_ActionLibrary.RemoveCardFromZone(father, amount, findEnergy));
+        actionQueue.EnqueueNext("RemoveCardFromZone", DuelField_ActionLibrary.RemoveCardFromZone(father, amount, findEnergy));
     }
     public GameObject GetZone(Lib.GameZone s, Player player)
     {
@@ -568,39 +503,28 @@ public class DuelField : MonoBehaviour
     }
     IEnumerator HandleStartDuel()
     {
-        players = CUR_DA.players;
-        turnPlayer = CUR_DA.playerID;
+        players = actionQueue.CUR_DA.players;
+        turnPlayer = actionQueue.CUR_DA.playerID;
         playersType = new();
-        foreach (var playerss in CUR_DA.players)
+        foreach (var playerss in actionQueue.CUR_DA.players)
             playersType.Add(playerss.Value, playerss.Key);
-
 
         Player playerA = Player.Player;
         Player playerB = Player.Oponnent;
 
-        if (!CUR_DA.yesOrNo)
-        {
-            playerA = Player.Oponnent;
-            playerB = Player.Player;
-        }
-        IEnumerator ShuffleAll()
-        {
-            StartCoroutine(DuelField_ActionLibrary.ShuffleDeck(GetZone(Lib.GameZone.Deck, Player.Player)));
-            StartCoroutine(DuelField_ActionLibrary.ShuffleDeck(GetZone(Lib.GameZone.Deck, Player.Oponnent)));
-            StartCoroutine(DuelField_ActionLibrary.ShuffleDeck(GetZone(Lib.GameZone.CardCheer, Player.Player)));
-            StartCoroutine(DuelField_ActionLibrary.ShuffleDeck(GetZone(Lib.GameZone.CardCheer, Player.Oponnent)));
-            yield break;
-        }
-        ActionItem.Add("ShuffleAll", ShuffleAll());
         TurnCounterText.text = currentTurn.ToString();
-
+        yield return 0;
+    }
+    IEnumerator HandleBuildBoard()
+    {
+        AddOrMoveCardToGameZone(actionQueue.CUR_DA.cards, null, actionQueue.CUR_DA.playerID, shuffle: true, MOVEALLATONCE: true);
         yield return 0;
     }
     IEnumerator HandleMulligan()
     {
 
-        if (CUR_DA.yesOrNo)
-            DrawCard(CUR_DA);
+        if (actionQueue.CUR_DA.yesOrNo)
+            DrawCard(actionQueue.CUR_DA);
 
         playerMulligan++;
 
@@ -636,19 +560,19 @@ public class DuelField : MonoBehaviour
     {
         if (IsMyTurn())
         {
-            if (CUR_DA.used != null)
+            if (actionQueue.CUR_DA.used != null)
             {
-                var cards = GetZone(CUR_DA.used.curZone, CUR_DA.playerID).GetComponentsInChildren<RectTransform>().Select(item => item.gameObject);
+                var cards = GetZone(actionQueue.CUR_DA.used.curZone, actionQueue.CUR_DA.playerID).GetComponentsInChildren<RectTransform>().Select(item => item.gameObject);
 
                 List<GameObject> cardsToBeMoved = new();
                 foreach (var card in cards)
                 {
-                    var cardComp = card.GetComponent<Card>().Init(CUR_DA.used);
+                    var cardComp = card.GetComponent<Card>().Init(actionQueue.CUR_DA.used);
                     card.transform.Rotate(0, 0, 0);
                     cardComp.suspended = false;
                     cardsToBeMoved.Add(card);
                 }
-                AddOrMoveCardToGameZone(null, cardsToBeMoved, CUR_DA.playerID, false, false);
+                AddOrMoveCardToGameZone(null, cardsToBeMoved, actionQueue.CUR_DA.playerID, false, false);
             }
 
             hasAlreadyCollabed = false;
@@ -657,113 +581,96 @@ public class DuelField : MonoBehaviour
     }
     IEnumerator HandleDrawPhase()
     {
-        DrawCard(CUR_DA);
-        yield break;
-    }
-    IEnumerator HandleCheerStep()
-    {
-        if (!(CUR_DA.cards == null && CUR_DA.cards.Count == 0))
-        {
-            DrawCard(CUR_DA);
-        }
+        DrawCard(actionQueue.CUR_DA);
         yield break;
     }
     IEnumerator HandleEndturn()
     {
-        ActionItem.Add("AwaitForActionsThenEndDuel", AwaitForActionsThenEndDuel());
-        IEnumerator AwaitForActionsThenEndDuel()
-        {
-            DuelField.INSTANCE.hasAlreadyCollabed = false;
-            centerStageArtUsed = false;
-            collabStageArtUsed = false;
-            usedOshiSkill = false;
-            playerLimiteCardPlayed.Clear();
+        DuelField.INSTANCE.hasAlreadyCollabed = false;
+        centerStageArtUsed = false;
+        collabStageArtUsed = false;
+        usedOshiSkill = false;
+        playerLimiteCardPlayed.Clear();
 
-            currentTurn++;
-            ClearLogConsole();
-            yield break;
-        }
+        currentTurn++;
+        ClearLogConsole();
         yield break;
     }
     public static void ClearLogConsole()
     {
-#if UNITY_EDITOR
-        System.Reflection.Assembly assembly = System.Reflection.Assembly.GetAssembly(typeof(UnityEditor.SceneView));
+        #if UNITY_EDITOR
+                System.Reflection.Assembly assembly = System.Reflection.Assembly.GetAssembly(typeof(UnityEditor.SceneView));
 
-        System.Type type = assembly.GetType("UnityEditor.LogEntries");
-        System.Reflection.MethodInfo method = type.GetMethod("Clear");
-        method.Invoke(new object(), null);
-#endif
+                System.Type type = assembly.GetType("UnityEditor.LogEntries");
+                System.Reflection.MethodInfo method = type.GetMethod("Clear");
+                method.Invoke(new object(), null);
+        #endif
     }
     IEnumerator HandleEndduel()
     {
-        if (PlayerInfo.INSTANCE.PlayerID.Equals(CUR_DA.playerID))
+        if (PlayerInfo.INSTANCE.PlayerID.Equals(actionQueue.CUR_DA.playerID))
             DuelField_UI_MAP.INSTANCE.DisableAllOther().SetPanel(true, PanelType.SS_UI_General).SetPanel(true, PanelType.SS_WinPanel);
         else
             DuelField_UI_MAP.INSTANCE.DisableAllOther().SetPanel(true, PanelType.SS_UI_General).SetPanel(true, PanelType.SS_LosePanel);
 
+        DontDestroyManager.DestroyAllDontDestroyOnLoadObjects();
         yield break;
     }
     IEnumerator HandleDoCollab()
     {
-        var oldHolder = GetZone(CUR_DA.used.lastZone, CUR_DA.playerID);
-        var newHolder = GetZone(CUR_DA.used.curZone, CUR_DA.playerID);
+        var oldHolder = GetZone(actionQueue.CUR_DA.used.lastZone, actionQueue.CUR_DA.playerID);
+        var newHolder = GetZone(actionQueue.CUR_DA.used.curZone, actionQueue.CUR_DA.playerID);
 
-        var cards = oldHolder.transform.GetComponentsInChildren<Card>().Where(item => item.cardNumber.Equals(CUR_DA.used.cardNumber) ? item.Init(CUR_DA.used).PlayedThisTurn(true) : item).Select(item => item.gameObject).ToList();
+        var cards = oldHolder.transform.GetComponentsInChildren<Card>().Where(item => item.cardNumber.Equals(actionQueue.CUR_DA.used.cardNumber) ? item.Init(actionQueue.CUR_DA.used).PlayedThisTurn(true) : item).Select(item => item.gameObject).ToList();
 
         foreach (GameObject obj in cards)
             obj.transform.SetParent(newHolder.transform);
 
-        AddOrMoveCardToGameZone(null, cardsToBeMoved: cards, CUR_DA.playerID, false, false);
+        AddOrMoveCardToGameZone(null, cardsToBeMoved: cards, actionQueue.CUR_DA.playerID, false, false);
         yield break;
     }
     IEnumerator HandleUnDoCollab()
     {
-        if (!string.IsNullOrEmpty(CUR_DA.used?.cardNumber))
+        if (!string.IsNullOrEmpty(actionQueue.CUR_DA.used?.cardNumber))
         {
-            var cards = GetZone(CUR_DA.used.lastZone, CUR_DA.playerID).GetComponentsInChildren<Card>();
+            var cards = GetZone(actionQueue.CUR_DA.used.lastZone, actionQueue.CUR_DA.playerID).GetComponentsInChildren<Card>();
 
             List<GameObject> cardsToBeMoved = new();
             foreach (var cardComp in cards)
             {
-                cardComp.Init(CUR_DA.used);
+                cardComp.Init(actionQueue.CUR_DA.used);
                 cardsToBeMoved.Add(cardComp.gameObject);
             }
-            AddOrMoveCardToGameZone(null, cardsToBeMoved, CUR_DA.playerID, false, false, SuspendAfter: true);
+            AddOrMoveCardToGameZone(null, cardsToBeMoved, actionQueue.CUR_DA.playerID, false, false, SuspendAfter: true);
         }
-        yield break;
-    }
-    IEnumerator HandleDrawByEffect()
-    {
-        DrawCard(CUR_DA);
         yield break;
     }
     IEnumerator HandleRecoverHolomem()
     {
-        GameObject zone = GetZone(CUR_DA.target.curZone, (IsMyTurn() ? Player.Player : Player.Oponnent));
+        GameObject zone = GetZone(actionQueue.CUR_DA.target.curZone, (IsMyTurn() ? Player.Player : Player.Oponnent));
         Card targetedCard = zone.GetComponentInChildren<Card>();
-        targetedCard.currentHp = Math.Min(targetedCard.currentHp + CUR_DA.hpAmount, int.Parse(targetedCard.hp));
+        targetedCard.currentHp = Math.Min(targetedCard.currentHp + actionQueue.CUR_DA.hpAmount, int.Parse(targetedCard.hp));
         targetedCard.UpdateHP();
         yield break;
     }
     IEnumerator HandleResolveDamage()
     {
-        Card card = CardLib.GetAndFilterCards(gameZones: new[] { CUR_DA.target.curZone }, player: CUR_DA.target.owner, onlyVisible: true, GetOnlyHolomem: true).First();
+        Card card = CardLib.GetAndFilterCards(gameZones: new[] { actionQueue.CUR_DA.target.curZone }, player: actionQueue.CUR_DA.target.owner, onlyVisible: true, GetOnlyHolomem: true).First();
 
-        if (CUR_DA.hpFixedValue > 0)
-            card.currentHp = CUR_DA.hpFixedValue;
+        if (actionQueue.CUR_DA.hpFixedValue > 0)
+            card.currentHp = actionQueue.CUR_DA.hpFixedValue;
 
-        if (CUR_DA.hpAmount > 0)
-            card.currentHp -= CUR_DA.hpAmount;
+        if (actionQueue.CUR_DA.hpAmount > 0)
+            card.currentHp -= actionQueue.CUR_DA.hpAmount;
 
         card.UpdateHP();
         yield break;
     }
     IEnumerator HandleSuffleDeck()
     {
-        foreach (Lib.GameZone zone in CUR_DA.targetedZones)
+        foreach (Lib.GameZone zone in actionQueue.CUR_DA.targetedZones)
         {
-            yield return DuelField_ActionLibrary.ShuffleDeck(GetZone(zone, CUR_DA.playerID));
+            yield return DuelField_ActionLibrary.ShuffleDeck(GetZone(zone, actionQueue.CUR_DA.playerID));
         }
     }
     public Dictionary<string, Func<IEnumerator>> MapActions()
@@ -772,21 +679,21 @@ public class DuelField : MonoBehaviour
         {
                     //Starting Duel
                     { "StartDuel", HandleStartDuel },
+                    { "SetDecks", HandleBuildBoard },
                     { "InitialDraw", HandleDrawPhase },
                     { "Mulligan", HandleMulligan },
                     //Duelphase Flow
                     { "ResetStep", HandleResetStep },
                     { "ReSetStage", HandleReSetStage },
                     { "DrawPhase", HandleDrawPhase },
-                    { "CheerStep", HandleCheerStep },
+                    { "CheerStep", HandleDrawPhase },
                     { "Endturn", HandleEndturn },
                     { "Endduel", HandleEndduel },
                     //General
                     { "DoCollab", HandleDoCollab },
                     { "UnDoCollab", HandleUnDoCollab },
-                    { "DrawByEffect", HandleDrawByEffect },
+                    { "DrawByEffect", HandleDrawPhase },
                     { "RollDice", HandleShowDiceRoll },
-                    { "OnlyDiceRoll", HandleShowDiceRoll },
                     { "SuffleDeck", HandleSuffleDeck },
                     { "RecoverHolomem", HandleRecoverHolomem },
                     { "SetGamePhase", HandleSetGamePhase },
@@ -806,7 +713,7 @@ public class DuelField : MonoBehaviour
 
     private IEnumerator HandleUseArt()
     {
-        if (CUR_DA.used.curZone.Equals(Lib.GameZone.Stage))
+        if (actionQueue.CUR_DA.used.curZone.Equals(Lib.GameZone.Stage))
             DuelField.INSTANCE.centerStageArtUsed = true;
         else
             DuelField.INSTANCE.collabStageArtUsed = true;
@@ -815,13 +722,13 @@ public class DuelField : MonoBehaviour
 
     private IEnumerator HandleGetUsableCards()
     {
-        ActionItem.Add("GetUsableCards", GetUsableCards(CUR_DA.cards));
+        actionQueue.EnqueueNext("GetUsableCards", GetUsableCards(actionQueue.CUR_DA.cards));
         yield break;
     }
 
     private IEnumerator HandlePrepareTrigger()
     {
-        yield return DuelField_ShowListPickThenReorder.INSTANCE.SetupSelectableItems(new DuelAction() { }, Lib.ConvertToCard(CUR_DA.cards), Lib.ConvertToCard(CUR_DA.MapSelectable()), CUR_DA.reSelect, CUR_DA.maxPick, canClosePanel: CUR_DA.canClosePanel);
+        yield return DuelField_ShowListPickThenReorder.INSTANCE.SetupSelectableItems(new DuelAction() { }, Lib.ConvertToCard(actionQueue.CUR_DA.cards), Lib.ConvertToCard(actionQueue.CUR_DA.MapSelectable()), actionQueue.CUR_DA.reSelect, actionQueue.CUR_DA.maxPick, canClosePanel: actionQueue.CUR_DA.canClosePanel);
         DuelAction da = DuelField_ShowListPickThenReorder.GetDA();
         if (!(da.cards == null || da.cards.Count == 0))
             MatchConnection.INSTANCE.SendRequest(DuelField_ShowListPickThenReorder.GetDA(), "selectCardsToActivate");
@@ -831,34 +738,34 @@ public class DuelField : MonoBehaviour
     }
     private IEnumerator HandleResolveOnEffect()
     {
-        Player target = CUR_DA.players.First().Key;
+        Player target = actionQueue.CUR_DA.players.First().Key;
 
-        if (players[CUR_DA.playerID].Equals(PlayerInfo.INSTANCE.PlayerID))
-            switch (CUR_DA.displayType)
+        if (players[actionQueue.CUR_DA.playerID].Equals(PlayerInfo.INSTANCE.PlayerID))
+            switch (actionQueue.CUR_DA.displayType)
             {
                 case DuelAction.Display.Detach:
-                    yield return DuelField_DetachCardMenu.INSTANCE.SetupSelectableItems(new DuelAction() { }, CUR_DA.targetedZones.ToArray(), IsACheer: CUR_DA.targetType, target, canClosePanel: CUR_DA.canClosePanel);
-                    MatchConnection.INSTANCE.SendRequest(DuelField_DetachCardMenu.GetDA(), CUR_DA_TYPE);
+                    yield return DuelField_DetachCardMenu.INSTANCE.SetupSelectableItems(new DuelAction() { }, actionQueue.CUR_DA.targetedZones.ToArray(), IsACheer: actionQueue.CUR_DA.targetType, target, canClosePanel: actionQueue.CUR_DA.canClosePanel);
+                    MatchConnection.INSTANCE.SendRequest(DuelField_DetachCardMenu.GetDA(), actionQueue.CUR_DA_TYPE);
                     break;
                 case DuelAction.Display.Target:
-                    yield return DuelField_TargetForEffectMenu.INSTANCE.SetupSelectableItems(new DuelAction() { }, target, CUR_DA.targetedZones.ToArray(), Lib.ConvertToCard(CUR_DA.cards), canClosePanel: CUR_DA.canClosePanel);
-                    MatchConnection.INSTANCE.SendRequest(DuelField_TargetForEffectMenu.GetDA(), CUR_DA_TYPE);
+                    yield return DuelField_TargetForEffectMenu.INSTANCE.SetupSelectableItems(new DuelAction() { }, target, actionQueue.CUR_DA.targetedZones.ToArray(), Lib.ConvertToCard(actionQueue.CUR_DA.cards), canClosePanel: actionQueue.CUR_DA.canClosePanel);
+                    MatchConnection.INSTANCE.SendRequest(DuelField_TargetForEffectMenu.GetDA(), actionQueue.CUR_DA_TYPE);
                     break;
                 case DuelAction.Display.ListPickAndReorder:
-                    yield return DuelField_ShowListPickThenReorder.INSTANCE.SetupSelectableItems(new DuelAction() { }, Lib.ConvertToCard(CUR_DA.cards), Lib.ConvertToCard(CUR_DA.MapSelectable()), CUR_DA.reSelect, CUR_DA.maxPick, canClosePanel: CUR_DA.canClosePanel);
-                    MatchConnection.INSTANCE.SendRequest(DuelField_ShowListPickThenReorder.GetDA(), CUR_DA_TYPE);
+                    yield return DuelField_ShowListPickThenReorder.INSTANCE.SetupSelectableItems(new DuelAction() { }, Lib.ConvertToCard(actionQueue.CUR_DA.cards), Lib.ConvertToCard(actionQueue.CUR_DA.MapSelectable()), actionQueue.CUR_DA.reSelect, actionQueue.CUR_DA.maxPick, canClosePanel: actionQueue.CUR_DA.canClosePanel);
+                    MatchConnection.INSTANCE.SendRequest(DuelField_ShowListPickThenReorder.GetDA(), actionQueue.CUR_DA_TYPE);
                     break;
                 case DuelAction.Display.Number:
-                    yield return DuelField_ShowANumberList.INSTANCE.SetupSelectableItems(CUR_DA.indexes[0], CUR_DA.indexes[1], new DuelAction() { });
-                    MatchConnection.INSTANCE.SendRequest(DuelField_ShowANumberList.GetDA(), CUR_DA_TYPE);
+                    yield return DuelField_ShowANumberList.INSTANCE.SetupSelectableItems(actionQueue.CUR_DA.indexes[0], actionQueue.CUR_DA.indexes[1], new DuelAction() { });
+                    MatchConnection.INSTANCE.SendRequest(DuelField_ShowANumberList.GetDA(), actionQueue.CUR_DA_TYPE);
                     break;
                 case DuelAction.Display.ListPickOne:
-                    yield return DuelField_ShowAlistPickOne.INSTANCE.SetupSelectableItems(new DuelAction() { }, Lib.ConvertToCard(CUR_DA.cards), Lib.ConvertToCard(CUR_DA.MapSelectable()), canClosePanel: CUR_DA.canClosePanel);
-                    MatchConnection.INSTANCE.SendRequest(DuelField_ShowAlistPickOne.GetDA(), CUR_DA_TYPE);
+                    yield return DuelField_ShowAlistPickOne.INSTANCE.SetupSelectableItems(new DuelAction() { }, Lib.ConvertToCard(actionQueue.CUR_DA.cards), Lib.ConvertToCard(actionQueue.CUR_DA.MapSelectable()), canClosePanel: actionQueue.CUR_DA.canClosePanel);
+                    MatchConnection.INSTANCE.SendRequest(DuelField_ShowAlistPickOne.GetDA(), actionQueue.CUR_DA_TYPE);
                     break;
                 case DuelAction.Display.YesOrNo:
-                    yield return DuelField_YesOrNoMenu.INSTANCE.ShowYesOrNoMenu(new DuelAction() { }, CUR_DA.message.ToString());
-                    MatchConnection.INSTANCE.SendRequest(DuelField_YesOrNoMenu.GetDA(), CUR_DA_TYPE);
+                    yield return DuelField_YesOrNoMenu.INSTANCE.ShowYesOrNoMenu(new DuelAction() { }, actionQueue.CUR_DA.message.ToString());
+                    MatchConnection.INSTANCE.SendRequest(DuelField_YesOrNoMenu.GetDA(), actionQueue.CUR_DA_TYPE);
                     break;
             }
         yield break;
@@ -866,33 +773,33 @@ public class DuelField : MonoBehaviour
 
     private IEnumerator HandleSetGamePhase()
     {
-        GamePhase = CUR_DA.gamePhase;
+        GamePhase = actionQueue.CUR_DA.gamePhase;
 
-        if (turnPlayer != CUR_DA.playerID)
+        if (turnPlayer != actionQueue.CUR_DA.playerID)
             StartTurnCounter();
 
-        turnPlayer = CUR_DA.playerID;
+        turnPlayer = actionQueue.CUR_DA.playerID;
 
-        if (GAMEPHASE.Mulligan == CUR_DA.gamePhase)
+        if (GAMEPHASE.Mulligan == actionQueue.CUR_DA.gamePhase)
         {
             DuelField_UI_MAP.INSTANCE.SetPanel(true, DuelField_UI_MAP.PanelType.SS_MulliganPanel);
             DuelField_UI_MAP.INSTANCE.SetPanel(false, DuelField_UI_MAP.PanelType.SS_OponentHand);
         }
 
-        if (GAMEPHASE.CheerStepChoose == CUR_DA.gamePhase || GAMEPHASE.Mulligan == CUR_DA.gamePhase || GAMEPHASE.MulliganForced == CUR_DA.gamePhase)
+        if (GAMEPHASE.CheerStepChoose == actionQueue.CUR_DA.gamePhase || GAMEPHASE.Mulligan == actionQueue.CUR_DA.gamePhase || GAMEPHASE.MulliganForced == actionQueue.CUR_DA.gamePhase)
             yield break;
 
-        if (GAMEPHASE.MainStep == CUR_DA.gamePhase && IsMyTurn())
+        if (GAMEPHASE.MainStep == actionQueue.CUR_DA.gamePhase && IsMyTurn())
             DuelField_UI_MAP.INSTANCE.WS_PassTurnButton.SetActive(true);
 
 
-        if (GAMEPHASE.SettingUpBoard == CUR_DA.gamePhase)
+        if (GAMEPHASE.SettingUpBoard == actionQueue.CUR_DA.gamePhase)
             DuelField_UI_MAP.INSTANCE.WS_ReadyButton.SetActive(true);
 
-        if (GAMEPHASE.EndStep == CUR_DA.gamePhase)
+        if (GAMEPHASE.EndStep == actionQueue.CUR_DA.gamePhase)
             StartTurnCounter();
 
-        ActionItem.Add("ShowMessage", DuelField_ActionLibrary.ShowMessage(CUR_DA.gamePhase.ToString()));
+        actionQueue.EnqueueNext("ShowMessage", DuelField_ActionLibrary.ShowMessage(actionQueue.CUR_DA.gamePhase.ToString()));
         yield break;
     }
     private IEnumerator HandleShowDiceRoll()

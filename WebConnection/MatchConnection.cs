@@ -1,8 +1,10 @@
+using Assets.Scripts.HUD.DuelField;
 using NativeWebSocket;
 using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -10,15 +12,17 @@ using UnityEngine.SceneManagement;
 public class MatchConnection : MonoBehaviour
 {
     public static MatchConnection INSTANCE;
-    public WebSocket _webSocket;
     public readonly Uri WebSocketConnectionUrl = new("wss://localhost:7047/ws");
+    public List<Request> PendingActions = new();
 
-    private Queue<Tuple<string, DuelAction>> PendingActions = new();
-    public Tuple<string, DuelAction> GetPendingActions() { return PendingActions.Dequeue(); }
-    public int GetPendingActionsCount() { return PendingActions.Count; }
-
-
-    private async void Start()
+    private WebSocket _webSocket;
+    internal async void CloseConnection()
+    {
+        PendingActions.Clear();
+        if (_webSocket.State.Equals(WebSocketState.Open))
+            await _webSocket.Close();
+    }
+    internal async void StartConnection()
     {
         INSTANCE = this;
         _webSocket = new WebSocket(WebSocketConnectionUrl.ToString());
@@ -30,31 +34,25 @@ public class MatchConnection : MonoBehaviour
 
         _webSocket.OnMessage += (bytes) =>
         {
+            string json = Encoding.UTF8.GetString(bytes);
             string jsonString = System.Text.Encoding.UTF8.GetString(bytes);
             try
             {
-                var responseData = JsonConvert.DeserializeObject<Request>(jsonString);
+                var response = JsonConvert.DeserializeObject<Request>(json);
+                if (response == null)
+                    return;
 
-                if (responseData != null)
+                PendingActions.Add(response);
+
+                if (response.description == "StartDuel")
                 {
-                    switch (responseData.type)
-                    {
-                        case "goToRoom":
-                            StartCoroutine( HandleLoadNewScene("DuelField"));
-                            break;
-                        case "cancelMatch":
-                            DontDestroyManager.DestroyAllDontDestroyOnLoadObjects();
-                            StartCoroutine(HandleLoadNewScene("Match"));
-                            break;
-                    }
-                    PendingActions.Enqueue(new Tuple<string, DuelAction>(responseData.description, responseData.duelAction));
-                
-                
+                    GameLifecycle.Set(GameState.LoadingScene);
+                    StartCoroutine(HandleLoadNewScene("DuelField"));
                 }
             }
             catch (Exception e)
             {
-                Debug.LogError($"{e}\nError parsing JSON response\n{jsonString}");
+                Debug.LogError($"{e}\n{json}");
             }
         };
 
@@ -75,6 +73,7 @@ public class MatchConnection : MonoBehaviour
     {
 
         #if !UNITY_WEBGL || UNITY_EDITOR
+        if(_webSocket != null && _webSocket.State == WebSocketState.Open)
             _webSocket.DispatchMessageQueue();
         #endif
     }
@@ -144,7 +143,8 @@ public class MatchConnection : MonoBehaviour
 
     public IEnumerator HandleLoadNewScene(string scene)
     {
-        yield return StartCoroutine(LoadNewScene(scene));
+        yield return LoadNewScene(scene);
+        yield return 0;
     }
 
     public IEnumerator LoadNewScene(string scene)
@@ -154,10 +154,5 @@ public class MatchConnection : MonoBehaviour
         {
             yield return null;
         }
-    }
-
-    private async void OnDestroy()
-    {
-        await _webSocket.Close();
     }
 }

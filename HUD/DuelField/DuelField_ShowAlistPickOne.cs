@@ -23,7 +23,7 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
     [SerializeField] private Button closeButton;
     bool _canClosePanel = false;
 
-    private void Awake()
+    void Start()
     {
         INSTANCE = this;
         

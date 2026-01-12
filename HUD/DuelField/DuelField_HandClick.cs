@@ -29,7 +29,7 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
             || DuelField_UI_MAP.INSTANCE.SS_EffectBoxes_SelectionDetachEnergyPanel.gameObject.activeInHierarchy || DuelField_UI_MAP.INSTANCE.SS_EffectBoxes_SelectionPanel.gameObject.activeInHierarchy)
             return;
 
-        if (DuelField_HandDragDrop.IsDragging_Global)
+        if (HandDragDrop.IsDragging_Global)
             return;
 
         DoAction(this.gameObject);

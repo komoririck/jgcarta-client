@@ -26,7 +26,8 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
     bool _canClosePanel = false;
 
     public static DuelField_TargetForEffectMenu INSTANCE;
-    private void Awake()
+
+    void Start()
     {
         INSTANCE = this;
         closeButton = DuelField_UI_MAP.INSTANCE.SS_EffectBoxes_General_PanelCloseButton.GetComponent<Button>();
@@ -36,6 +37,7 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
                 DuelField_UI_MAP.INSTANCE.LoadAllPanelStatus().SetPanel(true, DuelField_UI_MAP.PanelType.SS_UI_General);
             }
         });
+        confirmButton.onClick.AddListener(FinishSelection);
     }
 
     public IEnumerator SetupSelectableItems(DuelAction da, Player target = Player.Player, Lib.GameZone[] zonesThatPlayerCanSelect = null, List<Card> specificList = null , bool canClosePanel = false)
@@ -97,11 +99,6 @@ public class DuelField_TargetForEffectMenu : MonoBehaviour
             TMP_Text orderText = itemObject.transform.Find("Selected_Text").GetComponent<TMP_Text>();
             orderText.text = "X";
             orderText.gameObject.SetActive(true);
-    }
-
-    public void Start()
-    {
-        confirmButton.onClick.AddListener(FinishSelection);
     }
     void FinishSelection()
     {

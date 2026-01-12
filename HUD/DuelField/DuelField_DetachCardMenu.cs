@@ -26,7 +26,7 @@ public class DuelField_DetachCardMenu : MonoBehaviour
 
     static DuelAction _DaToReturn;
 
-    private void Awake()
+    private void Start()
     {
         INSTANCE = this;
         closeButton = DuelField_UI_MAP.INSTANCE.SS_EffectBoxes_General_PanelCloseButton.GetComponent<Button>();
@@ -37,6 +37,7 @@ public class DuelField_DetachCardMenu : MonoBehaviour
                 DuelField_UI_MAP.INSTANCE.LoadAllPanelStatus().SetPanel(true, DuelField_UI_MAP.PanelType.SS_UI_General);
             }
         });
+        confirmButton.onClick.AddListener(FinishSelection);
     }
     public IEnumerator SetupSelectableItems(DuelAction DaToReturn, Lib.GameZone[] zonesThatPlayerCanSelect = null, bool IsACheer = true, Player player = Player.Player, bool canClosePanel = false)
     {
@@ -101,10 +102,6 @@ public class DuelField_DetachCardMenu : MonoBehaviour
             orderText.gameObject.SetActive(true);
     }
 
-    public void Start()
-    {
-        confirmButton.onClick.AddListener(FinishSelection);
-    }
     void FinishSelection()
     {
         if (selectedItem == null)
