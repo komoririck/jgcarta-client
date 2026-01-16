@@ -5,7 +5,7 @@ using UnityEngine;
 public class Mission : MonoBehaviour
 {
     public int MissionID = 0;
-    public string MissionName = "";
+    public string MissionName = null;
     public enum MissionType : byte
     {
         Normal = 0,

@@ -56,7 +56,7 @@ public class DuelField_DetachCardMenu : MonoBehaviour
 
             GameObject newItem = Instantiate(CardAttachItemHolder, CardListContent);
             Card newC = newItem.GetComponent<Card>().Init(item.ToCardData());
-            Destroy(newItem.GetComponent<DuelField_HandClick>());
+            Destroy(newItem.GetComponent<HandClick>());
             newItem.name = clickObjects.ToString();
             instantiatedItem.Add(newItem);
 
@@ -70,11 +70,11 @@ public class DuelField_DetachCardMenu : MonoBehaviour
             if (ListToSelectFrom.Count > 0)
                 for (int i = 0; i < ListToSelectFrom.Count; i++) {
                     GameObject attachedCardItem = Instantiate(AttachedCardItem, newItem.GetComponentInChildren<GridLayoutGroup>().transform);
-                    Destroy(attachedCardItem.GetComponent<DuelField_HandClick>());
+                    Destroy(attachedCardItem.GetComponent<HandClick>());
                     Card attachedCard = attachedCardItem.GetComponent<Card>().Init(ListToSelectFrom[i].ToCardData());
 
                     TMP_Text itemText = attachedCardItem.GetComponentInChildren<TMP_Text>();
-                    itemText.text = "";
+                    itemText.text = null;
 
                     Button itemButton = attachedCardItem.GetComponent<Button>();
                     itemButton.onClick.AddListener(() => OnItemClick(attachedCardItem, i, canSelect));

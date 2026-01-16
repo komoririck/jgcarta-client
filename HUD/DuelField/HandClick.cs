@@ -5,7 +5,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
+public class HandClick : MonoBehaviour, IPointerClickHandler
 {
     void Start()
     {
@@ -20,7 +20,6 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
         ViewAndUseOshiBothSkills = 2,
         ViewAndUseArt = 3,
         ReSETStage = 4,
-        ViewAndUseSPOshiSkill = 5,
     }
     public void OnPointerClick(PointerEventData eventData)
     {
@@ -48,64 +47,47 @@ public class DuelField_HandClick : MonoBehaviour, IPointerClickHandler
         bool ISMYCARD = targetCardGameObject.transform.parent.parent.name.Equals("PlayerGeneral");
         bool ISMAINPHASE = DuelField.INSTANCE.GamePhase.Equals(GAMEPHASE.MainStep);
 
+        DuelAction duelAction = new()
+        {
+            player = DuelField.INSTANCE.playersType[PlayerInfo.INSTANCE.PlayerID],
+            used = this.GetComponent<Card>().ToCardData(),
+        };
+
         if (!DuelField.INSTANCE.isViewMode && !DuelField.INSTANCE.hasAlreadyCollabed && ISMYTURN && ISMYCARD && DuelField.DEFAULTBACKSTAGE.Contains(ActiveCard.curZone)
             && ISMAINPHASE && !ActiveCard.suspended)
         {
+            MatchConnection.INSTANCE.SendRequest(duelAction, "DoCollab");
+            DuelField.INSTANCE.hasAlreadyCollabed = true;
             clickAction = ClickAction.Collab;
+            return;
         }
         else if (!DuelField.INSTANCE.isViewMode && ISMYTURN && ISMYCARD && DuelField.DEFAULTBACKSTAGE.Contains(ActiveCard.curZone)
             && DuelField.INSTANCE.GamePhase.Equals(GAMEPHASE.SetHolomemStep))
         {
+            MatchConnection.INSTANCE.SendRequest(duelAction, "ReSetCardAtStage");
             clickAction = ClickAction.ReSETStage;
+            return;
         }
-        else if ((ActiveCard.cardType.Equals("ホロメン") || ActiveCard.cardType.Equals("Buzzホロメン"))
+        else if ((ActiveCard.cardType == CardType.ホロメン || ActiveCard.cardType == CardType.Buzzホロメン)
             && ActiveCard.curZone.Equals(Lib.GameZone.Collaboration) || ActiveCard.curZone.Equals(Lib.GameZone.Stage)
-            && !DuelField.INSTANCE.isViewMode
-            && ISMAINPHASE && ISMYTURN && ISMYCARD)
+            && ActiveCard.usable)
         {
+            MatchConnection.INSTANCE.SendRequest(duelAction, "CheckArt");
             clickAction = ClickAction.ViewAndUseArt;
+            return;
         }
-        else if (ActiveCard.cardType.Equals("推しホロメン")
-            && !DuelField.INSTANCE.isViewMode
-            && ISMAINPHASE && ISMYTURN && ISMYCARD)
+        else if (ActiveCard.cardType == CardType.推しホロメン && ActiveCard.usable)
         {
-            bool conditionA = (!DuelField.INSTANCE.usedOshiSkill && CardLib.CanActivateOshiSkill(ActiveCard.cardNumber));
-            bool conditionB = (!DuelField.INSTANCE.usedSPOshiSkill && CardLib.CanActivateSPOshiSkill(ActiveCard.cardNumber));
-
-            if (conditionA && conditionB)
-                clickAction = ClickAction.ViewAndUseOshiBothSkills;
-            else if (conditionA)
-                clickAction = ClickAction.ViewAndUseOshiBothSkills;
-            else if (conditionB)
-                clickAction = ClickAction.ViewAndUseSPOshiSkill;
+            MatchConnection.INSTANCE.SendRequest(duelAction, "CheckOshiSkill");
+            clickAction = ClickAction.ViewAndUseOshiBothSkills;
+            return;
         }
 
-        if (clickAction.Equals(ClickAction.Collab))
-        {
-            DuelAction duelAction = new()
-            {
-                playerID = DuelField.INSTANCE.playersType[PlayerInfo.INSTANCE.PlayerID],
-                used = this.GetComponent<Card>().ToCardData(),
-                targetedZones = new() { Lib.GameZone.Collaboration },
-            };
+        int n = 0;
+        for (; n < CardsInTheZone.Count; n++)
+            if (CardsInTheZone[n].gameObject == targetCardGameObject)
+                break;
 
-            MatchConnection.INSTANCE.SendRequest(duelAction, "DoCollab");
-            DuelField.INSTANCE.hasAlreadyCollabed = true;
-        }
-        else if (clickAction.Equals(ClickAction.ReSETStage))
-        {
-            DuelAction duelActionn = new()
-            {
-                playerID = DuelField.INSTANCE.playersType[PlayerInfo.INSTANCE.PlayerID],
-                used = this.GetComponent<Card>().ToCardData(),
-                targetedZones = new() { Lib.GameZone.Stage },
-            };
-            MatchConnection.INSTANCE.SendRequest(duelActionn, "ReSetCardAtStage");
-        }
-        else
-        {
-            DuelfField_CardDetailViewer.INSTANCE.SetCardListToBeDisplayed(ref CardsInTheZone, CardsInTheZone.IndexOf(ActiveCard), clickAction);
-        }
-        ActiveCard.Glow();
+        DuelfField_CardDetailViewer.INSTANCE.SetCardListToBeDisplayed(ref CardsInTheZone, n, clickAction, new());
     }
 }

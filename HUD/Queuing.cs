@@ -19,7 +19,7 @@ public class Queuing : MonoBehaviour
         yield return _HTTPSMaker.CancelMatchQueue(PlayerInfo.INSTANCE.PlayerID, PlayerInfo.INSTANCE.Password);
         if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage = "";
+            _HTTPSMaker.returnMessage = null;
             FindAnyObjectByType<MatchConnection>().CloseConnection();
             SceneManager.LoadScene("MainMenu");
         }

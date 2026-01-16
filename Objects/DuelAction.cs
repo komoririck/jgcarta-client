@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using static DuelField;
 using static Lib;
 
 [Serializable]
 public class DuelAction
 {
-    public Player playerID;
+    public Player player;
 	public Dictionary<Player, string>? players { get; set; }
     public CardData used { get; set; }
     public CardData target { get; set; }
@@ -23,11 +24,17 @@ public class DuelAction
 	public Display displayType { get; set; }
 	public Message message { get; set; }
 	public int maxPick { get; set; }
-	public bool reSelect { get; set; }
+    public int? minPick { get; set; }
+    public bool reSelect { get; set; }
     public bool targetType { get; set; }
     public bool lookLastZone { get; set; }
     public bool canClosePanel { get; set; }
     public GAMEPHASE gamePhase { get; set; }
+
+    public void OnAfterDeserialize()
+    {
+        ResolveOwner();
+    }
 
     [Flags]
     public enum Display : byte
@@ -54,34 +61,16 @@ public class DuelAction
         }
         return valid;
     }
-
-    public DuelAction GetClientSidePlayers()
+    public void ResolveOwner()
     {
-        if (playerID != null || playerID != Player.na)
-            playerID = GetClientSideType(playerID);
+        if (DuelField.INSTANCE == null) return;
+        player = (DuelField.INSTANCE.players[player] == PlayerInfo.INSTANCE.PlayerID) ? Player.Player : Player.Oponnent;
 
-        if (players != null)
-            foreach(Player pl in players.Keys.ToList())
-                players[GetClientSideType(pl)] = "x";
-
-        return this;
-    }
-
-    private Player GetClientSideType(Player type)
-    {
-        try 
+        if (DuelField.INSTANCE.players.Count == 1) 
         {
-            var player = Player.PlayerA;
-            if (DuelField.INSTANCE.players[Player.PlayerB].Equals(PlayerInfo.INSTANCE.PlayerID))
-                player = Player.PlayerB;
-
-            if (type == player)
-                return Player.Player;
-            else
-                return Player.Oponnent;
-        } catch (Exception e) 
-        {
-            return Player.na;
+            var value = (DuelField.INSTANCE.players.Values.First() == PlayerInfo.INSTANCE.PlayerID) ? Player.Player : Player.Oponnent;
+            DuelField.INSTANCE.players.Clear();
+            DuelField.INSTANCE.players.Add(value, "x");
         }
     }
 }

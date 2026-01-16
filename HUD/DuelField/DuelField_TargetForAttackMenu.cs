@@ -41,12 +41,12 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
                     yield return null;
                 }
                 GameObjectExtensions.DestroyAllChildren(CardListContent.gameObject);
-                SelectableCards = CardLib.GetAndFilterCards(gameZones: new[] { Lib.GameZone.Stage }, player: target, onlyVisible: true, GetOnlyHolomem: true);
+                SelectableCards = CardLib.GetAndFilterCards(gameZones: new[] { Lib.GameZone.Stage }, player: target, onlyVisible: true, OnlyHolomem: true);
                 break;
 
             default:
                 GameObjectExtensions.DestroyAllChildren(CardListContent.gameObject);
-                SelectableCards = CardLib.GetAndFilterCards(gameZones: new[] { Lib.GameZone.Stage, Lib.GameZone.Collaboration }, player: target, onlyVisible: true, GetOnlyHolomem: true);
+                SelectableCards = CardLib.GetAndFilterCards(gameZones: new[] { Lib.GameZone.Stage, Lib.GameZone.Collaboration }, player: target, onlyVisible: true, OnlyHolomem: true);
                 break;
         }
 
@@ -55,7 +55,7 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
         if (card != null && card.cardNumber.Equals("hBP01-050"))
         {
             GameObjectExtensions.DestroyAllChildren(CardListContent.gameObject);
-            SelectableCards = CardLib.GetAndFilterCards(gameZones: new[] { Lib.GameZone.Stage, Lib.GameZone.Collaboration }, player: target, onlyVisible: true, GetOnlyHolomem: true);
+            SelectableCards = CardLib.GetAndFilterCards(gameZones: new[] { Lib.GameZone.Stage, Lib.GameZone.Collaboration }, player: target, onlyVisible: true, OnlyHolomem: true);
         }
 
         int x = 0; 
@@ -69,7 +69,7 @@ public class DuelField_TargetForAttackMenu : MonoBehaviour
             Card newC = newItem.GetComponent<Card>().Init(item.ToCardData());
 
             TMP_Text itemText = newItem.GetComponentInChildren<TMP_Text>();
-            itemText.text = "";
+            itemText.text = null;
 
             Button itemButton = newItem.GetComponent<Button>();
             itemButton.onClick.AddListener(() => OnItemClick(newItem, x, canSelect));

@@ -23,8 +23,8 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
     private bool doubleSelect = false;
     List<CardData> returnList = new();
     int clickcounter = 0;
-    int mustclick = 0;
-    int MaximumCanPick = -1;
+    int _MinimunCanPick = -1;
+    int _MaximunCanPick = -1;
     static DuelAction _DaToReturn;
 
     [SerializeField] private Button closeButton;
@@ -44,7 +44,7 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
         });
     }
 
-    public IEnumerator SetupSelectableItems(DuelAction DuelAction, List<Card> SelectableCards, List<Card> avaliableForSelect = null, bool doubleselect = false, int MaximumCanPick = -1, bool canClosePanel = false)
+    public IEnumerator SetupSelectableItems(DuelAction DuelAction, List<Card> SelectableCards, List<Card> avaliableForSelect = null, bool doubleselect = false, int MinimunCanPick = -1, int MaximunCanPick = -1, bool canClosePanel = false)
     {
         _canClosePanel = canClosePanel;
 
@@ -53,21 +53,21 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
         DuelField.INSTANCE.isSelectionCompleted = false;
         DuelField_UI_MAP.INSTANCE.SaveAllPanelStatus().DisableAllOther().SetPanel(true, DuelField_UI_MAP.PanelType.SS_EffectBoxes_SelectionPanel);
         DuelField_UI_MAP.INSTANCE.SetPanel(_canClosePanel, DuelField_UI_MAP.PanelType.SS_EffectBoxes_General_PanelCloseButton);
-        FillMenu(DuelAction, SelectableCards, avaliableForSelect, doubleselect, MaximumCanPick);
+        FillMenu(DuelAction, SelectableCards, avaliableForSelect, doubleselect, MinimunCanPick, MaximunCanPick);
 
         yield return new WaitUntil(() => DuelField.INSTANCE.isSelectionCompleted);
         DuelField.INSTANCE.isSelectionCompleted = false;
     }
-    public void FillMenu(DuelAction DuelAction, List<Card> SelectableCards, List<Card> avaliableForSelect, bool doubleselect = false, int MaximumCanPick = -1)
+    public void FillMenu(DuelAction DuelAction, List<Card> SelectableCards, List<Card> avaliableForSelect, bool doubleselect = false, int MinimunCanPick = -1, int MaximunCanPick = -1)
     {
         confirmButton.onClick.RemoveAllListeners();
         confirmButton.onClick.AddListener(FinishSelection);
         DuelField.INSTANCE.isSelectionCompleted = false;
         _DaToReturn = DuelAction;
-        this.MaximumCanPick = MaximumCanPick;
-        this.doubleSelect = doubleselect;
 
-        mustclick = (this.MaximumCanPick == -1) ? SelectableCards.Count : this.MaximumCanPick;
+        this._MinimunCanPick = MinimunCanPick;
+        this._MaximunCanPick = MaximunCanPick;
+        this.doubleSelect = doubleselect;
 
         int x = 0;
         foreach (Card item in SelectableCards)
@@ -88,7 +88,7 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
             }
 
             TMP_Text itemText = newItem.GetComponentInChildren<TMP_Text>();
-            itemText.text = "";
+            itemText.text = null;
 
             int subclickObjects = clickObjects;
 
@@ -103,6 +103,9 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
     void OnItemClick(GameObject itemObject, int itemName, bool canSelect)
     {
         if (canSelect == false)
+            return;
+
+        if (clickcounter == _MaximunCanPick)
             return;
 
         if (!selectedItems.Contains(itemObject))
@@ -157,7 +160,7 @@ public class DuelField_ShowListPickThenReorder : MonoBehaviour
         }
         else
         {
-            if (clickcounter < mustclick)
+            if (clickcounter < _MinimunCanPick)
                 return;
 
             ///////////////////////////////////////////////////////////////////////

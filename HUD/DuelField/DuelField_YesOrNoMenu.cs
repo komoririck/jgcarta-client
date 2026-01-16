@@ -16,7 +16,7 @@ public class DuelField_YesOrNoMenu : MonoBehaviour
     {
         INSTANCE = this;
     }
-    public IEnumerator ShowYesOrNoMenu(DuelAction DaToReturn, string text = "")
+    public IEnumerator ShowYesOrNoMenu(DuelAction DaToReturn, string text = null)
     {
         _DaToReturn = DaToReturn;
         DuelField.INSTANCE.isSelectionCompleted = false;

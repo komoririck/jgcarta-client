@@ -21,7 +21,7 @@ public class Deck : MonoBehaviour
     public IEnumerator HandleGetDeckRequest()
     {
         yield return StartCoroutine(_HTTPSMaker.GetDeckRequest());
-        _HTTPSMaker.returnMessage = "";
+        _HTTPSMaker.returnMessage = null;
     }
     public IEnumerator GetDeckRequest()
     {

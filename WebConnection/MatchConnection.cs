@@ -83,7 +83,7 @@ public class MatchConnection : MonoBehaviour
         int connectionRetry = 0;
         float timer = 0f;
 
-        Request _requestData = new() { type = "" };
+        Request _requestData = new() { type = null };
 
         do {
             if (shouldAsk)
@@ -101,9 +101,10 @@ public class MatchConnection : MonoBehaviour
                 shouldAsk = true;
             }
 
-            if (_requestData.type.Equals(expectedResponse)) {
+            if (_requestData.type.Equals(expectedResponse)) 
+            {
                 updateReturn();
-                _requestData.type = "";
+                _requestData.type = null;
 
                 yield break;
             }

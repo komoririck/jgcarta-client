@@ -41,7 +41,7 @@ public class MatchRoom : MonoBehaviour
         if (_HTTPSMaker.returnMessage.Equals("success"))
         {
             UpdateRoom();
-            _HTTPSMaker.returnMessage = "";
+            _HTTPSMaker.returnMessage = null;
         }
     }
 
@@ -68,7 +68,7 @@ public class MatchRoom : MonoBehaviour
 
         if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage = "";
+            _HTTPSMaker.returnMessage = null;
             SceneManager.LoadScene("MainMenu");
         }
     }
@@ -101,7 +101,7 @@ public class MatchRoom : MonoBehaviour
         yield return StartCoroutine(JoinTable(boardNumber));
         if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage = "";
+            _HTTPSMaker.returnMessage = null;
             //do the screen changes for the table joined
         }
     }
@@ -127,7 +127,7 @@ public class MatchRoom : MonoBehaviour
 
         if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage = "";
+            _HTTPSMaker.returnMessage = null;
             foreach (PlayerMatchRoomPool p in playerMatchRoom.PlayerMatchRoomPool)
             {
 
@@ -170,7 +170,7 @@ public class MatchRoom : MonoBehaviour
 
         if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage = "";
+            _HTTPSMaker.returnMessage = null;
             foreach (PlayerMatchRoomPool p in playerMatchRoom.PlayerMatchRoomPool)
             {
                 if (p.PlayerID.Equals(PlayerInfo.PlayerID))
@@ -205,7 +205,7 @@ public class MatchRoom : MonoBehaviour
 
         if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage = "";
+            _HTTPSMaker.returnMessage = null;
             foreach (PlayerMatchRoomPool p in playerMatchRoom.PlayerMatchRoomPool)
             {
                 if (p.PlayerID.Equals(PlayerInfo.PlayerID))

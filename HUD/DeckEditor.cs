@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Assets.Scripts.Objects;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,7 +32,7 @@ public class DeckEditor : MonoBehaviour
     List<Card> DeckCardList = new();
     List<Card> EnergyCardList = new();
     [SerializeField] Card OshiCard;
-    [SerializeField] string DeckName = "";
+    [SerializeField] string DeckName = null;
 
 
     public Transform displayArea;  // Area where cards will be displayed
@@ -81,7 +82,7 @@ public class DeckEditor : MonoBehaviour
             ActiveDeckButton.active = true;
         }
 
-        UpdateDisplay("");
+        UpdateDisplay(null);
     }
     private void UpdateDisplay(string filter)
     {
@@ -139,8 +140,8 @@ public class DeckEditor : MonoBehaviour
     }
     public void ClearTextButton()
     {
-        textBox.text = "";
-        UpdateDisplay("");
+        textBox.text = null;
+        UpdateDisplay(null);
     }
     void HandleCardClick(GameObject thisCard)
     {
@@ -240,7 +241,7 @@ public class DeckEditor : MonoBehaviour
     void OpenCardDetailMenu()
     {
         CardDetailPanel.SetActive(true);
-        Card card = CardDetailPanel.transform.Find("CardPanelInfo").GetComponent<Card>().SetCardNumber(clickedCard.cardNumber);
+        Card card = CardDetailPanel.transform.Find("CardPanelInfo").GetComponent<Card>().Init(new () {cardNumber = clickedCard.cardNumber});
     }
 
     public void ImportDeckFromClipBoard()
@@ -248,7 +249,7 @@ public class DeckEditor : MonoBehaviour
         string clipboardContent = GUIUtility.systemCopyBuffer;
 
         string[] lines = clipboardContent.Split(new[] { '\n', '\r' }, System.StringSplitOptions.RemoveEmptyEntries);
-        string currentTag = "";
+        string currentTag = null;
 
         // Define valid tags
         HashSet<string> validTags = new HashSet<string> { "#created by", "#main", "#energy", "#oshi" };
@@ -299,7 +300,7 @@ public class DeckEditor : MonoBehaviour
                     break;
                 case "#main":
                     CardToAdd.cardNumber = line.Trim();
-                    if (DeckCardList.Count > 49 && !string.IsNullOrEmpty(CardToAdd.name))
+                    if (DeckCardList.Count > 49 && !string.IsNullOrEmpty(CardToAdd.cardName))
                         Destroy(newCardGameObject);
                     else
                         DeckCardList.Add(CardToAdd);
@@ -308,7 +309,7 @@ public class DeckEditor : MonoBehaviour
                     CardToAdd.cardNumber = line.Trim();
 
                     CardToAdd.transform.SetParent(EnergyContent.transform);
-                    if (EnergyCardList.Count > 19 && !string.IsNullOrEmpty(CardToAdd.name))
+                    if (EnergyCardList.Count > 19 && !string.IsNullOrEmpty(CardToAdd.cardName))
                         Destroy(newCardGameObject);
                     else
                         EnergyCardList.Add(CardToAdd);
@@ -350,8 +351,8 @@ public class DeckEditor : MonoBehaviour
     }
     public void SaveDeckInformation()
     {
-        string DeckText = "";
-        string EnergyText = "";
+        string DeckText = null;
+        string EnergyText = null;
 
         foreach (var number in DeckCardList)
         {
@@ -384,7 +385,7 @@ public class DeckEditor : MonoBehaviour
         {
             yield return StartCoroutine(_HTTPSMaker.UpdateDeckRequest(_DeckData));
             string response = _HTTPSMaker.returnMessage.Equals("success") ? "Deck Updated" : "Error";
-            _HTTPSMaker.returnMessage = "";
+            _HTTPSMaker.returnMessage = null;
             GenericButton.DisplayPopUp(MessageBox, MessageBoxText, response);
         }
         yield return StartCoroutine(HandleSaveDeckRequest(_DeckData));
@@ -398,7 +399,7 @@ public class DeckEditor : MonoBehaviour
             string response = _HTTPSMaker.returnMessage.Equals("success") ? "Deck Active" : "Error";
             if (response.Equals("Deck Active"))
                 ActiveDeckButton.active = false;
-            _HTTPSMaker.returnMessage = "";
+            _HTTPSMaker.returnMessage = null;
             GenericButton.DisplayPopUp(MessageBox, MessageBoxText, response);
         }
         yield return StartCoroutine(HandleSetDeckAsActiveRequest(new DeckData() { deckId = _DeckData.deckId }));
@@ -419,7 +420,7 @@ public class DeckEditor : MonoBehaviour
             Button button = newCardGameObject.AddComponent<Button>();
             button.onClick.AddListener(() => HandleCardClick(newCardGameObject));
 
-            if (DeckCardList.Count > 49 && !string.IsNullOrEmpty(CardToAdd.name))
+            if (DeckCardList.Count > 49 && !string.IsNullOrEmpty(CardToAdd.cardName))
                 Destroy(newCardGameObject);
             else
                 DeckCardList.Add(CardToAdd);
@@ -435,7 +436,7 @@ public class DeckEditor : MonoBehaviour
             Button button = newCardGameObject.AddComponent<Button>();
             button.onClick.AddListener(() => HandleCardClick(newCardGameObject));
 
-            if (EnergyCardList.Count > 19 && !string.IsNullOrEmpty(CardToAdd.name))
+            if (EnergyCardList.Count > 19 && !string.IsNullOrEmpty(CardToAdd.cardName))
                 Destroy(newCardGameObject);
             else
                 EnergyCardList.Add(CardToAdd);

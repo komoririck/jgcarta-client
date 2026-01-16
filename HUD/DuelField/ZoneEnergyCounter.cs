@@ -35,7 +35,7 @@ public class ZoneEnergyCounter : MonoBehaviour
         foreach (Transform child in transform.parent.transform)
         {
             Card card = child.GetComponent<Card>();
-            if (card == null || string.IsNullOrEmpty(card.cardType)) continue;
+            if (card == null) continue;
 
             List<string> toremoved = new ();
             foreach (KeyValuePair<string, GameObject> s in colorPrefabs)
@@ -46,10 +46,12 @@ public class ZoneEnergyCounter : MonoBehaviour
 
             foreach (string s in toremoved)
                 colorPrefabs.Remove(s);
-            
-            if (!card.cardType.Equals("エール")) continue;
 
-            string color = card.color;
+            if (string.IsNullOrEmpty(card.cardNumber)) continue;
+
+            if (!(card.cardType == CardType.エール)) continue;
+
+            string color = card.color.ToString();
             if (colorCounts.ContainsKey(color))
             {
                 colorCounts[color]++;
@@ -87,8 +89,10 @@ public class ZoneEnergyCounter : MonoBehaviour
 
     private Sprite GetColorSprite(string color)
     {
-        switch (color)
+        switch (color.ToString())
         {
+            case "無":
+                return Resources.Load<Sprite>("Colors/arts_null");
             case "無色":
                 return Resources.Load<Sprite>("Colors/arts_null");
             case "青":

@@ -96,10 +96,10 @@ public class PlayerProfile : MonoBehaviour
         yield return StartCoroutine(UpdatePlayerName());
         if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage = "";
+            _HTTPSMaker.returnMessage = null;
             PlayerNameText.text = PlayerNameInput.text;
             PlayerInfo.PlayerName = PlayerNameText.text;
-            PlayerNameInput.text = "";
+            PlayerNameInput.text = null;
         }
     }
     public void PPListButton()
@@ -128,7 +128,7 @@ public class PlayerProfile : MonoBehaviour
         yield return StartCoroutine(UpdatePlayerIcon(selectedProfilePicture));
         if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage = "";
+            _HTTPSMaker.returnMessage = null;
             PlayerInfo.PlayerIcon = selectedProfilePicture;
                 Sprite newSprite = Resources.Load<Sprite>("AvatarIcons/AvatarIcon" + PlayerInfo.PlayerIcon);
                 if (imageToChange != null && newSprite != null)
@@ -145,7 +145,7 @@ public class PlayerProfile : MonoBehaviour
             playerName = PlayerNameInput.text,
             password = PlayerInfo.Password,
             playerID = PlayerInfo.PlayerID,
-            email = "",
+            email = null,
             playerIcon = 0,
             holoCoins = 0,
             holoGold = 0,
@@ -161,7 +161,7 @@ public class PlayerProfile : MonoBehaviour
             playerItemBox = new List<HTTPSMaker.PlayerItemBoxData>(),
             playerMessageBox = new List<HTTPSMaker.PlayerMessageBoxData>(),
             playerMissionList = new List<HTTPSMaker.PlayerMissionData>(),
-            requestData = new Request { type = "UpdateName", description = "", duelAction = null }
+            requestData = new Request { type = "UpdateName", description = null, duelAction = null }
         };
 
         yield return StartCoroutine(_HTTPSMaker.UpdatePlayerInfo(playerinfoupdate));
@@ -170,10 +170,10 @@ public class PlayerProfile : MonoBehaviour
     {
         HTTPSMaker.PlayerInfoData playerinfoupdate = new()
         {
-            playerName = "",
+            playerName = null,
             password = PlayerInfo.Password,
             playerID = PlayerInfo.PlayerID,
-            email = "",
+            email = null,
             playerIcon = i,
             holoCoins = 0,
             holoGold = 0,
@@ -189,7 +189,7 @@ public class PlayerProfile : MonoBehaviour
             playerItemBox = new List<HTTPSMaker.PlayerItemBoxData>(),
             playerMessageBox = new List<HTTPSMaker.PlayerMessageBoxData>(),
             playerMissionList = new List<HTTPSMaker.PlayerMissionData>(),
-            requestData = new Request { type = "UpdateProfilePicture", description = "", duelAction = null }
+            requestData = new Request { type = "UpdateProfilePicture", description = null, duelAction = null }
         };
 
         yield return StartCoroutine(_HTTPSMaker.UpdatePlayerInfo(playerinfoupdate));

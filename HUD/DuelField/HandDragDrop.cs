@@ -83,7 +83,7 @@ public class HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHandler, IEnd
         if (targetZone == null)
             return;
 
-        thisCard = GetComponent<Card>().Init(GetComponent<Card>().ToCardData());
+        thisCard = GetComponent<Card>();
         TargetZoneEnum = DuelField.INSTANCE.GetZoneByString(targetZone.name);
         targetCard = CardLib.GetAndFilterCards(player: Player.Player, onlyVisible: true, gameZones: new[] { TargetZoneEnum }).FirstOrDefault();
 
@@ -105,7 +105,7 @@ public class HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHandler, IEnd
                 break;
 
             case GAMEPHASE.CheerStepChoose:
-                if (targetCard == null || !(targetCard.cardType == "ホロメン" || targetCard.cardType == "Buzzホロメン"))
+                if (targetCard == null || !(targetCard.cardType == CardType.ホロメン || targetCard.cardType == CardType.Buzzホロメン))
                     break;
 
                 MatchConnection.INSTANCE.SendRequest(da, "CheerChooseRequest");
@@ -120,25 +120,25 @@ public class HandDragDrop : MonoBehaviour, IBeginDragHandler, IDragHandler, IEnd
     {
         switch (thisCard.cardType)
         {
-            case "サポート・イベント":
-            case "サポート・アイテム":
+            case CardType.サポートイベント:
+            case CardType.サポートアイテム:
                 MatchConnection.INSTANCE.SendRequest(da, "ResolveOnSupportEffect");
                 break;
-            case "サポート・スタッフ・LIMITED":
-            case "サポート・イベント・LIMITED":
-            case "サポート・アイテム・LIMITED":
+            case CardType.サポートスタッフLIMITED:
+            case CardType.サポートイベントLIMITED:
+            case CardType.サポートアイテムLIMITED:
                 if (DuelField.INSTANCE.playerLimiteCardPlayed.Count > 0)
                     return;
                 DuelField.INSTANCE.playerLimiteCardPlayed.Add(thisCard);
                 MatchConnection.INSTANCE.SendRequest(da, "ResolveOnSupportEffect");
                 break;
-            case "サポート・ツール":
-            case "サポート・マスコット":
-            case "サポート・ファン":
+            case CardType.サポートツール:
+            case CardType.サポートマスコット:
+            case CardType.サポートファン:
                 MatchConnection.INSTANCE.SendRequest(da, "AttachEquipamentToHolomem");
                 break;
-            case "ホロメン":
-            case "Buzzホロメン":
+            case CardType.ホロメン:
+            case CardType.Buzzホロメン:
                 if (!DuelField.DEFAULTHOLOMEMZONE.Contains(TargetZoneEnum) || targetZone == null)
                     return;
 

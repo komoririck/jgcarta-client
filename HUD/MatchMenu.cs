@@ -56,7 +56,7 @@ public class MatchMenu : MonoBehaviour
 
     public IEnumerator HandleJoinMatchPoolButton(string buttonName)
     {
-        string queueType = "";
+        string queueType = null;
 
         if (buttonName.Equals("Casual"))
             queueType = "Casual";
@@ -66,7 +66,7 @@ public class MatchMenu : MonoBehaviour
         yield return StartCoroutine(JoinMatchQueue(queueType));
         if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage = "";
+            _HTTPSMaker.returnMessage = null;
             SceneManager.LoadScene("Queuing");
         }
     }
@@ -78,7 +78,7 @@ public class MatchMenu : MonoBehaviour
 
     public IEnumerator HandleJoinRoomButton(string buttonName, string t)
     {
-        string queueType = "";
+        string queueType = null;
         string roomID = t;
 
         if (buttonName.Equals("JoinRoomInfo"))
@@ -96,7 +96,7 @@ public class MatchMenu : MonoBehaviour
                     NoRoomFound();
                     break;
             }
-            _HTTPSMaker.returnMessage = "";
+            _HTTPSMaker.returnMessage = null;
         }
     public IEnumerator JoinRoom(string queueType, string roomId)
     {

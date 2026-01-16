@@ -70,7 +70,7 @@ public class SceneLoginLoginButton : MonoBehaviour // refact this name later
 
         if (_HTTPSMaker.returnMessage.Equals("success"))
         {
-            _HTTPSMaker.returnMessage = "";
+            _HTTPSMaker.returnMessage = null;
             SceneManager.LoadScene("MainMenu");
         }
     }
@@ -79,7 +79,7 @@ public class SceneLoginLoginButton : MonoBehaviour // refact this name later
     {
         PlayerPrefs.DeleteAll();
 
-        PlayerInfo.PlayerID = "";
+        PlayerInfo.PlayerID = null;
         PlayerInfo.Password = null;
     }
     public void OpenDataTransferPanel()
@@ -109,7 +109,7 @@ public class SceneLoginLoginButton : MonoBehaviour // refact this name later
 
                 if (_HTTPSMaker.returnMessage.Equals("success"))
                 {
-                    _HTTPSMaker.returnMessage = "";
+                    _HTTPSMaker.returnMessage = null;
                     SceneManager.LoadScene("MainMenu");
                 }
             }

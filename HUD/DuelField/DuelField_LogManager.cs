@@ -6,11 +6,11 @@ using UnityEngine;
 public class DuelField_LogManager : MonoBehaviour
 {
     public static void AddLog(DuelAction _DuelAction, string type) {
-        string whichPlayer = "";
-        if (_DuelAction == null || _DuelAction.playerID != null)
+        string whichPlayer = null;
+        if (_DuelAction == null || _DuelAction.player != null)
             whichPlayer = DuelField.INSTANCE.IsMyTurn() ? "You" : "Your Opponent";
         else
-            whichPlayer = _DuelAction.playerID == DuelField.INSTANCE.playersType[PlayerInfo.INSTANCE.PlayerID] ? "You" : "Your Opponent";
+            whichPlayer = _DuelAction.player == DuelField.INSTANCE.playersType[PlayerInfo.INSTANCE.PlayerID] ? "You" : "Your Opponent";
 
         switch (type){
             case "StartDuel":
@@ -42,7 +42,7 @@ public class DuelField_LogManager : MonoBehaviour
                 InstantiateLogObj(textValue);
                 break;
             case "ReSetStage":
-                textValue = "";
+                textValue = null;
                 if (_DuelAction.used != null)
                 {
                     textValue += $"Last turn {whichPlayer} center holomember has defeated, your choosed {_DuelAction.used.cardNumber} as your new holomember\n";

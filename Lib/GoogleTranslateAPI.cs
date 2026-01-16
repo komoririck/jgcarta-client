@@ -45,7 +45,7 @@ public class GoogleTranslateAPI : MonoBehaviour
         text.Replace("&lt", "|");
 
         if (string.IsNullOrEmpty(text))
-            return null;
+            return string.Empty;
         
         try
         {

@@ -4,6 +4,7 @@ using System.Linq;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using static DuelField;
+using static Lib;
 
 class CardLib
 {
@@ -16,11 +17,13 @@ class CardLib
         equip,
         all,
     }
-    public static List<Card> GetAndFilterCards(List<Card> CardList = null, List<string> cardType = null, List<string> bloomLevel = null, List<string> cardNumber = null, List<string> color = null, List<string> cardName = null, bool onlyVisible = false, Lib.GameZone[] gameZones = null, Player player = Player.na, bool GetOnlyHolomem = false, bool GetLimitedCards = false, bool CardThatAllowReRoll = false, bool GetAllSuportTypes = false, List<string> ContainTags = null, bool WhoCanBloom = false, bool OnlyBackStage = false , bool CheckFieldForHasRestrictionsToPlayEquip = false, bool GetOnlyItemMascot = false, CardData CardToBeFound = null, CardFilter filter = null, bool CheckForAttachableTargetsOnTheBoard = false, bool isNotSuspended = false, attachType OnlyWithAttachment = attachType.na )
+    public static List<Card>? GetAndFilterCards(CardFilter? filter = null, List<Card>? CardList = null, List<CardType>? cardType = null, List<BloomLevel>? bloomLevel = null, List<string>? cardNumber = null, List<ColorCard>? color = null,
+        List<string>? name = null, bool? onlyVisible = null, GameZone[]? gameZones = null, Player? player = null, bool? OnlyHolomem = null, bool? OnlyLimited = null, bool? CardThatAllowReRoll = null,
+        List<string>? ContainTags = null, bool? OnlyBlommable = null, bool? OnlyEquipable = null, bool? isMascot = null, CardData? CardToBeFound = null, bool? Suspended = null, string? resolutionState = null,
+        GameZone? matchZoneColor = null, int? last = null, bool? playedThisTurn = null, List<string>? NameExcluded = null, GameZone[]? playedFrom = null, bool? Attachments = null, int? minHp = null, int? missingHpAtLeast = null,
+        int? exactHp = null, string? effectTiming = null, bool? CheckActivation = null, bool? IsEnergy = null, bool? NameInEffect = null, bool? IsKnocked = null, Card? TriggerSource = null, bool? isTool = null, bool? isSuport = null,
+        bool? isToolMascotSuport = null)
     {
-        //var thisCard = CardLib.GetAndFilterCards(gameZones: new[] { da.usedCard.curZone }, player: TargetPlayer.Player, color: new() { "赤" }, cardType: new() { "エール" });
-        //List<string> cardType = IsACheer ? new (){ "エール"} : new() { "サポート・ツール", "サポート・マスコット", "サポート・ファン" };
-        //cardType: new() { "ホロメン", "Buzzホロメン" }
 
         if (CardToBeFound != null)
         {
@@ -28,39 +31,41 @@ class CardLib
             cardNumber = new() { CardToBeFound.cardNumber };
         }
 
-        if (GetOnlyHolomem)
-            cardType = new() { "ホロメン", "Buzzホロメン" };
+        if (OnlyHolomem != null)
+            cardType = new() { CardType.ホロメン, CardType.Buzzホロメン };
 
-        if (GetOnlyItemMascot)
-            cardType = new() { "サポート・マスコット", "サポート・アイテム", "サポート・アイテム・LIMITED" };
+        if (IsEnergy != null)
+            cardType = new() { CardType.エール };
 
-        if (GetAllSuportTypes)
-            cardType = new() { "サポート・ツール", "サポート・マスコット", "サポート・ファン" };
-        
-        if (GetLimitedCards)
-        {
-            cardType = new() { "サポート・アイテム・LIMITED", "サポート・イベント・LIMITED", "サポート・スタッフ・LIMITED" };
-        }
+        if (OnlyLimited != null)
+            cardType = new() { CardType.サポートアイテムLIMITED, CardType.サポートイベントLIMITED, CardType.サポートスタッフLIMITED };
+
+        if (isToolMascotSuport != null)
+            cardType = new() { CardType.サポートツール, CardType.サポートファン, CardType.サポートアイテム, CardType.サポートアイテムLIMITED, CardType.サポートマスコット };
+
+        if (isSuport != null)
+            cardType = new() { CardType.サポートツール, CardType.サポートファン };
+
+        if (isTool != null)
+            cardType = new() { CardType.サポートアイテム, CardType.サポートアイテムLIMITED };
+
+        if (isMascot != null)
+            cardType = new() { CardType.サポートマスコット };
 
         if (CardList == null && gameZones == null)
-        {
-            gameZones = DuelField.DEFAULTHOLOMEMZONE;
-
-            if (OnlyBackStage)
-                gameZones = DuelField.DEFAULTBACKSTAGE;
-        }
+            gameZones = DuelField.DEFAULTALL;
 
         //If no CardList is provided, get all cards from the specified zones
         if (CardList == null && gameZones != null)
         {
-            if (player.Equals(Player.na))
+            if (player == null || player.Equals(Player.na))
             {
                 CardList = gameZones.SelectMany(zone => DuelField.INSTANCE.GetZone(zone, Player.Player).GetComponentsInChildren<Card>(includeInactive: true)).ToList();
                 CardList.AddRange(gameZones.SelectMany(zone => DuelField.INSTANCE.GetZone(zone, Player.Oponnent).GetComponentsInChildren<Card>(includeInactive: true)).ToList());
             }
             else
             {
-                CardList = gameZones.SelectMany(zone => DuelField.INSTANCE.GetZone(zone, player).GetComponentsInChildren<Card>(includeInactive: true)).ToList();
+                CardList = gameZones.SelectMany(zone => DuelField.INSTANCE.GetZone(zone, (Player)player).GetComponentsInChildren<Card>(includeInactive: true)).ToList();
             }
         }
         else if (gameZones != null)
@@ -69,85 +74,91 @@ class CardLib
         }
 
         //Filter by required
-        if (cardType != null)
+        if (Attachments != null)
         {
-            CardList = CardList.FindAll(card => cardType.Contains(card.cardType));
+            List<Card> finalList = new();
+            foreach (Card card in CardList)
+            {
+                finalList.AddRange(card.attachedEnergy);
+                finalList.AddRange(card.attachedEquipe);
+                finalList.AddRange(card.bloomChild);
+            }
+            CardList = finalList;
         }
-        if (bloomLevel != null) 
-        { 
-            CardList = CardList.FindAll(card => bloomLevel.Contains(card.bloomLevel));
+        if (playedFrom != null)
+        {
+            CardList = CardList.FindAll(card => playedFrom.Contains(card.lastZone));
         }
-        if (cardNumber != null) 
-        { 
+        if (matchZoneColor != null)
+        {
+            color ??= new();
+            color.Add((ColorCard)GetAndFilterCards(player: player, gameZones: new[] { (GameZone)matchZoneColor }, onlyVisible: true).FirstOrDefault().color);
+        }
+        if (cardNumber != null)
+        {
             CardList = CardList.FindAll(card => cardNumber.Contains(card.cardNumber));
         }
-        if (color != null) 
-        { 
-            CardList = CardList.FindAll(card => color.Contains(card.color));
-        }
-        if (cardName != null) 
-        { 
-            CardList = CardList.FindAll(card => cardName.Contains(card.cardName));
-        }
-        if (onlyVisible) 
+        if (onlyVisible != null)
         {
-            CardList = CardList.Where(c => c.father == null).ToList();
+            CardList = CardList.FindAll(card => card.gameObject.activeSelf == true);
+        }
+        if (cardType != null)
+        {
+            CardList = CardList.FindAll(card => cardType.Contains((CardType)card.cardType));
+        }
+        if (bloomLevel != null)
+        {
+            CardList = CardList.FindAll(card => bloomLevel.Contains((BloomLevel)card.bloomLevel));
+        }
+        if (color != null)
+        {
+            CardList = CardList.FindAll(card => color.Contains((ColorCard)card.color));
         }
         if (ContainTags != null && ContainTags.Count > 0)
         {
             CardList = CardList.FindAll(card => ContainTags.All(tag => card.cardTag.Contains(tag)));
         }
-        if (CardThatAllowReRoll)
+        if (Suspended != null)
         {
-            HashSet<Card> uniqueParents = new HashSet<Card>();
-            foreach (Card card in CardList)
-            {
-                if (card.cardNumber.Equals("hBP01-123"))
-                {
-                    Card parentCard = card.transform.parent.GetComponent<Card>();
-                    uniqueParents.Add(parentCard);
-                }
-            }
-            CardList = uniqueParents.ToList();
+            CardList = CardList.FindAll(card => card.suspended == Suspended);
         }
-        if (WhoCanBloom && bloomLevel != null)
-        {   
+        if (minHp != null)
+        {
+            CardList = CardList.FindAll(card => card.currentHp > minHp);
+        }
+        if (missingHpAtLeast != null)
+        {
+            CardList = CardList.FindAll(card =>
+                (int.Parse(card.hp) - card.currentHp) >= missingHpAtLeast);
+        }
+        if (exactHp != null)
+        {
+            CardList = CardList.FindAll(card => int.Parse(card.hp) == exactHp);
+        }
+        if (OnlyBlommable != null)
+        {
             List<Card> checkedCards = new();
-            foreach (Card card in CardList)
+            foreach (Card cardk in CardList)
             {
-                foreach (string s in bloomLevel)
-                    if (NamesThatCanBloom(s).Contains(card.cardName))
-                        checkedCards.Add(card);
+                var level = cardk.bloomLevel.Equals(BloomLevel.debut) ? BloomLevel.st1 : BloomLevel.nd2;
+                if (GetAndFilterCards(player: player, OnlyHolomem: true, playedThisTurn: false, name: new() { cardk.cardName }, bloomLevel: new() { level }).FirstOrDefault() != null)
+                    checkedCards.Add(cardk);
             }
             CardList = checkedCards;
         }
-
-        if (WhoCanBloom && bloomLevel == null) 
+        if (playedThisTurn != null)
         {
-            Debug.Log("wrong way of calling this function");
+            CardList = CardList.FindAll(card => card.playedThisTurn);
         }
-
-        CardList = OnlyWithAttachment switch
+        //EXCLUSIONS
+        if (NameExcluded != null)
         {
-            attachType.energy =>
-                CardList.FindAll(card => card.attachedEnergy != null && card.attachedEnergy.Count > 0),
-
-            attachType.equip =>
-                CardList.FindAll(card => card.attachedEquipe != null && card.attachedEquipe.Count > 0),
-
-            attachType.mascot =>
-                CardList.FindAll(card => card.bloomChild != null && card.bloomChild.Count > 0),
-
-            attachType.all =>
-                CardList.FindAll(card =>
-                    (card.attachedEnergy != null && card.attachedEnergy.Count > 0) ||
-                    (card.attachedEquipe != null && card.attachedEquipe.Count > 0) ||
-                    (card.bloomChild != null && card.bloomChild.Count > 0)
-                ),
-
-            _ => CardList
-        };
-
+            CardList = CardList.FindAll(card => !NameExcluded.Contains(card.cardName));
+        }
+        if (last != null && last > 0 && CardList.Count > last)
+        {
+            CardList = CardList.TakeLast((int)last).ToList();
+        }
         return CardList;
     }
     public static List<string> NamesThatCanBloom(string level)
@@ -181,7 +192,7 @@ class CardLib
         x.AddRange(DuelField.DEFAULTBACKSTAGE);
         x.Add(Lib.GameZone.Favourite);
 
-        return GetAndFilterCards(player: target, gameZones: x.ToArray(), GetOnlyHolomem: true, onlyVisible: true).Count;
+        return GetAndFilterCards(player: target, gameZones: x.ToArray(), OnlyHolomem: true, onlyVisible: true).Count;
     }
     public static bool CanActivateOshiSkill(string cardNumber)
     {
@@ -201,32 +212,6 @@ class CardLib
                 break;
             case "xxx":
                 break;
-        }
-        return true;
-    }
-    public static bool CanActivateSPOshiSkill(string cardNumber)
-    {
-        int holoPowerCount = DuelField.INSTANCE.GetZone(Lib.GameZone.HoloPower, DuelField.Player.Player).transform.childCount - 1;
-
-        if (holoPowerCount < HoloPowerCost(cardNumber, true))
-            return false;
-
-        switch (cardNumber)
-        {
-            case "hSD01-001":
-                //check if opponent has another holomem to switch for the center
-                int backstagecount = CountPlayerActiveHolomem(true, DuelField.Player.Oponnent);
-                return (backstagecount > 0);
-            case "hYS01-003":
-                foreach (Card card in DuelField.INSTANCE.GetZone(Lib.GameZone.Arquive, DuelField.Player.Player).GetComponentsInChildren<Card>())
-                    if (card.cardType.Equals("ホロメン") || card.cardType.Equals("Buzzホロメン"))
-                        return true;
-                return false;
-            case "hSD01-002":
-                foreach (Card card in DuelField.INSTANCE.GetZone(Lib.GameZone.Arquive, DuelField.Player.Player).GetComponentsInChildren<Card>())
-                    if (card.cardType.Equals("エール") && CardLib.GetAndFilterCards(player: Player.Player, color: new (){ "緑" }).Count > 0)
-                        return true;
-                return false;
         }
         return true;
     }

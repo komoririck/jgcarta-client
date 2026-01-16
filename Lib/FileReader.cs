@@ -1,107 +1,56 @@
-using System.Linq;
-using UnityEngine;
+﻿using Assets.Scripts.Objects;
+using Newtonsoft.Json;
+using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
-using System;
-
-public class Record
-{
-
-
-    public string Name { get; set; }
-    public string CardType { get; set; }
-    public string Rarity { get; set; }
-    public string Product { get; set; }
-    public string Color { get; set; }
-    public string HP { get; set; }
-    public string BloomLevel { get; set; }
-    public string Arts { get; set; }
-    public string OshiSkill { get; set; }
-    public string SPOshiSkill { get; set; }
-    public string AbilityText { get; set; }
-    public string Illustrator { get; set; }
-    public string CardNumber { get; set; }
-    public string Life { get; set; }
-    public string Tag { get; set; }
-    public string ArtEffect { get; set; }
-}
-
+using UnityEngine;
 
 public class FileReader : MonoBehaviour
 {
-    public string fileName = "CardList"; // Ensure file is named CardList.txt in the Resources folder
-    public static Dictionary<string, Record> result = new();
+    [SerializeField] public static Dictionary<string, Record> result = new();
+
+    string fileName = "cards_final";
+    TextAsset textFile;
+
+    static JsonSerializerSettings settings = new JsonSerializerSettings
+    {
+        NullValueHandling = NullValueHandling.Include,
+        MissingMemberHandling = MissingMemberHandling.Ignore,
+        FloatParseHandling = FloatParseHandling.Double
+    };
 
     void Start()
     {
-        if (result.Count == 0) {
-            ReadTextFile(fileName);
+        textFile = Resources.Load<TextAsset>(fileName);
+        if (result.Count == 0) 
+        {
+            StartCoroutine (ReadFileV2(textFile.text));
         }
     }
 
-    public static Dictionary<string, Record> ReadTextFile(string fileName)
+    public static IEnumerator ReadFileV2(string json)
     {
-        // Load the .txt file as a TextAsset from the Resources folder
-        TextAsset textFile = Resources.Load<TextAsset>(fileName);
+        var jsonCards = JsonConvert.DeserializeObject<List<Record>>(json, settings);
+        var resultt = new Dictionary<string, Record>();
 
-        // Check if the file was found
-        if (textFile == null)
+        foreach (var cardx in jsonCards)
         {
-            Debug.LogError($"File not found: {fileName}.txt in Resources folder.");
-            return null;
-        }
-
-        // Split the file content into lines
-        string[] lines = textFile.text.Split('\n');
-
-        // Skip the header line and process the rest
-        for (int i = 1; i < lines.Length; i++)
-        {
-            string line = lines[i].Trim();
-
-            if (string.IsNullOrEmpty(line))
-                continue; // Skip empty lines
-
-            // Split line into parts, expecting comma separation
-            string[] parts = line.Split(','); // Adjust based on actual data delimiter
-
-            // Check for correct data length
-            if (parts.Length < 14)
+            if (cardx.Id < 199)
+                resultt.TryAdd(cardx.CardNumber, cardx);
+            if (cardx.Id > 198)
             {
-                Debug.LogError($"Invalid data format in line {i + 1}: {line}");
-                continue;
-            }
-
-            // Create a new Record from the line data
-            Record record = new()
-            {
-                Name = parts[0],
-                CardType = parts[1],
-                Rarity = parts[2],
-                Product = parts[3],
-                Color = parts[4],
-                HP = parts[5],
-                BloomLevel = parts[6],
-                Arts = parts[7],
-                OshiSkill = parts[8],
-                SPOshiSkill = parts[9],
-                AbilityText = parts[10],
-                Illustrator = parts[11],
-                CardNumber = parts[12],
-                Life = parts[13],
-                Tag = parts[14],
-                ArtEffect = parts[17]
-            };
-
-            try {
-                result.TryAdd(parts[12], record);
-            } 
-            catch (Exception e) 
-            { 
+                bool add = true;
+                if (cardx.CardType == "ホロメン" || cardx.CardType == "Buzzホロメン")
+                    foreach (var art in cardx.Arts)
+                    {
+                        if (!string.IsNullOrEmpty(JsonArt.Convert(art).Effect))
+                            add = false;
+                    }
+                if (add)
+                    resultt.TryAdd(cardx.CardNumber, cardx);
             }
         }
-
-        return result;
+        result = resultt;
+        yield break;
     }
 }
 

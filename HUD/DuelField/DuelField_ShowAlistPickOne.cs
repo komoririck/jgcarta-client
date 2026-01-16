@@ -75,7 +75,7 @@ public class DuelField_ShowAlistPickOne : MonoBehaviour
             }
 
             TMP_Text itemText = newItem.GetComponentInChildren<TMP_Text>();
-            itemText.text = "";
+            itemText.text = null;
 
             Button itemButton = newItem.GetComponent<Button>();
             itemButton.onClick.AddListener(() => OnItemClick(newItem, canSelect));

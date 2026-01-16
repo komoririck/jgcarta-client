@@ -29,8 +29,8 @@ public class HTTPSMaker : MonoBehaviour
     public IEnumerator CreateAccount()
     {
         Request _PlayerRequest = new() { 
-            playerID = "",
-            password =  "",
+            playerID = null,
+            password =  null,
         };
 
         yield return httpManager.MakeRequest(
@@ -183,7 +183,7 @@ public class HTTPSMaker : MonoBehaviour
         Request pa = new Request(); //TODO
 
         yield return httpManager.MakeRequest(
-            (APIConnectionUrl + ""),
+            (APIConnectionUrl + null),
             pa,
             onSuccess: (response) =>
             {

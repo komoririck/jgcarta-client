@@ -60,7 +60,7 @@ public sealed class ActionQueue
             foreach (GameObject obj in DuelField.INSTANCE.changedZones.Distinct())
             {
                 if (obj.gameObject.name.Contains("Hand"))
-                    yield return DuelField_ActionLibrary.ArrangeCards(obj.gameObject);
+                    yield return ActionLibrary.ArrangeCards(obj.gameObject);
             }
 
             _currentIndex++;
@@ -70,12 +70,12 @@ public sealed class ActionQueue
         foreach (GameObject obj in DuelField.INSTANCE.changedZones.Distinct())
         {
             if (obj.gameObject.name.Contains("Life"))
-                yield return DuelField_ActionLibrary.ArrangeCards(obj.gameObject, true);
+                yield return ActionLibrary.ArrangeCards(obj.gameObject, true);
 
             if (!(obj.gameObject.name.Contains("Hand")))
             {
-                yield return DuelField_ActionLibrary.CardCounter(obj);
-                yield return DuelField_ActionLibrary.StackCardsEffect(obj);
+                yield return ActionLibrary.CardCounter(obj);
+                yield return ActionLibrary.StackCardsEffect(obj);
             }
         }
         DuelField.INSTANCE.changedZones.Clear();
